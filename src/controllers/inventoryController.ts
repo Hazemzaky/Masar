@@ -64,17 +64,64 @@ export function deleteItem(req: Request, res: Response) {
 export function createTransaction(req: Request, res: Response) {
   (async () => {
     try {
-      const { item, type, quantity, ...rest } = req.body;
+      const { type, parts, maintenanceId, ...rest } = req.body;
+      
+      // Handle multiple parts for maintenance
+      if (parts && Array.isArray(parts)) {
+        const transactions = [];
+        
+        for (const part of parts) {
+          const { item, quantity, notes } = part;
+          const inventoryItem = await InventoryItem.findById(item);
+          if (!inventoryItem) {
+            return res.status(404).json({ message: `Item ${item} not found` });
+          }
+          
+          let newQty = inventoryItem.quantity;
+          if (type === 'inbound') newQty += quantity;
+          else if (type === 'outbound') newQty -= quantity;
+          else if (type === 'adjustment') newQty = quantity;
+          
+          if (newQty < 0) {
+            return res.status(400).json({ 
+              message: `Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity} ${inventoryItem.uom}` 
+            });
+          }
+          
+          inventoryItem.quantity = newQty;
+          await inventoryItem.save();
+          
+          const transaction = new InventoryTransaction({ 
+            item, 
+            type, 
+            quantity, 
+            notes,
+            relatedMaintenance: maintenanceId,
+            ...rest 
+          });
+          await transaction.save();
+          transactions.push(transaction);
+        }
+        
+        return res.status(201).json(transactions);
+      }
+      
+      // Handle single item transaction (original logic)
+      const { item, quantity, ...singleRest } = req.body;
       const inventoryItem = await InventoryItem.findById(item);
       if (!inventoryItem) return res.status(404).json({ message: 'Item not found' });
+      
       let newQty = inventoryItem.quantity;
       if (type === 'inbound') newQty += quantity;
       else if (type === 'outbound') newQty -= quantity;
       else if (type === 'adjustment') newQty = quantity;
+      
       if (newQty < 0) return res.status(400).json({ message: 'Insufficient stock' });
+      
       inventoryItem.quantity = newQty;
       await inventoryItem.save();
-      const transaction = new InventoryTransaction({ item, type, quantity, ...rest });
+      
+      const transaction = new InventoryTransaction({ item, type, quantity, ...singleRest });
       await transaction.save();
       res.status(201).json(transaction);
     } catch (error) {

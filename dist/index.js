@@ -59,6 +59,12 @@ const employeeRoutes_1 = __importDefault(require("./routes/employeeRoutes"));
 const payrollRoutes_1 = __importDefault(require("./routes/payrollRoutes"));
 const reimbursementRoutes_1 = __importDefault(require("./routes/reimbursementRoutes"));
 const leaveRoutes_1 = __importDefault(require("./routes/leaveRoutes"));
+const hseRoutes_1 = __importDefault(require("./routes/hseRoutes"));
+const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
+const procurementRoutes_1 = __importDefault(require("./routes/procurementRoutes"));
+const travelRoutes_1 = __importDefault(require("./routes/travelRoutes"));
+const travelRequestRoutes_1 = __importDefault(require("./routes/travelRequestRoutes"));
+const travelAuthorizationRoutes_1 = __importDefault(require("./routes/travelAuthorizationRoutes"));
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -82,6 +88,10 @@ app.use(express_1.default.json());
 app.use('/uploads', express_1.default.static('uploads'));
 app.get('/', (req, res) => {
     res.send('Financial Management API is running');
+});
+// Debug route to test if the server is working
+app.get('/debug', (req, res) => {
+    res.json({ message: 'Server is working', timestamp: new Date().toISOString() });
 });
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -124,6 +134,12 @@ app.use('/api/employees', employeeRoutes_1.default);
 app.use('/api/payroll', payrollRoutes_1.default);
 app.use('/api/reimbursements', reimbursementRoutes_1.default);
 app.use('/api/leave', leaveRoutes_1.default);
+app.use('/api/hse', hseRoutes_1.default);
+app.use('/api/admin', adminRoutes_1.default);
+app.use('/api/procurement', procurementRoutes_1.default);
+app.use('/api/travel', travelRoutes_1.default);
+app.use('/api/travel-requests', travelRequestRoutes_1.default);
+app.use('/api/travel-authorizations', travelAuthorizationRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

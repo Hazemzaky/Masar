@@ -1,14 +1,21 @@
 import { Router } from 'express';
 import * as assetController from '../controllers/assetController';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/', assetController.createAsset);
-router.get('/', assetController.getAssets);
-router.get('/:id', assetController.getAsset);
-router.put('/:id', assetController.updateAsset);
-router.delete('/:id', assetController.deleteAsset);
-router.patch('/:id/status', assetController.changeAssetStatus);
-router.post('/:id/calculate-depreciation', assetController.calculateDepreciation);
+// Debug route to test if requests reach the asset routes (using a more specific path)
+router.get('/debug-test', (req, res) => {
+  console.log('Asset test route hit');
+  res.json({ message: 'Asset routes are working' });
+});
+
+router.post('/', authenticate, assetController.createAsset);
+router.get('/', authenticate, assetController.getAssets);
+router.get('/:id', authenticate, assetController.getAsset);
+router.put('/:id', authenticate, assetController.updateAsset);
+router.delete('/:id', authenticate, assetController.deleteAsset);
+router.patch('/:id/status', authenticate, assetController.changeAssetStatus);
+router.post('/:id/calculate-depreciation', authenticate, assetController.calculateDepreciation);
 
 export default router; 

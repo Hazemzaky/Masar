@@ -34,15 +34,31 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const MaintenancePartSchema = new mongoose_1.Schema({
+    item: { type: mongoose_1.Schema.Types.ObjectId, ref: 'InventoryItem' },
+    itemName: { type: String },
+    quantity: { type: Number },
+    cost: { type: Number },
+    availableQuantity: { type: Number },
+    withdrawnQuantity: { type: Number }
+}, { _id: false }); // Disable _id for embedded documents
 const MaintenanceSchema = new mongoose_1.Schema({
     asset: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Asset', required: true },
     type: { type: String, enum: ['preventive', 'corrective'], required: true },
     description: { type: String, required: true },
     scheduledDate: { type: Date, required: true },
+    scheduledTime: { type: String },
     completedDate: { type: Date },
-    cost: { type: Number },
+    completedTime: { type: String },
+    totalCost: { type: Number, default: 0 },
+    totalMaintenanceTime: { type: Number, default: 0 },
+    parts: [MaintenancePartSchema],
     status: { type: String, enum: ['scheduled', 'in_progress', 'completed', 'cancelled'], default: 'scheduled' },
     downtimeHours: { type: Number },
     notes: { type: String },
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+    completedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }
+}, {
+    timestamps: true
 });
 exports.default = mongoose_1.default.model('Maintenance', MaintenanceSchema);

@@ -35,12 +35,18 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const assetController = __importStar(require("../controllers/assetController"));
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-router.post('/', assetController.createAsset);
-router.get('/', assetController.getAssets);
-router.get('/:id', assetController.getAsset);
-router.put('/:id', assetController.updateAsset);
-router.delete('/:id', assetController.deleteAsset);
-router.patch('/:id/status', assetController.changeAssetStatus);
-router.post('/:id/calculate-depreciation', assetController.calculateDepreciation);
+// Debug route to test if requests reach the asset routes (using a more specific path)
+router.get('/debug-test', (req, res) => {
+    console.log('Asset test route hit');
+    res.json({ message: 'Asset routes are working' });
+});
+router.post('/', auth_1.authenticate, assetController.createAsset);
+router.get('/', auth_1.authenticate, assetController.getAssets);
+router.get('/:id', auth_1.authenticate, assetController.getAsset);
+router.put('/:id', auth_1.authenticate, assetController.updateAsset);
+router.delete('/:id', auth_1.authenticate, assetController.deleteAsset);
+router.patch('/:id/status', auth_1.authenticate, assetController.changeAssetStatus);
+router.post('/:id/calculate-depreciation', auth_1.authenticate, assetController.calculateDepreciation);
 exports.default = router;

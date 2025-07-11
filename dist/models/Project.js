@@ -35,13 +35,17 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const ProjectSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    customer: { type: String },
-    startDate: { type: Date },
-    endDate: { type: Date },
+    customer: { type: String, required: true },
+    equipmentDescription: { type: String, required: true },
+    rentTime: { type: String, required: true },
+    rentType: { type: String, enum: ['monthly', 'call_out'], required: true },
+    timing: { type: String, enum: ['8_hours', '12_hours', '24_hours'], required: true },
+    operatorDriver: { type: String, enum: ['1', '2'], required: true },
+    startTime: { type: Date },
+    endTime: { type: Date },
     status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
     description: { type: String },
     revenue: { type: Number },
     notes: { type: String },
-});
+}, { timestamps: true });
 exports.default = mongoose_1.default.model('Project', ProjectSchema);

@@ -98,7 +98,41 @@ function deleteItem(req, res) {
 function createTransaction(req, res) {
     (() => __awaiter(this, void 0, void 0, function* () {
         try {
-            const _a = req.body, { item, type, quantity } = _a, rest = __rest(_a, ["item", "type", "quantity"]);
+            const _a = req.body, { type, parts, maintenanceId } = _a, rest = __rest(_a, ["type", "parts", "maintenanceId"]);
+            // Handle multiple parts for maintenance
+            if (parts && Array.isArray(parts)) {
+                const transactions = [];
+                for (const part of parts) {
+                    const { item, quantity, notes } = part;
+                    const inventoryItem = yield InventoryItem_1.default.findById(item);
+                    if (!inventoryItem) {
+                        return res.status(404).json({ message: `Item ${item} not found` });
+                    }
+                    let newQty = inventoryItem.quantity;
+                    if (type === 'inbound')
+                        newQty += quantity;
+                    else if (type === 'outbound')
+                        newQty -= quantity;
+                    else if (type === 'adjustment')
+                        newQty = quantity;
+                    if (newQty < 0) {
+                        return res.status(400).json({
+                            message: `Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity} ${inventoryItem.uom}`
+                        });
+                    }
+                    inventoryItem.quantity = newQty;
+                    yield inventoryItem.save();
+                    const transaction = new InventoryTransaction_1.default(Object.assign({ item,
+                        type,
+                        quantity,
+                        notes, relatedMaintenance: maintenanceId }, rest));
+                    yield transaction.save();
+                    transactions.push(transaction);
+                }
+                return res.status(201).json(transactions);
+            }
+            // Handle single item transaction (original logic)
+            const _b = req.body, { item, quantity } = _b, singleRest = __rest(_b, ["item", "quantity"]);
             const inventoryItem = yield InventoryItem_1.default.findById(item);
             if (!inventoryItem)
                 return res.status(404).json({ message: 'Item not found' });
@@ -113,7 +147,7 @@ function createTransaction(req, res) {
                 return res.status(400).json({ message: 'Insufficient stock' });
             inventoryItem.quantity = newQty;
             yield inventoryItem.save();
-            const transaction = new InventoryTransaction_1.default(Object.assign({ item, type, quantity }, rest));
+            const transaction = new InventoryTransaction_1.default(Object.assign({ item, type, quantity }, singleRest));
             yield transaction.save();
             res.status(201).json(transaction);
         }

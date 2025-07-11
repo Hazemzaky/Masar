@@ -35,15 +35,25 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const AssetSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
+    description: { type: String, required: true },
     type: { type: String, required: true },
+    brand: { type: String },
+    status: {
+        type: String,
+        enum: ['active', 'disposed', 'accident/scraped', 'other', 'pending'],
+        default: 'active'
+    },
+    countryOfOrigin: { type: String },
     purchaseDate: { type: Date, required: true },
     purchaseValue: { type: Number, required: true },
-    depreciationMethod: { type: String, enum: ['straight-line', 'declining-balance'], default: 'straight-line' },
-    usefulLife: { type: Number, required: true },
+    usefulLifeMonths: { type: Number, required: true },
     salvageValue: { type: Number, default: 0 },
-    currentValue: { type: Number, required: true },
-    status: { type: String, enum: ['active', 'in_maintenance', 'retired', 'disposed'], default: 'active' },
+    chassisNumber: { type: String },
+    plateNumber: { type: String },
+    serialNumber: { type: String },
+    fleetNumber: { type: String },
     notes: { type: String },
+}, {
+    timestamps: true
 });
 exports.default = mongoose_1.default.model('Asset', AssetSchema);

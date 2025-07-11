@@ -22,6 +22,12 @@ import employeeRoutes from './routes/employeeRoutes';
 import payrollRoutes from './routes/payrollRoutes';
 import reimbursementRoutes from './routes/reimbursementRoutes';
 import leaveRoutes from './routes/leaveRoutes';
+import hseRoutes from './routes/hseRoutes';
+import adminRoutes from './routes/adminRoutes';
+import procurementRoutes from './routes/procurementRoutes';
+import travelRoutes from './routes/travelRoutes';
+import travelRequestRoutes from './routes/travelRequestRoutes';
+import travelAuthorizationRoutes from './routes/travelAuthorizationRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -51,6 +57,11 @@ app.use('/uploads', express.static('uploads'));
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Financial Management API is running');
+});
+
+// Debug route to test if the server is working
+app.get('/debug', (req: Request, res: Response) => {
+  res.json({ message: 'Server is working', timestamp: new Date().toISOString() });
 });
 
 // Health check endpoint
@@ -95,6 +106,12 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/reimbursements', reimbursementRoutes);
 app.use('/api/leave', leaveRoutes);
+app.use('/api/hse', hseRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/procurement', procurementRoutes);
+app.use('/api/travel', travelRoutes);
+app.use('/api/travel-requests', travelRequestRoutes);
+app.use('/api/travel-authorizations', travelAuthorizationRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -1,33 +1,43 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IInventoryItem extends Document {
-  name: string;
-  type: 'spare' | 'tool' | 'consumable';
-  sku?: string;
+  description: string;
+  type: 'spare' | 'tool' | 'consumable' | 'tyres';
+  rop?: number;
   quantity: number;
-  unit: string;
+  uom: string;
   location?: string;
-  minStock?: number;
-  maxStock?: number;
-  cost?: number;
+  rack?: string;
+  aisle?: string;
+  bin?: string;
+  warranty?: boolean;
+  warrantyPeriod?: number;
+  warrantyStartDate?: Date;
+  purchaseCost?: number;
   supplier?: string;
-  status: 'active' | 'inactive';
+  relatedAsset?: string;
   notes?: string;
+  status: 'active' | 'inactive';
 }
 
 const InventoryItemSchema = new Schema<IInventoryItem>({
-  name: { type: String, required: true },
-  type: { type: String, enum: ['spare', 'tool', 'consumable'], required: true },
-  sku: { type: String },
+  description: { type: String, required: true },
+  type: { type: String, enum: ['spare', 'tool', 'consumable', 'tyres'], required: true },
+  rop: { type: Number },
   quantity: { type: Number, required: true, default: 0 },
-  unit: { type: String, required: true },
+  uom: { type: String, required: true },
   location: { type: String },
-  minStock: { type: Number, default: 0 },
-  maxStock: { type: Number },
-  cost: { type: Number },
+  rack: { type: String },
+  aisle: { type: String },
+  bin: { type: String },
+  warranty: { type: Boolean, default: false },
+  warrantyPeriod: { type: Number },
+  warrantyStartDate: { type: Date },
+  purchaseCost: { type: Number },
   supplier: { type: String },
-  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  relatedAsset: { type: String },
   notes: { type: String },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
 });
 
 export default mongoose.model<IInventoryItem>('InventoryItem', InventoryItemSchema); 

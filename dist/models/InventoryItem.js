@@ -35,17 +35,22 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const InventoryItemSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    type: { type: String, enum: ['spare', 'tool', 'consumable'], required: true },
-    sku: { type: String },
+    description: { type: String, required: true },
+    type: { type: String, enum: ['spare', 'tool', 'consumable', 'tyres'], required: true },
+    rop: { type: Number },
     quantity: { type: Number, required: true, default: 0 },
-    unit: { type: String, required: true },
+    uom: { type: String, required: true },
     location: { type: String },
-    minStock: { type: Number, default: 0 },
-    maxStock: { type: Number },
-    cost: { type: Number },
+    rack: { type: String },
+    aisle: { type: String },
+    bin: { type: String },
+    warranty: { type: Boolean, default: false },
+    warrantyPeriod: { type: Number },
+    warrantyStartDate: { type: Date },
+    purchaseCost: { type: Number },
     supplier: { type: String },
-    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    relatedAsset: { type: String },
     notes: { type: String },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
 });
 exports.default = mongoose_1.default.model('InventoryItem', InventoryItemSchema);
