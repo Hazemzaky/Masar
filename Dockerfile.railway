@@ -1,14 +1,13 @@
-# Simple Dockerfile for Railway deployment
+# Simple Railway Dockerfile
 FROM node:18
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies
-RUN npm install --legacy-peer-deps
+# Install dependencies
+RUN npm install
 
 # Copy source code
 COPY . .

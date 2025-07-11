@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with better error handling
-RUN npm ci --only=production --silent --legacy-peer-deps && npm cache clean --force
+# Install ALL dependencies (including dev dependencies for TypeScript compilation)
+RUN npm ci --silent --legacy-peer-deps && npm cache clean --force
 
 # Copy source code
 COPY . .
