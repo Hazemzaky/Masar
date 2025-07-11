@@ -112,8 +112,7 @@
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "npx tsc",
-    "start": "node dist/index.js",
-    "postinstall": "npm run build"
+    "start": "node dist/index.js"
   },
   "engines": {
     "node": ">=18.0.0",
