@@ -44,14 +44,23 @@ mongoose.connect(MONGO_URI)
     process.exit(1);
   });
 
+// CORS configuration
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  : [
+      'https://hazemzaky.github.io',
+      'https://hazemzaky.github.io/Hazemzaky.github.io',
+      'http://localhost:3000',
+      'https://localhost:3000'
+    ];
+
 app.use(cors({
-  origin: [
-    'https://hazemzaky.github.io',
-    'https://hazemzaky.github.io/Hazemzaky.github.io',
-    'http://localhost:3000'
-  ],
-  credentials: true
+  origin: corsOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
