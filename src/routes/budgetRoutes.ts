@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { createBudget, getBudgets, updateBudget, getVariance, updateForecast, scenarioModeling, recalculateActual } from '../controllers/budgetController';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/', createBudget);
-router.get('/', getBudgets);
-router.put('/:id', updateBudget);
-router.get('/:id/variance', getVariance);
-router.post('/:id/forecast', updateForecast);
-router.get('/scenario-modeling', scenarioModeling);
-router.post('/:id/recalculate-actual', recalculateActual);
+router.post('/', authenticate, createBudget);
+router.get('/', authenticate, getBudgets);
+router.put('/:id', authenticate, updateBudget);
+router.get('/:id/variance', authenticate, getVariance);
+router.post('/:id/forecast', authenticate, updateForecast);
+router.get('/scenario-modeling', authenticate, scenarioModeling);
+router.post('/:id/recalculate-actual', authenticate, recalculateActual);
 
 export default router; 

@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import * as driverHourController from '../controllers/driverHourController';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/', driverHourController.createDriverHour);
-router.get('/', driverHourController.getDriverHours);
-router.get('/:id', driverHourController.getDriverHour);
-router.put('/:id', driverHourController.updateDriverHour);
-router.delete('/:id', driverHourController.deleteDriverHour);
+router.post('/', authenticate, driverHourController.createDriverHour);
+router.get('/', authenticate, driverHourController.getDriverHours);
+router.get('/:id', authenticate, driverHourController.getDriverHour);
+router.put('/:id', authenticate, driverHourController.updateDriverHour);
+router.delete('/:id', authenticate, driverHourController.deleteDriverHour);
 
 export default router; 

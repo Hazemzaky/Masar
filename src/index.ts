@@ -51,7 +51,8 @@ const corsOrigins = process.env.CORS_ORIGINS
       'https://hazemzaky.github.io',
       'https://hazemzaky.github.io/Hazemzaky.github.io',
       'http://localhost:3000',
-      'https://localhost:3000'
+      'https://localhost:3000',
+      '*' // Allow all origins for now
     ];
 
 app.use(cors({
