@@ -45,18 +45,8 @@ mongoose.connect(MONGO_URI)
   });
 
 // CORS configuration
-const corsOrigins = process.env.CORS_ORIGINS 
-  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : [
-      'https://hazemzaky.github.io',
-      'https://hazemzaky.github.io/Hazemzaky.github.io',
-      'http://localhost:3000',
-      'https://localhost:3000',
-      '*' // Allow all origins for now
-    ];
-
 app.use(cors({
-  origin: corsOrigins,
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
