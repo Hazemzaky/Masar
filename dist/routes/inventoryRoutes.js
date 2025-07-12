@@ -35,15 +35,16 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const inventoryController = __importStar(require("../controllers/inventoryController"));
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 // Inventory Items
-router.post('/items', inventoryController.createItem);
-router.get('/items', inventoryController.getItems);
-router.get('/items/:id', inventoryController.getItem);
-router.put('/items/:id', inventoryController.updateItem);
-router.delete('/items/:id', inventoryController.deleteItem);
+router.post('/items', auth_1.authenticate, inventoryController.createItem);
+router.get('/items', auth_1.authenticate, inventoryController.getItems);
+router.get('/items/:id', auth_1.authenticate, inventoryController.getItem);
+router.put('/items/:id', auth_1.authenticate, inventoryController.updateItem);
+router.delete('/items/:id', auth_1.authenticate, inventoryController.deleteItem);
 // Inventory Transactions
-router.post('/transactions', inventoryController.createTransaction);
-router.get('/transactions', inventoryController.getTransactions);
-router.get('/items/:id/transactions', inventoryController.getItemTransactions);
+router.post('/transactions', auth_1.authenticate, inventoryController.createTransaction);
+router.get('/transactions', auth_1.authenticate, inventoryController.getTransactions);
+router.get('/items/:id/transactions', auth_1.authenticate, inventoryController.getItemTransactions);
 exports.default = router;

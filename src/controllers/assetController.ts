@@ -6,17 +6,20 @@ export const createAsset = async (req: Request, res: Response) => {
     console.log('Creating asset with data:', req.body);
     
     // Validate required fields
-    const { description, type, purchaseDate, purchaseValue, usefulLifeMonths } = req.body;
-    if (!description || !type || !purchaseDate || !purchaseValue || !usefulLifeMonths) {
+    const { description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths } = req.body;
+    if (!description || !mainCategory || !subCategory || !purchaseDate || !purchaseValue || !usefulLifeMonths) {
       return res.status(400).json({ 
-        message: 'Missing required fields: description, type, purchaseDate, purchaseValue, usefulLifeMonths' 
+        message: 'Missing required fields: description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths' 
       });
     }
 
     // Create asset with proper field mapping
     const assetData = {
       description: req.body.description,
-      type: req.body.type,
+      mainCategory: req.body.mainCategory,
+      subCategory: req.body.subCategory,
+      subSubCategory: req.body.subSubCategory,
+      subSubSubCategory: req.body.subSubSubCategory,
       brand: req.body.brand,
       status: req.body.status || 'active',
       availability: req.body.availability || 'available',
@@ -139,17 +142,47 @@ export const calculateDepreciation = async (req: Request, res: Response) => {
   res.json({ message: 'Depreciation calculation not implemented yet.' });
 };
 
-// New function to get available assets
+// New function to get available assets with hierarchical structure
 export const getAvailableAssets = async (req: Request, res: Response) => {
   try {
     const availableAssets = await Asset.find({
       availability: 'available',
       status: 'active'
-    }).select('description type brand plateNumber serialNumber fleetNumber');
+    }).select('description mainCategory subCategory subSubCategory subSubSubCategory brand plateNumber serialNumber fleetNumber chassisNumber');
     
     res.json(availableAssets);
   } catch (error) {
     console.error('Error fetching available assets:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+// New function to get asset categories for hierarchical selection
+export const getAssetCategories = async (req: Request, res: Response) => {
+  try {
+    const assets = await Asset.find({
+      availability: 'available',
+      status: 'active'
+    }).select('mainCategory subCategory subSubCategory');
+    
+    // Build hierarchical structure
+    const categories: any = {};
+    
+    assets.forEach(asset => {
+      if (!categories[asset.mainCategory]) {
+        categories[asset.mainCategory] = {};
+      }
+      if (!categories[asset.mainCategory][asset.subCategory]) {
+        categories[asset.mainCategory][asset.subCategory] = [];
+      }
+      if (asset.subSubCategory && !categories[asset.mainCategory][asset.subCategory].includes(asset.subSubCategory)) {
+        categories[asset.mainCategory][asset.subCategory].push(asset.subSubCategory);
+      }
+    });
+    
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching asset categories:', error);
     res.status(500).json({ message: 'Server error', error });
   }
 }; 

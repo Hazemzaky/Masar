@@ -2,7 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const periodController_1 = require("../controllers/periodController");
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-router.post('/close', periodController_1.closePeriod);
-router.get('/', periodController_1.getPeriods);
+router.post('/close', auth_1.authenticate, periodController_1.closePeriod);
+router.get('/', auth_1.authenticate, periodController_1.getPeriods);
+router.get('/closed', auth_1.authenticate, periodController_1.getClosedPeriods);
+router.put('/:period/open', auth_1.authenticate, periodController_1.openPeriod);
 exports.default = router;

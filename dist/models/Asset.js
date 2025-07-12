@@ -36,13 +36,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const AssetSchema = new mongoose_1.Schema({
     description: { type: String, required: true },
-    type: { type: String, required: true },
+    mainCategory: { type: String, required: true },
+    subCategory: { type: String, required: true },
+    subSubCategory: { type: String },
+    subSubSubCategory: { type: String },
     brand: { type: String },
     status: {
         type: String,
         enum: ['active', 'disposed', 'accident/scraped', 'other', 'pending'],
         default: 'active'
     },
+    availability: {
+        type: String,
+        enum: ['available', 'assigned', 'maintenance', 'out_of_service'],
+        default: 'available'
+    },
+    currentProject: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
     countryOfOrigin: { type: String },
     purchaseDate: { type: Date, required: true },
     purchaseValue: { type: Number, required: true },

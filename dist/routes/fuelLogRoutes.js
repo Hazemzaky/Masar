@@ -35,10 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const fuelLogController = __importStar(require("../controllers/fuelLogController"));
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-router.post('/', fuelLogController.createFuelLog);
-router.get('/', fuelLogController.getFuelLogs);
-router.get('/:id', fuelLogController.getFuelLog);
-router.put('/:id', fuelLogController.updateFuelLog);
-router.delete('/:id', fuelLogController.deleteFuelLog);
+router.post('/', auth_1.authenticate, fuelLogController.createFuelLog);
+router.get('/', auth_1.authenticate, fuelLogController.getFuelLogs);
+router.get('/:id', auth_1.authenticate, fuelLogController.getFuelLog);
+router.put('/:id', auth_1.authenticate, fuelLogController.updateFuelLog);
+router.delete('/:id', auth_1.authenticate, fuelLogController.deleteFuelLog);
 exports.default = router;

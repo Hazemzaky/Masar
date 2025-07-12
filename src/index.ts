@@ -28,6 +28,7 @@ import procurementRoutes from './routes/procurementRoutes';
 import travelRoutes from './routes/travelRoutes';
 import travelRequestRoutes from './routes/travelRequestRoutes';
 import travelAuthorizationRoutes from './routes/travelAuthorizationRoutes';
+import assetCategoryRoutes from './routes/assetCategoryRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -112,6 +113,7 @@ app.use('/api/procurement', procurementRoutes);
 app.use('/api/travel', travelRoutes);
 app.use('/api/travel-requests', travelRequestRoutes);
 app.use('/api/travel-authorizations', travelAuthorizationRoutes);
+app.use('/api/asset-categories', assetCategoryRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

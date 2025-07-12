@@ -2,7 +2,10 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAsset extends Document {
   description: string;
-  type: string; // e.g., 'vehicle', 'equipment'
+  mainCategory: string; // e.g., 'Vehicle', 'Equipment', 'Building', 'IT'
+  subCategory: string; // e.g., 'Truck', 'Crane', 'Office', 'Computer'
+  subSubCategory?: string; // e.g., 'Heavy Truck', 'Mobile Crane', 'Furniture', 'Laptop'
+  subSubSubCategory?: string; // 4th level
   brand?: string;
   status: 'active' | 'disposed' | 'accident/scraped' | 'other' | 'pending';
   availability: 'available' | 'assigned' | 'maintenance' | 'out_of_service';
@@ -21,7 +24,10 @@ export interface IAsset extends Document {
 
 const AssetSchema = new Schema<IAsset>({
   description: { type: String, required: true },
-  type: { type: String, required: true },
+  mainCategory: { type: String, required: true },
+  subCategory: { type: String, required: true },
+  subSubCategory: { type: String },
+  subSubSubCategory: { type: String },
   brand: { type: String },
   status: { 
     type: String, 

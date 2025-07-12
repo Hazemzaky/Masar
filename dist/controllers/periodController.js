@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPeriods = exports.closePeriod = void 0;
+exports.openPeriod = exports.getClosedPeriods = exports.getPeriods = exports.closePeriod = void 0;
 const Period_1 = __importDefault(require("../models/Period"));
 const closePeriod = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -42,3 +42,32 @@ const getPeriods = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.getPeriods = getPeriods;
+const getClosedPeriods = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const closedPeriods = yield Period_1.default.find({ closed: true });
+        res.json(closedPeriods);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+exports.getClosedPeriods = getClosedPeriods;
+const openPeriod = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { period } = req.params;
+        const p = yield Period_1.default.findOne({ period });
+        if (!p) {
+            res.status(404).json({ message: 'Period not found' });
+            return;
+        }
+        p.closed = false;
+        p.closedAt = undefined;
+        p.closedBy = undefined;
+        yield p.save();
+        res.json(p);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+exports.openPeriod = openPeriod;

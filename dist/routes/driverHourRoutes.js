@@ -35,10 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const driverHourController = __importStar(require("../controllers/driverHourController"));
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-router.post('/', driverHourController.createDriverHour);
-router.get('/', driverHourController.getDriverHours);
-router.get('/:id', driverHourController.getDriverHour);
-router.put('/:id', driverHourController.updateDriverHour);
-router.delete('/:id', driverHourController.deleteDriverHour);
+router.post('/', auth_1.authenticate, driverHourController.createDriverHour);
+router.get('/', auth_1.authenticate, driverHourController.getDriverHours);
+router.get('/:id', auth_1.authenticate, driverHourController.getDriverHour);
+router.put('/:id', auth_1.authenticate, driverHourController.updateDriverHour);
+router.delete('/:id', auth_1.authenticate, driverHourController.deleteDriverHour);
 exports.default = router;

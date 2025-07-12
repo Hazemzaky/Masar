@@ -12,24 +12,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateDepreciation = exports.changeAssetStatus = exports.deleteAsset = exports.updateAsset = exports.getAsset = exports.getAssets = exports.createAsset = void 0;
+exports.getAssetCategories = exports.getAvailableAssets = exports.calculateDepreciation = exports.changeAssetStatus = exports.deleteAsset = exports.updateAsset = exports.getAsset = exports.getAssets = exports.createAsset = void 0;
 const Asset_1 = __importDefault(require("../models/Asset"));
 const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log('Creating asset with data:', req.body);
         // Validate required fields
-        const { description, type, purchaseDate, purchaseValue, usefulLifeMonths } = req.body;
-        if (!description || !type || !purchaseDate || !purchaseValue || !usefulLifeMonths) {
+        const { description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths } = req.body;
+        if (!description || !mainCategory || !subCategory || !purchaseDate || !purchaseValue || !usefulLifeMonths) {
             return res.status(400).json({
-                message: 'Missing required fields: description, type, purchaseDate, purchaseValue, usefulLifeMonths'
+                message: 'Missing required fields: description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths'
             });
         }
         // Create asset with proper field mapping
         const assetData = {
             description: req.body.description,
-            type: req.body.type,
+            mainCategory: req.body.mainCategory,
+            subCategory: req.body.subCategory,
+            subSubCategory: req.body.subSubCategory,
+            subSubSubCategory: req.body.subSubSubCategory,
             brand: req.body.brand,
             status: req.body.status || 'active',
+            availability: req.body.availability || 'available',
             countryOfOrigin: req.body.countryOfOrigin,
             purchaseDate: new Date(req.body.purchaseDate),
             purchaseValue: Number(req.body.purchaseValue),
@@ -73,7 +77,7 @@ const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.createAsset = createAsset;
 const getAssets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const assets = yield Asset_1.default.find().sort({ createdAt: -1 });
+        const assets = yield Asset_1.default.find().populate('currentProject', 'customer description status').sort({ createdAt: -1 });
         res.json(assets);
     }
     catch (error) {
@@ -84,7 +88,7 @@ const getAssets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.getAssets = getAssets;
 const getAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const asset = yield Asset_1.default.findById(req.params.id);
+        const asset = yield Asset_1.default.findById(req.params.id).populate('currentProject', 'customer description status');
         if (!asset) {
             res.status(404).json({ message: 'Asset not found' });
             return;
@@ -99,7 +103,7 @@ const getAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.getAsset = getAsset;
 const updateAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const asset = yield Asset_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const asset = yield Asset_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('currentProject', 'customer description status');
         if (!asset) {
             res.status(404).json({ message: 'Asset not found' });
             return;
@@ -148,3 +152,46 @@ const calculateDepreciation = (req, res) => __awaiter(void 0, void 0, void 0, fu
     res.json({ message: 'Depreciation calculation not implemented yet.' });
 });
 exports.calculateDepreciation = calculateDepreciation;
+// New function to get available assets with hierarchical structure
+const getAvailableAssets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const availableAssets = yield Asset_1.default.find({
+            availability: 'available',
+            status: 'active'
+        }).select('description mainCategory subCategory subSubCategory subSubSubCategory brand plateNumber serialNumber fleetNumber chassisNumber');
+        res.json(availableAssets);
+    }
+    catch (error) {
+        console.error('Error fetching available assets:', error);
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+exports.getAvailableAssets = getAvailableAssets;
+// New function to get asset categories for hierarchical selection
+const getAssetCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const assets = yield Asset_1.default.find({
+            availability: 'available',
+            status: 'active'
+        }).select('mainCategory subCategory subSubCategory');
+        // Build hierarchical structure
+        const categories = {};
+        assets.forEach(asset => {
+            if (!categories[asset.mainCategory]) {
+                categories[asset.mainCategory] = {};
+            }
+            if (!categories[asset.mainCategory][asset.subCategory]) {
+                categories[asset.mainCategory][asset.subCategory] = [];
+            }
+            if (asset.subSubCategory && !categories[asset.mainCategory][asset.subCategory].includes(asset.subSubCategory)) {
+                categories[asset.mainCategory][asset.subCategory].push(asset.subSubCategory);
+            }
+        });
+        res.json(categories);
+    }
+    catch (error) {
+        console.error('Error fetching asset categories:', error);
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+exports.getAssetCategories = getAssetCategories;

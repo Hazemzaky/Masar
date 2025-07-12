@@ -44,6 +44,8 @@ router.get('/debug-test', (req, res) => {
 });
 router.post('/', auth_1.authenticate, assetController.createAsset);
 router.get('/', auth_1.authenticate, assetController.getAssets);
+router.get('/available', auth_1.authenticate, assetController.getAvailableAssets);
+router.get('/categories', auth_1.authenticate, assetController.getAssetCategories);
 router.get('/:id', auth_1.authenticate, assetController.getAsset);
 router.put('/:id', auth_1.authenticate, assetController.updateAsset);
 router.delete('/:id', auth_1.authenticate, assetController.deleteAsset);

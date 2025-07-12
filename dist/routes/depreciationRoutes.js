@@ -35,10 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const depreciationController = __importStar(require("../controllers/depreciationController"));
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-router.post('/', depreciationController.createDepreciation);
-router.get('/', depreciationController.getDepreciations);
-router.get('/:id', depreciationController.getDepreciation);
-router.put('/:id', depreciationController.updateDepreciation);
-router.delete('/:id', depreciationController.deleteDepreciation);
+router.post('/', auth_1.authenticate, depreciationController.createDepreciation);
+router.get('/', auth_1.authenticate, depreciationController.getDepreciations);
+router.get('/:id', auth_1.authenticate, depreciationController.getDepreciation);
+router.put('/:id', auth_1.authenticate, depreciationController.updateDepreciation);
+router.delete('/:id', auth_1.authenticate, depreciationController.deleteDepreciation);
 exports.default = router;

@@ -13,6 +13,7 @@ router.get('/debug-test', (req, res) => {
 router.post('/', authenticate, assetController.createAsset);
 router.get('/', authenticate, assetController.getAssets);
 router.get('/available', authenticate, assetController.getAvailableAssets);
+router.get('/categories', authenticate, assetController.getAssetCategories);
 router.get('/:id', authenticate, assetController.getAsset);
 router.put('/:id', authenticate, assetController.updateAsset);
 router.delete('/:id', authenticate, assetController.deleteAsset);

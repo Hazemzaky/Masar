@@ -47,5 +47,6 @@ const ProjectSchema = new mongoose_1.Schema({
     description: { type: String },
     revenue: { type: Number },
     notes: { type: String },
+    assignedAssets: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Asset' }], // Array of assigned asset IDs
 }, { timestamps: true });
 exports.default = mongoose_1.default.model('Project', ProjectSchema);

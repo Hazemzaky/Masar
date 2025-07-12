@@ -65,6 +65,7 @@ const procurementRoutes_1 = __importDefault(require("./routes/procurementRoutes"
 const travelRoutes_1 = __importDefault(require("./routes/travelRoutes"));
 const travelRequestRoutes_1 = __importDefault(require("./routes/travelRequestRoutes"));
 const travelAuthorizationRoutes_1 = __importDefault(require("./routes/travelAuthorizationRoutes"));
+const assetCategoryRoutes_1 = __importDefault(require("./routes/assetCategoryRoutes"));
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -76,13 +77,12 @@ mongoose_1.default.connect(MONGO_URI)
     console.error('Failed to connect to MongoDB', err);
     process.exit(1);
 });
+// CORS configuration
 app.use((0, cors_1.default)({
-    origin: [
-        'https://hazemzaky.github.io',
-        'https://hazemzaky.github.io/Hazemzaky.github.io',
-        'http://localhost:3000'
-    ],
-    credentials: true
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express_1.default.json());
 app.use('/uploads', express_1.default.static('uploads'));
@@ -140,6 +140,7 @@ app.use('/api/procurement', procurementRoutes_1.default);
 app.use('/api/travel', travelRoutes_1.default);
 app.use('/api/travel-requests', travelRequestRoutes_1.default);
 app.use('/api/travel-authorizations', travelAuthorizationRoutes_1.default);
+app.use('/api/asset-categories', assetCategoryRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
