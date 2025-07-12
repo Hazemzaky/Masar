@@ -5,6 +5,8 @@ export interface IAsset extends Document {
   type: string; // e.g., 'vehicle', 'equipment'
   brand?: string;
   status: 'active' | 'disposed' | 'accident/scraped' | 'other' | 'pending';
+  availability: 'available' | 'assigned' | 'maintenance' | 'out_of_service';
+  currentProject?: mongoose.Types.ObjectId; // Currently assigned project
   countryOfOrigin?: string;
   purchaseDate: Date;
   purchaseValue: number;
@@ -26,6 +28,12 @@ const AssetSchema = new Schema<IAsset>({
     enum: ['active', 'disposed', 'accident/scraped', 'other', 'pending'],
     default: 'active' 
   },
+  availability: { 
+    type: String, 
+    enum: ['available', 'assigned', 'maintenance', 'out_of_service'],
+    default: 'available' 
+  },
+  currentProject: { type: Schema.Types.ObjectId, ref: 'Project' },
   countryOfOrigin: { type: String },
   purchaseDate: { type: Date, required: true },
   purchaseValue: { type: Number, required: true },

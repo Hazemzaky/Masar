@@ -19,6 +19,7 @@ export const createAsset = async (req: Request, res: Response) => {
       type: req.body.type,
       brand: req.body.brand,
       status: req.body.status || 'active',
+      availability: req.body.availability || 'available',
       countryOfOrigin: req.body.countryOfOrigin,
       purchaseDate: new Date(req.body.purchaseDate),
       purchaseValue: Number(req.body.purchaseValue),
@@ -68,7 +69,7 @@ export const createAsset = async (req: Request, res: Response) => {
 
 export const getAssets = async (req: Request, res: Response) => {
   try {
-    const assets = await Asset.find().sort({ createdAt: -1 });
+    const assets = await Asset.find().populate('currentProject', 'customer description status').sort({ createdAt: -1 });
     res.json(assets);
   } catch (error) {
     console.error('Error fetching assets:', error);
@@ -78,7 +79,7 @@ export const getAssets = async (req: Request, res: Response) => {
 
 export const getAsset = async (req: Request, res: Response) => {
   try {
-    const asset = await Asset.findById(req.params.id);
+    const asset = await Asset.findById(req.params.id).populate('currentProject', 'customer description status');
     if (!asset) {
       res.status(404).json({ message: 'Asset not found' });
       return;
@@ -92,7 +93,7 @@ export const getAsset = async (req: Request, res: Response) => {
 
 export const updateAsset = async (req: Request, res: Response) => {
   try {
-    const asset = await Asset.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const asset = await Asset.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('currentProject', 'customer description status');
     if (!asset) {
       res.status(404).json({ message: 'Asset not found' });
       return;
@@ -136,4 +137,19 @@ export const changeAssetStatus = async (req: Request, res: Response) => {
 export const calculateDepreciation = async (req: Request, res: Response) => {
   // Skeleton: implement depreciation calculation logic here
   res.json({ message: 'Depreciation calculation not implemented yet.' });
+};
+
+// New function to get available assets
+export const getAvailableAssets = async (req: Request, res: Response) => {
+  try {
+    const availableAssets = await Asset.find({
+      availability: 'available',
+      status: 'active'
+    }).select('description type brand plateNumber serialNumber fleetNumber');
+    
+    res.json(availableAssets);
+  } catch (error) {
+    console.error('Error fetching available assets:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
 }; 

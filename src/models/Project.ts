@@ -13,6 +13,7 @@ export interface IProject extends Document {
   description?: string;
   revenue?: number;
   notes?: string;
+  assignedAssets?: mongoose.Types.ObjectId[]; // Array of assigned asset IDs
 }
 
 const ProjectSchema = new Schema<IProject>({
@@ -28,6 +29,7 @@ const ProjectSchema = new Schema<IProject>({
   description: { type: String },
   revenue: { type: Number },
   notes: { type: String },
+  assignedAssets: [{ type: Schema.Types.ObjectId, ref: 'Asset' }], // Array of assigned asset IDs
 }, { timestamps: true });
 
 export default mongoose.model<IProject>('Project', ProjectSchema); 
