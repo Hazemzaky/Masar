@@ -10,6 +10,7 @@ import {
   getPayrollEmployees,
   getPayrollEmployee,
   updatePayrollEmployee,
+  updatePayrollPayment,
   deletePayrollEmployee,
   // Payroll history management
   getPayrollHistory,
@@ -28,6 +29,7 @@ router.post('/employees', createPayrollEmployee);
 router.get('/employees', getPayrollEmployees);
 router.get('/employees/:id', getPayrollEmployee);
 router.put('/employees/:id', updatePayrollEmployee);
+router.put('/employees/:id/payment', updatePayrollPayment);
 router.delete('/employees/:id', deletePayrollEmployee);
 
 // Payroll History Routes

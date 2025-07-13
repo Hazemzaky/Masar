@@ -87,6 +87,77 @@ export const updatePayrollEmployee = async (req: Request, res: Response): Promis
   }
 };
 
+// New function to update only payment-related fields
+export const updatePayrollPayment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Only allow payment-related fields to be updated
+    const allowedFields = [
+      'totalSalary', 'days', 'basicSalary', 'fixedAllowance', 'temporaryAllowance',
+      'overtime', 'leave', 'leaveDays', 'grossSalary', 'absent', 'absentDays',
+      'sickLeave', 'sickLeaveDays', 'loan', 'fixedDeduction', 'temporaryDeduction',
+      'grossNetSalary', 'remark'
+    ];
+    
+    // Filter out non-payment fields
+    const paymentUpdateData: any = {};
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        paymentUpdateData[field] = updateData[field];
+      }
+    });
+    
+    // Get current employee data
+    const currentEmployee = await PayrollEmployee.findById(id);
+    if (!currentEmployee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+
+    // Update employee with only payment fields
+    const updatedEmployee = await PayrollEmployee.findByIdAndUpdate(id, paymentUpdateData, { new: true });
+    
+    // Create history record for the current month
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Check if history record already exists for this month
+    const existingHistory = await PayrollHistory.findOne({
+      employeeId: id,
+      month: currentMonth
+    });
+
+    if (existingHistory) {
+      // Update existing history record with payment data
+      await PayrollHistory.findByIdAndUpdate(existingHistory._id, {
+        ...paymentUpdateData,
+        year: now.getFullYear()
+      });
+    } else {
+      // Create new history record with current employee data + payment updates
+      const historyData = {
+        employeeId: id,
+        month: currentMonth,
+        year: now.getFullYear(),
+        company: currentEmployee.company,
+        employeeCode: currentEmployee.employeeCode,
+        fullName: currentEmployee.fullName,
+        position: currentEmployee.position,
+        department: currentEmployee.department,
+        sponsor: currentEmployee.sponsor,
+        ...paymentUpdateData
+      };
+      await PayrollHistory.create(historyData);
+    }
+
+    res.json(updatedEmployee);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export const deletePayrollEmployee = async (req: Request, res: Response): Promise<void> => {
   try {
     const employee = await PayrollEmployee.findByIdAndDelete(req.params.id);
@@ -107,7 +178,7 @@ export const deletePayrollEmployee = async (req: Request, res: Response): Promis
 // Payroll History Management
 export const getPayrollHistory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const history = await PayrollHistory.find().populate('employeeId', 'fullName employeeCode');
+    const history = await PayrollHistory.find().populate('employeeId', 'fullName employeeCode').sort({ month: -1 });
     res.json(history);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

@@ -14,6 +14,7 @@ router.post('/employees', payrollController_1.createPayrollEmployee);
 router.get('/employees', payrollController_1.getPayrollEmployees);
 router.get('/employees/:id', payrollController_1.getPayrollEmployee);
 router.put('/employees/:id', payrollController_1.updatePayrollEmployee);
+router.put('/employees/:id/payment', payrollController_1.updatePayrollPayment);
 router.delete('/employees/:id', payrollController_1.deletePayrollEmployee);
 // Payroll History Routes
 router.get('/history', payrollController_1.getPayrollHistory);

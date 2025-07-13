@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.processPayroll = exports.updatePayroll = exports.getPayroll = exports.getPayrolls = exports.createPayroll = exports.updateMonthlyPayroll = exports.getEmployeePayrollHistory = exports.getPayrollHistory = exports.deletePayrollEmployee = exports.updatePayrollEmployee = exports.getPayrollEmployee = exports.getPayrollEmployees = exports.createPayrollEmployee = void 0;
+exports.processPayroll = exports.updatePayroll = exports.getPayroll = exports.getPayrolls = exports.createPayroll = exports.updateMonthlyPayroll = exports.getEmployeePayrollHistory = exports.getPayrollHistory = exports.deletePayrollEmployee = exports.updatePayrollPayment = exports.updatePayrollEmployee = exports.getPayrollEmployee = exports.getPayrollEmployees = exports.createPayrollEmployee = void 0;
 const Payroll_1 = require("../models/Payroll");
 const Payroll_2 = __importDefault(require("../models/Payroll"));
 // New Payroll Employee Management
@@ -92,6 +92,57 @@ const updatePayrollEmployee = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.updatePayrollEmployee = updatePayrollEmployee;
+// New function to update only payment-related fields
+const updatePayrollPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        // Only allow payment-related fields to be updated
+        const allowedFields = [
+            'totalSalary', 'days', 'basicSalary', 'fixedAllowance', 'temporaryAllowance',
+            'overtime', 'leave', 'leaveDays', 'grossSalary', 'absent', 'absentDays',
+            'sickLeave', 'sickLeaveDays', 'loan', 'fixedDeduction', 'temporaryDeduction',
+            'grossNetSalary', 'remark'
+        ];
+        // Filter out non-payment fields
+        const paymentUpdateData = {};
+        allowedFields.forEach(field => {
+            if (updateData[field] !== undefined) {
+                paymentUpdateData[field] = updateData[field];
+            }
+        });
+        // Get current employee data
+        const currentEmployee = yield Payroll_1.PayrollEmployee.findById(id);
+        if (!currentEmployee) {
+            res.status(404).json({ message: 'Employee not found' });
+            return;
+        }
+        // Update employee with only payment fields
+        const updatedEmployee = yield Payroll_1.PayrollEmployee.findByIdAndUpdate(id, paymentUpdateData, { new: true });
+        // Create history record for the current month
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        // Check if history record already exists for this month
+        const existingHistory = yield Payroll_1.PayrollHistory.findOne({
+            employeeId: id,
+            month: currentMonth
+        });
+        if (existingHistory) {
+            // Update existing history record with payment data
+            yield Payroll_1.PayrollHistory.findByIdAndUpdate(existingHistory._id, Object.assign(Object.assign({}, paymentUpdateData), { year: now.getFullYear() }));
+        }
+        else {
+            // Create new history record with current employee data + payment updates
+            const historyData = Object.assign({ employeeId: id, month: currentMonth, year: now.getFullYear(), company: currentEmployee.company, employeeCode: currentEmployee.employeeCode, fullName: currentEmployee.fullName, position: currentEmployee.position, department: currentEmployee.department, sponsor: currentEmployee.sponsor }, paymentUpdateData);
+            yield Payroll_1.PayrollHistory.create(historyData);
+        }
+        res.json(updatedEmployee);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+exports.updatePayrollPayment = updatePayrollPayment;
 const deletePayrollEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const employee = yield Payroll_1.PayrollEmployee.findByIdAndDelete(req.params.id);
@@ -111,7 +162,7 @@ exports.deletePayrollEmployee = deletePayrollEmployee;
 // Payroll History Management
 const getPayrollHistory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const history = yield Payroll_1.PayrollHistory.find().populate('employeeId', 'fullName employeeCode');
+        const history = yield Payroll_1.PayrollHistory.find().populate('employeeId', 'fullName employeeCode').sort({ month: -1 });
         res.json(history);
     }
     catch (error) {
