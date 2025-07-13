@@ -312,3 +312,128 @@ export const processPayroll = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ message: error.message });
   }
 }; 
+
+// New function to get available employees (not assigned to any project)
+export const getAvailableEmployees = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const availableEmployees = await PayrollEmployee.find({
+      $or: [
+        { currentProject: { $exists: false } },
+        { currentProject: null }
+      ]
+    }).select('fullName employeeCode position department');
+    
+    res.json(availableEmployees);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// New function to assign employee to project
+export const assignEmployeeToProject = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { employeeId, projectId } = req.body;
+    
+    if (!employeeId || !projectId) {
+      res.status(400).json({ message: 'Employee ID and Project ID are required' });
+      return;
+    }
+
+    // Check if employee exists
+    const employee = await PayrollEmployee.findById(employeeId);
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+
+    // Check if employee is already assigned to a project
+    if (employee.currentProject) {
+      res.status(400).json({ 
+        message: 'Employee is already assigned to a project. Please unassign them first.' 
+      });
+      return;
+    }
+
+    // Assign employee to project
+    const updatedEmployee = await PayrollEmployee.findByIdAndUpdate(
+      employeeId,
+      {
+        currentProject: projectId,
+        projectAssignmentDate: new Date()
+      },
+      { new: true }
+    );
+
+    res.json(updatedEmployee);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// New function to unassign employee from project
+export const unassignEmployeeFromProject = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { employeeId } = req.params;
+    
+    // Check if employee exists and is assigned to a project
+    const employee = await PayrollEmployee.findById(employeeId);
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+
+    if (!employee.currentProject) {
+      res.status(400).json({ message: 'Employee is not assigned to any project' });
+      return;
+    }
+
+    // Unassign employee from project
+    const updatedEmployee = await PayrollEmployee.findByIdAndUpdate(
+      employeeId,
+      {
+        currentProject: null,
+        projectAssignmentDate: null
+      },
+      { new: true }
+    );
+
+    res.json(updatedEmployee);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// New function to get employees assigned to a specific project
+export const getEmployeesByProject = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { projectId } = req.params;
+    
+    const employees = await PayrollEmployee.find({ currentProject: projectId })
+      .select('fullName employeeCode position department projectAssignmentDate')
+      .populate('currentProject', 'customer description status');
+    
+    res.json(employees);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// New function to get employee's current project assignment
+export const getEmployeeProjectAssignment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { employeeId } = req.params;
+    
+    const employee = await PayrollEmployee.findById(employeeId)
+      .select('currentProject projectAssignmentDate')
+      .populate('currentProject', 'customer description status startTime endTime');
+    
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+    
+    res.json(employee);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}; 

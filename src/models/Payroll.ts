@@ -25,6 +25,8 @@ export interface IPayrollEmployee extends Document {
   grossNetSalary: number;
   sponsor: string;
   remark: string;
+  currentProject?: mongoose.Types.ObjectId; // Currently assigned project
+  projectAssignmentDate?: Date; // When they were assigned to current project
 }
 
 export interface IPayrollHistory extends Document {
@@ -76,7 +78,9 @@ const PayrollEmployeeSchema = new Schema<IPayrollEmployee>({
   temporaryDeduction: { type: Number, required: true },
   grossNetSalary: { type: Number, required: true },
   sponsor: { type: String, required: true },
-  remark: { type: String }
+  remark: { type: String },
+  currentProject: { type: Schema.Types.ObjectId, ref: 'Project' },
+  projectAssignmentDate: { type: Date }
 }, {
   timestamps: true
 });

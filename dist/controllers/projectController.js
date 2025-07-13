@@ -23,7 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.completeProject = exports.getAvailableAssets = exports.getProjectProfitability = exports.deleteProject = exports.updateProject = exports.getProject = exports.getProjects = exports.createProject = void 0;
+exports.completeProject = exports.getAvailableAssets = exports.getProjectProfitability = exports.deleteProject = exports.updateProject = exports.getProject = exports.getProjects = exports.createProject = exports.checkEmployeeAvailability = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const Project_1 = __importDefault(require("../models/Project"));
 const Asset_1 = __importDefault(require("../models/Asset"));
@@ -31,38 +31,119 @@ const Expense_1 = __importDefault(require("../models/Expense"));
 const Payroll_1 = __importDefault(require("../models/Payroll"));
 const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const DriverHour_1 = __importDefault(require("../models/DriverHour"));
-const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const Payroll_2 = require("../models/Payroll");
+// New function to check employee availability for project assignment
+const checkEmployeeAvailability = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const _a = req.body, { assignedAssets } = _a, projectData = __rest(_a, ["assignedAssets"]);
-        // Create the project first
-        const project = new Project_1.default(projectData);
-        yield project.save();
-        // If assets are assigned, update their availability
-        if (assignedAssets && assignedAssets.length > 0) {
-            // Verify all assets are available
-            const assets = yield Asset_1.default.find({
-                _id: { $in: assignedAssets },
-                availability: 'available',
-                status: 'active'
-            });
-            if (assets.length !== assignedAssets.length) {
-                return res.status(400).json({
-                    message: 'Some assets are not available for assignment'
+        const { employeeIds } = req.body;
+        if (!employeeIds || !Array.isArray(employeeIds)) {
+            res.status(400).json({ message: 'Employee IDs array is required' });
+            return;
+        }
+        const availabilityResults = [];
+        for (const employeeId of employeeIds) {
+            const employee = yield Payroll_2.PayrollEmployee.findById(employeeId)
+                .select('fullName employeeCode position department currentProject')
+                .populate('currentProject', 'customer description status');
+            if (!employee) {
+                availabilityResults.push({
+                    employeeId,
+                    available: false,
+                    reason: 'Employee not found'
+                });
+                continue;
+            }
+            if (employee.currentProject) {
+                availabilityResults.push({
+                    employeeId,
+                    employeeName: employee.fullName,
+                    employeeCode: employee.employeeCode,
+                    available: false,
+                    reason: 'Already assigned to project',
+                    currentProject: employee.currentProject
                 });
             }
-            // Update project with assigned assets
-            project.assignedAssets = assignedAssets;
-            yield project.save();
-            // Update assets to show they're assigned
-            yield Asset_1.default.updateMany({ _id: { $in: assignedAssets } }, {
-                availability: 'assigned',
-                currentProject: project._id
+            else {
+                availabilityResults.push({
+                    employeeId,
+                    employeeName: employee.fullName,
+                    employeeCode: employee.employeeCode,
+                    available: true
+                });
+            }
+        }
+        res.json(availabilityResults);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.checkEmployeeAvailability = checkEmployeeAvailability;
+const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees } = req.body;
+        // Validate required fields
+        if (!customer || !equipmentDescription || !rentTime || !rentType || !timing || !operatorDriver) {
+            return res.status(400).json({
+                message: 'Missing required fields: customer, equipmentDescription, rentTime, rentType, timing, operatorDriver'
             });
+        }
+        // If assignedEmployees is provided, check their availability
+        if (assignedEmployees && Array.isArray(assignedEmployees) && assignedEmployees.length > 0) {
+            const availabilityCheck = yield Promise.all(assignedEmployees.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
+                const employee = yield Payroll_2.PayrollEmployee.findById(employeeId);
+                return {
+                    employeeId,
+                    available: !(employee === null || employee === void 0 ? void 0 : employee.currentProject),
+                    employee: employee
+                };
+            })));
+            const unavailableEmployees = availabilityCheck.filter(check => !check.available);
+            if (unavailableEmployees.length > 0) {
+                return res.status(400).json({
+                    message: 'Some employees are not available for assignment',
+                    unavailableEmployees: unavailableEmployees.map(u => {
+                        var _a, _b;
+                        return ({
+                            employeeId: u.employeeId,
+                            employeeName: (_a = u.employee) === null || _a === void 0 ? void 0 : _a.fullName,
+                            currentProject: (_b = u.employee) === null || _b === void 0 ? void 0 : _b.currentProject
+                        });
+                    })
+                });
+            }
+        }
+        // Create the project
+        const projectData = {
+            customer,
+            equipmentDescription,
+            rentTime,
+            rentType,
+            timing,
+            operatorDriver,
+            startTime: startTime ? new Date(startTime) : undefined,
+            endTime: endTime ? new Date(endTime) : undefined,
+            status: 'active',
+            description,
+            revenue: revenue ? Number(revenue) : undefined,
+            notes
+        };
+        const project = new Project_1.default(projectData);
+        yield project.save();
+        // If employees are assigned, update their project assignment
+        if (assignedEmployees && Array.isArray(assignedEmployees) && assignedEmployees.length > 0) {
+            yield Promise.all(assignedEmployees.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
+                yield Payroll_2.PayrollEmployee.findByIdAndUpdate(employeeId, {
+                    currentProject: project._id,
+                    projectAssignmentDate: new Date()
+                });
+            })));
         }
         res.status(201).json(project);
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error('Error creating project:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 exports.createProject = createProject;
@@ -219,26 +300,30 @@ exports.getAvailableAssets = getAvailableAssets;
 // New function to complete a project and release assets
 const completeProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const project = yield Project_1.default.findById(req.params.id);
+        const { id } = req.params;
+        const project = yield Project_1.default.findById(id);
         if (!project) {
             res.status(404).json({ message: 'Project not found' });
             return;
-        }
-        // Release assigned assets
-        if (project.assignedAssets && project.assignedAssets.length > 0) {
-            yield Asset_1.default.updateMany({ _id: { $in: project.assignedAssets } }, {
-                availability: 'available',
-                currentProject: null
-            });
         }
         // Update project status to completed
         project.status = 'completed';
         project.endTime = new Date();
         yield project.save();
-        res.json({ message: 'Project completed and assets released', project });
+        // Unassign all employees from this project
+        yield Payroll_2.PayrollEmployee.updateMany({ currentProject: id }, {
+            currentProject: null,
+            projectAssignmentDate: null
+        });
+        // Also unassign any assets from this project
+        yield Asset_1.default.updateMany({ currentProject: id }, {
+            availability: 'available',
+            currentProject: null
+        });
+        res.json({ message: 'Project completed successfully', project });
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: error.message });
     }
 });
 exports.completeProject = completeProject;

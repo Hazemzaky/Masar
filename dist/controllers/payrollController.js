@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.processPayroll = exports.updatePayroll = exports.getPayroll = exports.getPayrolls = exports.createPayroll = exports.updateMonthlyPayroll = exports.getEmployeePayrollHistory = exports.getPayrollHistory = exports.deletePayrollEmployee = exports.updatePayrollPayment = exports.updatePayrollEmployee = exports.getPayrollEmployee = exports.getPayrollEmployees = exports.createPayrollEmployee = void 0;
+exports.getEmployeeProjectAssignment = exports.getEmployeesByProject = exports.unassignEmployeeFromProject = exports.assignEmployeeToProject = exports.getAvailableEmployees = exports.processPayroll = exports.updatePayroll = exports.getPayroll = exports.getPayrolls = exports.createPayroll = exports.updateMonthlyPayroll = exports.getEmployeePayrollHistory = exports.getPayrollHistory = exports.deletePayrollEmployee = exports.updatePayrollPayment = exports.updatePayrollEmployee = exports.getPayrollEmployee = exports.getPayrollEmployees = exports.createPayrollEmployee = void 0;
 const Payroll_1 = require("../models/Payroll");
 const Payroll_2 = __importDefault(require("../models/Payroll"));
 // New Payroll Employee Management
@@ -304,3 +304,110 @@ const processPayroll = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.processPayroll = processPayroll;
+// New function to get available employees (not assigned to any project)
+const getAvailableEmployees = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const availableEmployees = yield Payroll_1.PayrollEmployee.find({
+            $or: [
+                { currentProject: { $exists: false } },
+                { currentProject: null }
+            ]
+        }).select('fullName employeeCode position department');
+        res.json(availableEmployees);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.getAvailableEmployees = getAvailableEmployees;
+// New function to assign employee to project
+const assignEmployeeToProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { employeeId, projectId } = req.body;
+        if (!employeeId || !projectId) {
+            res.status(400).json({ message: 'Employee ID and Project ID are required' });
+            return;
+        }
+        // Check if employee exists
+        const employee = yield Payroll_1.PayrollEmployee.findById(employeeId);
+        if (!employee) {
+            res.status(404).json({ message: 'Employee not found' });
+            return;
+        }
+        // Check if employee is already assigned to a project
+        if (employee.currentProject) {
+            res.status(400).json({
+                message: 'Employee is already assigned to a project. Please unassign them first.'
+            });
+            return;
+        }
+        // Assign employee to project
+        const updatedEmployee = yield Payroll_1.PayrollEmployee.findByIdAndUpdate(employeeId, {
+            currentProject: projectId,
+            projectAssignmentDate: new Date()
+        }, { new: true });
+        res.json(updatedEmployee);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.assignEmployeeToProject = assignEmployeeToProject;
+// New function to unassign employee from project
+const unassignEmployeeFromProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { employeeId } = req.params;
+        // Check if employee exists and is assigned to a project
+        const employee = yield Payroll_1.PayrollEmployee.findById(employeeId);
+        if (!employee) {
+            res.status(404).json({ message: 'Employee not found' });
+            return;
+        }
+        if (!employee.currentProject) {
+            res.status(400).json({ message: 'Employee is not assigned to any project' });
+            return;
+        }
+        // Unassign employee from project
+        const updatedEmployee = yield Payroll_1.PayrollEmployee.findByIdAndUpdate(employeeId, {
+            currentProject: null,
+            projectAssignmentDate: null
+        }, { new: true });
+        res.json(updatedEmployee);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.unassignEmployeeFromProject = unassignEmployeeFromProject;
+// New function to get employees assigned to a specific project
+const getEmployeesByProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { projectId } = req.params;
+        const employees = yield Payroll_1.PayrollEmployee.find({ currentProject: projectId })
+            .select('fullName employeeCode position department projectAssignmentDate')
+            .populate('currentProject', 'customer description status');
+        res.json(employees);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.getEmployeesByProject = getEmployeesByProject;
+// New function to get employee's current project assignment
+const getEmployeeProjectAssignment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { employeeId } = req.params;
+        const employee = yield Payroll_1.PayrollEmployee.findById(employeeId)
+            .select('currentProject projectAssignmentDate')
+            .populate('currentProject', 'customer description status startTime endTime');
+        if (!employee) {
+            res.status(404).json({ message: 'Employee not found' });
+            return;
+        }
+        res.json(employee);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.getEmployeeProjectAssignment = getEmployeeProjectAssignment;

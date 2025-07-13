@@ -15,7 +15,13 @@ import {
   // Payroll history management
   getPayrollHistory,
   getEmployeePayrollHistory,
-  updateMonthlyPayroll
+  updateMonthlyPayroll,
+  // Employee project assignment management
+  getAvailableEmployees,
+  assignEmployeeToProject,
+  unassignEmployeeFromProject,
+  getEmployeesByProject,
+  getEmployeeProjectAssignment
 } from '../controllers/payrollController';
 import { authenticate } from '../middleware/auth';
 
@@ -27,10 +33,18 @@ router.use(authenticate);
 // New Payroll Employee Management Routes
 router.post('/employees', createPayrollEmployee);
 router.get('/employees', getPayrollEmployees);
+router.get('/employees', getPayrollEmployees);
 router.get('/employees/:id', getPayrollEmployee);
 router.put('/employees/:id', updatePayrollEmployee);
 router.put('/employees/:id/payment', updatePayrollPayment);
 router.delete('/employees/:id', deletePayrollEmployee);
+
+// Employee Project Assignment Routes
+router.get('/employees/available', getAvailableEmployees);
+router.post('/employees/assign', assignEmployeeToProject);
+router.put('/employees/:employeeId/unassign', unassignEmployeeFromProject);
+router.get('/employees/project/:projectId', getEmployeesByProject);
+router.get('/employees/:employeeId/project', getEmployeeProjectAssignment);
 
 // Payroll History Routes
 router.get('/history', getPayrollHistory);

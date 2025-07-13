@@ -59,7 +59,9 @@ const PayrollEmployeeSchema = new mongoose_1.Schema({
     temporaryDeduction: { type: Number, required: true },
     grossNetSalary: { type: Number, required: true },
     sponsor: { type: String, required: true },
-    remark: { type: String }
+    remark: { type: String },
+    currentProject: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
+    projectAssignmentDate: { type: Date }
 }, {
     timestamps: true
 });
