@@ -165,366 +165,374 @@ export const getAssetCategories = async (req: Request, res: Response) => {
     // Optionally accept ?type=Vehicle|Equipment|Attachment
     const { type } = req.query;
 
-    // These should match the frontend's hierarchies
+    // These should match the frontend's hierarchies exactly
     const vehicleHierarchy = {
-      'Heavy Trucks': {
-        'Dump Trucks': {
-          'Articulated Dump Trucks': ['Small (20-30 ton)', 'Medium (30-40 ton)', 'Large (40+ ton)'],
-          'Rigid Dump Trucks': ['Small (15-25 ton)', 'Medium (25-35 ton)', 'Large (35+ ton)']
+      'Trucks': {
+        'Light-Duty Trucks': {
+          'Pickup Trucks': {
+            'Single Cab': {},
+            'Double Cab': {},
+            'Crew Cab': {}
+          },
+          'Mini Trucks': {
+            'Kei Trucks': {},
+            'Flatbed Mini Trucks': {},
+            'Box Mini Trucks': {}
+          }
         },
-        'Crane Trucks': {
-          'Mobile Cranes': ['Small (10-25 ton)', 'Medium (25-50 ton)', 'Large (50+ ton)'],
-          'Tower Cranes': ['Hammerhead', 'Luffing Jib', 'Self-Erecting']
+        'Medium-Duty Trucks': {
+          'Box Trucks': {
+            'Dry Van': {},
+            'Refrigerated Box': {}
+          },
+          'Flatbed Trucks': {
+            'Stake Bed': {},
+            'Drop-Side Flatbed': {}
+          },
+          'Utility Service Trucks': {
+            'Bucket Trucks': {},
+            'Maintenance Trucks': {}
+          }
         },
-        'Mixer Trucks': {
-          'Concrete Mixers': ['6-8 cubic meters', '8-10 cubic meters', '10+ cubic meters'],
-          'Cement Mixers': ['Small', 'Medium', 'Large']
-        },
-        'Tanker Trucks': {
-          'Fuel Tankers': ['Small (5,000-10,000L)', 'Medium (10,000-20,000L)', 'Large (20,000+ L)'],
-          'Water Tankers': ['Small (5,000-10,000L)', 'Medium (10,000-20,000L)', 'Large (20,000+ L)'],
-          'Chemical Tankers': ['Stainless Steel', 'Aluminum', 'Specialty']
-        },
-        'Flatbed Trucks': {
-          'Standard Flatbeds': ['Small (20-30 ft)', 'Medium (30-40 ft)', 'Large (40+ ft)'],
-          'Extendable Flatbeds': ['Manual Extension', 'Hydraulic Extension']
+        'Heavy-Duty Trucks': {
+          'Tractor-Trailers (Semi-Trucks)': {
+            'Sleeper Cab': {},
+            'Day Cab': {}
+          },
+          'Dump Trucks': {
+            'Standard Dump': {},
+            'Articulated Dump': {}
+          },
+          'Tanker Trucks': {
+            'Fuel Tankers': {},
+            'Water Tankers': {},
+            'Chemical Tankers': {}
+          },
+          'Logging Trucks': {
+            'Long Log': {},
+            'Short Log': {}
+          }
         }
       },
-      'Light Trucks': {
-        'Pickup Trucks': {
-          'Small Pickups': ['Compact', 'Mid-size'],
-          'Large Pickups': ['Full-size', 'Heavy Duty']
+      'Vans': {
+        'Cargo Vans': {
+          'Standard Roof': {},
+          'High Roof': {},
+          'Extended Wheelbase': {}
         },
-        'Delivery Trucks': {
-          'Box Trucks': ['Small (10-14 ft)', 'Medium (14-20 ft)', 'Large (20+ ft)'],
-          'Flatbed Trucks': ['Small', 'Medium', 'Large']
+        'Passenger Vans': {
+          '8-Seater': {},
+          '12-Seater': {},
+          '15-Seater': {}
         },
-        'Service Trucks': {
-          'Utility Trucks': ['Small', 'Medium', 'Large'],
-          'Crane Trucks': ['Small (2-5 ton)', 'Medium (5-10 ton)', 'Large (10+ ton)']
+        'Mini Vans': {
+          'Family Vans': {
+            'Hybrid': {},
+            'Electric': {}
+          },
+          'Taxi Vans': {
+            'Wheelchair Accessible': {},
+            'Partitioned Vans': {}
+          }
+        },
+        'Specialty Vans': {
+          'Refrigerated Vans': {},
+          'Mobile Workshop Vans': {},
+          'Surveillance Vans': {}
         }
       },
-      'Specialized Vehicles': {
-        'Crane Trucks': {
-          'Mobile Cranes': ['Small (10-25 ton)', 'Medium (25-50 ton)', 'Large (50+ ton)'],
-          'Tower Cranes': ['Hammerhead', 'Luffing Jib', 'Self-Erecting']
+      'Specialized Logistics Vehicles': {
+        'Armored Vehicles': {
+          'Cash-in-Transit Vans': {},
+          'Secure Cargo Trucks': {}
         },
-        'Aerial Work Platforms': {
-          'Scissor Lifts': ['Electric', 'Rough Terrain', 'Slab'],
-          'Boom Lifts': ['Articulating', 'Telescopic', 'Truck Mounted']
+        'Refrigerated (Reefer) Trucks': {
+          'Light-Duty Reefers': {},
+          'Medium-Duty Reefers': {},
+          'Trailer Reefers': {}
+        },
+        'Livestock Transport Vehicles': {
+          'Cattle Trailers': {},
+          'Poultry Vans': {},
+          'Multi-Tier Animal Trucks': {}
+        },
+        'Car Transporters': {
+          'Single Car Haulers': {},
+          'Multi-Car Carriers': {}
+        },
+        'Waste Collection Vehicles': {
+          'Rear Loader Garbage Trucks': {},
+          'Side Loader Garbage Trucks': {},
+          'Vacuum Trucks': {}
+        },
+        'Modular Container Vehicles': {
+          'Side Lifter Trucks': {},
+          'Intermodal Chassis Trucks': {}
+        }
+      },
+      'Lifting & Rigging Equipment': {
+        'Cranes': {
+          'Mobile Cranes': {
+            'Truck-Mounted Cranes': {},
+            'All-Terrain Cranes': {}
+          },
+          'Tower Cranes': {
+            'Hammerhead': {},
+            'Luffing Jib': {}
+          },
+          'Overhead Cranes': {
+            'Single Girder': {},
+            'Double Girder': {}
+          }
+        },
+        'Hoists': {
+          'Manual Chain Hoists': {},
+          'Electric Chain Hoists': {},
+          'Wire Rope Hoists': {}
         },
         'Forklifts': {
-          'Electric Forklifts': ['3-Wheel Electric', '4-Wheel Electric', 'Narrow Aisle'],
-          'Internal Combustion': ['Gasoline', 'Diesel', 'LP Gas', 'Dual Fuel'],
-          'Rough Terrain': ['Standard', 'Variable Reach', 'Telehandler']
-        }
-      },
-      'Transport Vehicles': {
-        'Passenger Vehicles': {
-          'Sedans': ['Compact', 'Mid-size', 'Full-size', 'Luxury'],
-          'SUVs': ['Compact', 'Mid-size', 'Full-size', 'Luxury'],
-          'Vans': ['Passenger Vans', 'Cargo Vans', 'Minivans']
+          'Counterbalance Forklifts': {
+            'Electric': {},
+            'Diesel': {}
+          },
+          'Reach Trucks': {},
+          'Rough Terrain Forklifts': {}
         },
-        'Buses': {
-          'Mini Buses': ['8-15 passengers', '15-25 passengers'],
-          'Standard Buses': ['25-40 passengers', '40+ passengers'],
-          'Coaches': ['Luxury Coaches', 'Standard Coaches']
-        }
-      },
-      'Construction Vehicles': {
-        'Excavators': {
-          'Mini Excavators': ['1-3 ton', '3-5 ton', '5-8 ton'],
-          'Standard Excavators': ['8-15 ton', '15-25 ton', '25-35 ton'],
-          'Large Excavators': ['35-50 ton', '50-80 ton', '80+ ton']
+        'Jacks & Lifting Devices': {
+          'Hydraulic Jacks': {
+            'Bottle Jack': {},
+            'Floor Jack': {}
+          },
+          'Pneumatic Lifts': {},
+          'Gantry Systems': {}
         },
-        'Bulldozers': {
-          'Crawler Dozers': ['Small (D3-D5)', 'Medium (D6-D8)', 'Large (D9-D11)'],
-          'Wheel Dozers': ['Compact', 'Standard', 'Large']
-        },
-        'Loaders': {
-          'Wheel Loaders': ['Compact', 'Small', 'Medium', 'Large', 'Extra Large'],
-          'Skid Steer Loaders': ['Standard', 'Compact', 'Large Frame'],
-          'Track Loaders': ['Compact', 'Standard']
+        'Rigging Accessories': {
+          'Slings': {
+            'Wire Rope Slings': {},
+            'Synthetic Slings': {}
+          },
+          'Shackles': {},
+          'Turnbuckles': {},
+          'Eye Bolts': {}
         }
-      },
-      'Agricultural Vehicles': {
-        'Tractors': {
-          'Small Tractors': ['20-50 HP', '50-80 HP'],
-          'Medium Tractors': ['80-120 HP', '120-180 HP'],
-          'Large Tractors': ['180-300 HP', '300+ HP']
-        },
-        'Harvesters': {
-          'Combine Harvesters': ['Small', 'Medium', 'Large'],
-          'Forage Harvesters': ['Small', 'Medium', 'Large']
-        }
-      },
-      'Mining Vehicles': {
-        'Haul Trucks': {
-          'Small Haul Trucks': ['30-50 ton', '50-80 ton'],
-          'Medium Haul Trucks': ['80-120 ton', '120-180 ton'],
-          'Large Haul Trucks': ['180-300 ton', '300+ ton']
-        },
-        'Loaders': {
-          'Wheel Loaders': ['Small', 'Medium', 'Large'],
-          'Track Loaders': ['Small', 'Medium', 'Large']
-        }
-      },
-      'Waste Management Vehicles': {
-        'Garbage Trucks': {
-          'Rear Loader Garbage Trucks': ['Small', 'Medium', 'Large'],
-          'Side Loader Garbage Trucks': ['Small', 'Medium', 'Large'],
-          'Front Loader Garbage Trucks': ['Small', 'Medium', 'Large']
-        },
-        'Vacuum Trucks': {
-          'Sewer Vacuum Trucks': ['Small', 'Medium', 'Large'],
-          'Industrial Vacuum Trucks': ['Small', 'Medium', 'Large']
-        }
-      },
-      'Emergency Vehicles': {
-        'Fire Trucks': {
-          'Pumper Trucks': ['Small', 'Medium', 'Large'],
-          'Ladder Trucks': ['Small', 'Medium', 'Large'],
-          'Rescue Trucks': ['Small', 'Medium', 'Large']
-        },
-        'Ambulances': {
-          'Basic Life Support': ['Type I', 'Type II', 'Type III'],
-          'Advanced Life Support': ['Type I', 'Type II', 'Type III']
-        }
-      },
-      'Military Vehicles': {
-        'Transport Vehicles': {
-          'Light Transport': ['Jeeps', 'Humvees', 'Light Trucks'],
-          'Heavy Transport': ['Medium Trucks', 'Heavy Trucks', 'Tank Transporters']
-        },
-        'Specialized Vehicles': {
-          'Armored Vehicles': ['Light Armored', 'Medium Armored', 'Heavy Armored'],
-          'Engineering Vehicles': ['Bulldozers', 'Excavators', 'Cranes']
-        }
-      },
-      'Recreational Vehicles': {
-        'Motorhomes': {
-          'Class A Motorhomes': ['Small (25-30 ft)', 'Medium (30-35 ft)', 'Large (35+ ft)'],
-          'Class B Motorhomes': ['Camper Vans', 'Conversion Vans'],
-          'Class C Motorhomes': ['Small (20-25 ft)', 'Medium (25-30 ft)', 'Large (30+ ft)']
-        },
-        'Travel Trailers': {
-          'Small Trailers': ['15-20 ft', '20-25 ft'],
-          'Medium Trailers': ['25-30 ft', '30-35 ft'],
-          'Large Trailers': ['35-40 ft', '40+ ft']
-        }
-      },
-      'Livestock Transport Vehicles': {
-        'Cattle Trailers': ['Small', 'Medium', 'Large'],
-        'Poultry Vans': ['Small', 'Medium', 'Large'],
-        'Multi-Tier Animal Trucks': ['Small', 'Medium', 'Large']
-      },
-      'Car Transporters': {
-        'Single Car Haulers': ['Open', 'Enclosed'],
-        'Multi-Car Carriers': ['3-Car', '5-Car', '7-Car', '9-Car']
-      },
-      'Waste Collection Vehicles': {
-        'Rear Loader Garbage Trucks': ['Small', 'Medium', 'Large'],
-        'Side Loader Garbage Trucks': ['Small', 'Medium', 'Large'],
-        'Vacuum Trucks': ['Small', 'Medium', 'Large']
-      },
-      'Modular Container Vehicles': {
-        'Side Lifter Trucks': ['Small', 'Medium', 'Large'],
-        'Intermodal Chassis Trucks': ['20-ft', '40-ft', '45-ft']
       }
     };
 
     const equipmentHierarchy = {
       'Material Handling Equipment': {
         'Conveyors': {
-          'Belt Conveyors': ['Flat Belt', 'Incline Belt'],
-          'Roller Conveyors': ['Gravity', 'Powered'],
-          'Chain Conveyors': ['Standard', 'Heavy Duty']
+          'Belt Conveyors': {
+            'Flat Belt': {},
+            'Incline Belt': {}
+          },
+          'Roller Conveyors': {
+            'Gravity': {},
+            'Powered': {}
+          },
+          'Chain Conveyors': {}
         },
         'Lifting Equipment': {
-          'Scissor Lifts': ['Electric', 'Hydraulic', 'Rough Terrain'],
-          'Lift Tables': ['Manual', 'Hydraulic', 'Electric']
+          'Scissor Lifts': {},
+          'Lift Tables': {
+            'Manual': {},
+            'Hydraulic': {}
+          }
         },
         'Pallet Handling': {
-          'Pallet Jacks': ['Manual', 'Electric', 'Rough Terrain'],
-          'Pallet Inverters': ['Manual', 'Automatic'],
-          'Pallet Stackers': ['Manual', 'Electric', 'Semi-Electric']
+          'Pallet Jacks': {
+            'Manual': {},
+            'Electric': {}
+          },
+          'Pallet Inverters': {},
+          'Pallet Stackers': {}
         },
         'Industrial Trucks': {
-          'Tow Tractors': ['Electric', 'Internal Combustion'],
-          'Platform Trucks': ['Manual', 'Electric', 'Rough Terrain']
+          'Tow Tractors': {},
+          'Platform Trucks': {}
         }
       },
       'Transport Equipment': {
         'Hand Trucks & Dollies': {
-          'Appliance Dollies': ['Standard', 'Heavy Duty'],
-          'Convertible Hand Trucks': ['2-Wheel', '4-Wheel'],
-          'Platform Dollies': ['Small', 'Medium', 'Large']
+          'Appliance Dollies': {},
+          'Convertible Hand Trucks': {}
         },
         'Trolleys': {
-          'Flatbed Trolleys': ['Small', 'Medium', 'Large'],
-          'Cage Trolleys': ['Standard', 'Heavy Duty'],
-          'Specialty Trolleys': ['Medical', 'Food Service', 'Industrial']
+          'Flatbed Trolleys': {},
+          'Cage Trolleys': {}
         },
         'Carts': {
-          'Utility Carts': ['Small', 'Medium', 'Large'],
-          'Service Carts': ['Tool Carts', 'Maintenance Carts', 'Cleaning Carts'],
-          'Tool Carts': ['Mechanic', 'Electrician', 'Plumber']
+          'Utility Carts': {},
+          'Service Carts': {},
+          'Tool Carts': {}
         },
         'AGVs (Automated Guided Vehicles)': {
-          'Tow-Type AGVs': ['Small', 'Medium', 'Large'],
-          'Unit Load AGVs': ['Pallet Carriers', 'Container Carriers'],
-          'Fork AGVs': ['Standard', 'Heavy Duty']
+          'Tow-Type AGVs': {},
+          'Unit Load AGVs': {}
         },
         'Industrial Trailers': {
-          'Tugger Carts': ['Small', 'Medium', 'Large'],
-          'Tow Trains': ['Manual', 'Automated']
+          'Tugger Carts': {},
+          'Tow Trains': {}
         }
       },
       'Safety Equipment': {
         'Personal Protective Equipment (PPE)': {
-          'Head Protection': ['Hard Hats', 'Bump Caps', 'Safety Helmets'],
-          'Eye & Face Protection': ['Goggles', 'Face Shields', 'Safety Glasses'],
-          'Respiratory Protection': ['N95 Masks', 'Half/Full Face Respirators', 'Air Purifying Respirators'],
-          'Hearing Protection': ['Earplugs', 'Earmuffs', 'Electronic Hearing Protection'],
-          'Hand Protection (Gloves)': ['Cut Resistant', 'Chemical Resistant', 'Heat Resistant'],
-          'Foot Protection (Safety Boots)': ['Steel Toe', 'Composite Toe', 'Electrical Hazard']
+          'Head Protection': {
+            'Hard Hats': {},
+            'Bump Caps': {}
+          },
+          'Eye & Face Protection': {
+            'Goggles': {},
+            'Face Shields': {}
+          },
+          'Respiratory Protection': {
+            'N95 Masks': {},
+            'Half/Full Face Respirators': {}
+          },
+          'Hearing Protection': {
+            'Earplugs': {},
+            'Earmuffs': {}
+          },
+          'Hand Protection (Gloves)': {},
+          'Foot Protection (Safety Boots)': {}
         },
         'Fall Protection': {
-          'Safety Harnesses': ['Full Body', 'Chest', 'Seat'],
-          'Lanyards & Lifelines': ['Shock Absorbing', 'Self Retracting', 'Vertical'],
-          'Anchor Points': ['Permanent', 'Temporary', 'Mobile']
+          'Safety Harnesses': {},
+          'Lanyards & Lifelines': {},
+          'Anchor Points': {}
         },
         'Fire Safety': {
-          'Fire Extinguishers': ['ABC Powder', 'CO2', 'Foam', 'Water'],
-          'Fire Blankets': ['Standard', 'Heavy Duty'],
-          'Smoke Detectors': ['Ionization', 'Photoelectric', 'Dual Sensor']
+          'Fire Extinguishers': {
+            'ABC Powder': {},
+            'CO2': {}
+          },
+          'Fire Blankets': {},
+          'Smoke Detectors': {}
         },
         'Site Safety': {
-          'Barricades': ['Plastic', 'Metal', 'Temporary'],
-          'Safety Cones': ['Small', 'Medium', 'Large'],
-          'Signage': ['Warning', 'Caution', 'Information'],
-          'Emergency Showers/Eyewash Stations': ['Portable', 'Fixed', 'Combination']
+          'Barricades': {},
+          'Safety Cones': {},
+          'Signage': {},
+          'Emergency Showers/Eyewash Stations': {}
         }
       },
       'Storage Equipment': {
         'Racking Systems': {
-          'Pallet Racks': ['Selective', 'Drive-In', 'Push-Back', 'Mobile'],
-          'Cantilever Racks': ['Single Sided', 'Double Sided'],
-          'Push-Back Racks': ['2 Deep', '3 Deep', '4 Deep']
+          'Pallet Racks': {
+            'Selective': {},
+            'Drive-In': {}
+          },
+          'Cantilever Racks': {},
+          'Push-Back Racks': {}
         },
         'Shelving Units': {
-          'Wire Shelving': ['Light Duty', 'Medium Duty', 'Heavy Duty'],
-          'Steel Shelving': ['Light Duty', 'Medium Duty', 'Heavy Duty'],
-          'Mobile Shelving': ['Manual', 'Electric', 'Compactus']
+          'Wire Shelving': {},
+          'Steel Shelving': {},
+          'Mobile Shelving': {}
         },
         'Bins & Containers': {
-          'Stackable Bins': ['Small', 'Medium', 'Large'],
-          'Collapsible Crates': ['Standard', 'Heavy Duty'],
-          'IBC Totes': ['Plastic', 'Stainless Steel', 'Carbon Steel']
+          'Stackable Bins': {},
+          'Collapsible Crates': {},
+          'IBC Totes': {}
         },
         'Lockers & Cabinets': {
-          'Tool Cabinets': ['Small', 'Medium', 'Large'],
-          'PPE Lockers': ['Individual', 'Multi-User'],
-          'Flammable Storage Cabinets': ['Small', 'Medium', 'Large']
+          'Tool Cabinets': {},
+          'PPE Lockers': {},
+          'Flammable Storage Cabinets': {}
         }
       },
       'Construction & Earthmoving Equipment': {
         'Earthmoving Machinery': {
-          'Excavators': ['Mini', 'Standard', 'Large', 'Wheeled'],
-          'Bulldozers': ['Small', 'Medium', 'Large'],
-          'Backhoe Loaders': ['Standard', 'Compact', 'Large'],
-          'Skid Steer Loaders': ['Standard', 'Compact', 'Large Frame']
+          'Excavators': {
+            'Tracked': {},
+            'Wheeled': {}
+          },
+          'Bulldozers': {},
+          'Backhoe Loaders': {},
+          'Skid Steer Loaders': {}
         },
         'Compaction Equipment': {
-          'Vibratory Rollers': ['Single Drum', 'Double Drum', 'Pneumatic'],
-          'Plate Compactors': ['Forward Plate', 'Reversible Plate'],
-          'Rammers': ['Standard', 'Heavy Duty']
+          'Vibratory Rollers': {},
+          'Plate Compactors': {},
+          'Rammers': {}
         },
         'Paving Equipment': {
-          'Asphalt Pavers': ['Track Pavers', 'Wheel Pavers', 'Mini Pavers'],
-          'Concrete Pavers': ['Slipform Pavers', 'Form Pavers']
+          'Asphalt Pavers': {},
+          'Concrete Pavers': {}
         },
         'Drilling & Piling Equipment': {
-          'Rotary Drilling Rigs': ['Small', 'Medium', 'Large'],
-          'Pile Drivers': ['Vibratory', 'Impact', 'Press-In']
+          'Rotary Drilling Rigs': {},
+          'Pile Drivers': {}
         }
       },
       'Power & Utility Equipment': {
         'Generators': {
-          'Portable Generators': ['Small (1-5 kW)', 'Medium (5-15 kW)', 'Large (15+ kW)'],
-          'Diesel Generators': ['Small', 'Medium', 'Large'],
-          'Solar Generators': ['Small', 'Medium', 'Large']
+          'Portable Generators': {},
+          'Diesel Generators': {},
+          'Solar Generators': {}
         },
         'Compressors': {
-          'Electric Air Compressors': ['Small', 'Medium', 'Large'],
-          'Diesel Compressors': ['Small', 'Medium', 'Large'],
-          'Portable Compressors': ['Small', 'Medium', 'Large']
+          'Electric Air Compressors': {},
+          'Diesel Compressors': {}
         },
         'Welding Equipment': {
-          'Arc Welders': ['Stick', 'MIG', 'TIG'],
-          'MIG/TIG Welders': ['Small', 'Medium', 'Large'],
-          'Plasma Cutters': ['Small', 'Medium', 'Large']
+          'Arc Welders': {},
+          'MIG/TIG Welders': {}
         },
         'Power Distribution': {
-          'Temporary Power Panels': ['Small', 'Medium', 'Large'],
-          'Power Cables & Reels': ['Extension Cords', 'Heavy Duty Cables', 'Reels']
+          'Temporary Power Panels': {},
+          'Power Cables & Reels': {}
         },
         'Lighting Towers': {
-          'Solar Light Towers': ['Small', 'Medium', 'Large'],
-          'Diesel Light Towers': ['Small', 'Medium', 'Large']
+          'Solar Light Towers': {},
+          'Diesel Light Towers': {}
         }
       },
       'Maintenance Tools & Equipment': {
         'Hand Tools': {
-          'Wrenches': ['Adjustable', 'Combination', 'Socket'],
-          'Screwdrivers': ['Phillips', 'Flat Head', 'Torx'],
-          'Pliers': ['Standard', 'Needle Nose', 'Locking']
+          'Wrenches': {},
+          'Screwdrivers': {},
+          'Pliers': {}
         },
         'Power Tools': {
-          'Drills': ['Cordless', 'Corded', 'Hammer Drills'],
-          'Grinders': ['Angle Grinders', 'Bench Grinders', 'Die Grinders'],
-          'Impact Drivers': ['Cordless', 'Corded', 'Pneumatic']
+          'Drills': {},
+          'Grinders': {},
+          'Impact Drivers': {}
         },
         'Diagnostic Tools': {
-          'Multimeters': ['Digital', 'Analog', 'Clamp Meters'],
-          'Thermal Cameras': ['Small', 'Medium', 'Large'],
-          'Oscilloscopes': ['Digital', 'Analog']
+          'Multimeters': {},
+          'Thermal Cameras': {}
         },
         'Cleaning Equipment': {
-          'Industrial Vacuums': ['Wet/Dry', 'HEPA', 'Explosion Proof'],
-          'Pressure Washers': ['Electric', 'Gas', 'Diesel'],
-          'Steam Cleaners': ['Small', 'Medium', 'Large']
+          'Industrial Vacuums': {},
+          'Pressure Washers': {}
         },
         'Lubrication Equipment': {
-          'Grease Guns': ['Manual', 'Electric', 'Pneumatic'],
-          'Oil Dispensers': ['Manual', 'Electric', 'Automatic']
+          'Grease Guns': {},
+          'Oil Dispensers': {}
         }
       },
       'Site Infrastructure Equipment': {
         'Site Offices & Cabins': {
-          'Portable Offices': ['Small', 'Medium', 'Large'],
-          'Restrooms': ['Single', 'Multiple', 'ADA Compliant'],
-          'Storage Units': ['Small', 'Medium', 'Large']
+          'Portable Offices': {},
+          'Restrooms': {},
+          'Storage Units': {}
         },
         'Fencing & Barriers': {
-          'Temporary Fencing': ['Chain Link', 'Plastic', 'Metal'],
-          'Concrete Barriers': ['Small', 'Medium', 'Large'],
-          'Traffic Barriers': ['Water Filled', 'Concrete', 'Steel']
+          'Temporary Fencing': {},
+          'Concrete Barriers': {}
         },
         'Water Supply Systems': {
-          'Water Tanks': ['Small', 'Medium', 'Large'],
-          'Water Pumps': ['Submersible', 'Centrifugal', 'Diaphragm'],
-          'Filtration Systems': ['Small', 'Medium', 'Large']
+          'Water Tanks': {},
+          'Water Pumps': {}
         },
         'Waste Management Systems': {
-          'Waste Bins': ['Small', 'Medium', 'Large'],
-          'Septic Tanks': ['Small', 'Medium', 'Large'],
-          'Recycling Systems': ['Small', 'Medium', 'Large']
+          'Waste Bins': {},
+          'Septic Tanks': {}
         },
         'Site Access Solutions': {
-          'Access Control Gates': ['Manual', 'Automatic', 'Security'],
-          'Turnstiles': ['Manual', 'Automatic', 'Security'],
-          'Temporary Roads & Mats': ['Steel Mats', 'Plastic Mats', 'Wood Mats']
+          'Access Control Gates': {},
+          'Turnstiles': {},
+          'Temporary Roads & Mats': {}
         }
       }
     };
