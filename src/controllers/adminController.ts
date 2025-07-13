@@ -20,10 +20,10 @@ interface AuthRequest extends Request {
 export const createEmployeeResidency = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     let data = { ...req.body, createdBy: req.user?.userId, updatedBy: req.user?.userId };
-    if (data.personType === 'citizen') {
+    if (data.employeeType === 'citizen') {
       data.residencyNumber = undefined;
       data.residencyExpiry = undefined;
-    } else if (data.personType === 'foreigner') {
+    } else if (data.employeeType === 'foreigner') {
       data.civilId = undefined;
       data.civilIdExpiry = undefined;
     }
@@ -47,10 +47,10 @@ export const getEmployeeResidencies = async (req: Request, res: Response): Promi
 export const updateEmployeeResidency = async (req: Request, res: Response): Promise<void> => {
   try {
     let data = { ...req.body, updatedAt: new Date() };
-    if (data.personType === 'citizen') {
+    if (data.employeeType === 'citizen') {
       data.residencyNumber = undefined;
       data.residencyExpiry = undefined;
-    } else if (data.personType === 'foreigner') {
+    } else if (data.employeeType === 'foreigner') {
       data.civilId = undefined;
       data.civilIdExpiry = undefined;
     }

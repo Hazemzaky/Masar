@@ -1,8 +1,16 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IPass {
+  passType: 'KOC' | 'KNPC' | 'GO' | 'RATQA' | 'ABDALI' | 'WANEET';
+  issuanceDate: Date;
+  expiryDate: Date;
+  sponsor: string;
+}
+
 export interface IEmployeeResidency extends Document {
   employee: mongoose.Types.ObjectId;
-  personType: 'citizen' | 'foreigner';
+  employeeType: 'citizen' | 'foreigner';
+  coId?: string; // 5 digits
   passportNumber: string;
   passportExpiry: Date;
   nationality: string;
@@ -14,8 +22,13 @@ export interface IEmployeeResidency extends Document {
   visaNumber: string;
   visaExpiry: Date;
   sponsor: string;
-  sponsorType: 'company' | 'individual';
-  status: 'active' | 'expired' | 'pending_renewal' | 'cancelled';
+  status: 'active' | 'expired' | 'under_renewal' | 'cancelled' | 'deported';
+  hasPasses: boolean;
+  passes: IPass[];
+  maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
+  numberOfDependents?: number;
+  dependentsLocation?: 'kuwait' | 'home_country' | 'other';
+  dependentsLocationOther?: string;
   documents: {
     passportCopy: string;
     residencyCopy: string;
@@ -35,16 +48,28 @@ export interface IEmployeeResidency extends Document {
   updatedAt: Date;
 }
 
+const passSchema = new Schema<IPass>({
+  passType: { 
+    type: String, 
+    enum: ['KOC', 'KNPC', 'GO', 'RATQA', 'ABDALI', 'WANEET'], 
+    required: true 
+  },
+  issuanceDate: { type: Date, required: true },
+  expiryDate: { type: Date, required: true },
+  sponsor: { type: String, required: true }
+});
+
 const employeeResidencySchema = new Schema<IEmployeeResidency>({
   employee: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
-  personType: { type: String, enum: ['citizen', 'foreigner'], required: true },
+  employeeType: { type: String, enum: ['citizen', 'foreigner'], required: true },
+  coId: { type: String, maxlength: 5, minlength: 5 }, // 5 digits
   passportNumber: { type: String, required: true },
   passportExpiry: { type: Date, required: true },
   nationality: { type: String, required: true },
-  residencyNumber: { type: String, required: function(this: any) { return this.personType === 'foreigner'; } },
-  residencyExpiry: { type: Date, required: function(this: any) { return this.personType === 'foreigner'; } },
-  civilId: { type: String, required: function(this: any) { return this.personType === 'citizen'; } },
-  civilIdExpiry: { type: Date, required: function(this: any) { return this.personType === 'citizen'; } },
+  residencyNumber: { type: String, required: function(this: any) { return this.employeeType === 'foreigner'; } },
+  residencyExpiry: { type: Date, required: function(this: any) { return this.employeeType === 'foreigner'; } },
+  civilId: { type: String, required: function(this: any) { return this.employeeType === 'citizen'; } },
+  civilIdExpiry: { type: Date, required: function(this: any) { return this.employeeType === 'citizen'; } },
   visaType: { 
     type: String, 
     enum: ['business_visa', 'work_visa', 'family_visa', 'other'], 
@@ -53,16 +78,23 @@ const employeeResidencySchema = new Schema<IEmployeeResidency>({
   visaNumber: { type: String, required: true },
   visaExpiry: { type: Date, required: true },
   sponsor: { type: String, required: true },
-  sponsorType: { 
-    type: String, 
-    enum: ['company', 'individual'], 
-    required: true 
-  },
   status: { 
     type: String, 
-    enum: ['active', 'expired', 'pending_renewal', 'cancelled'], 
+    enum: ['active', 'expired', 'under_renewal', 'cancelled', 'deported'], 
     default: 'active' 
   },
+  hasPasses: { type: Boolean, default: false },
+  passes: [passSchema],
+  maritalStatus: { 
+    type: String, 
+    enum: ['single', 'married', 'divorced', 'widowed'] 
+  },
+  numberOfDependents: { type: Number, min: 0 },
+  dependentsLocation: { 
+    type: String, 
+    enum: ['kuwait', 'home_country', 'other'] 
+  },
+  dependentsLocationOther: { type: String },
   documents: {
     passportCopy: { type: String },
     residencyCopy: { type: String },
