@@ -33,7 +33,66 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.PayrollHistory = exports.PayrollEmployee = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
+const PayrollEmployeeSchema = new mongoose_1.Schema({
+    company: { type: String, required: true },
+    employeeCode: { type: String, required: true, unique: true },
+    fullName: { type: String, required: true },
+    position: { type: String, required: true },
+    department: { type: String, required: true },
+    totalSalary: { type: Number, required: true },
+    days: { type: Number, required: true },
+    basicSalary: { type: Number, required: true },
+    fixedAllowance: { type: Number, required: true },
+    temporaryAllowance: { type: Number, required: true },
+    overtime: { type: Number, required: true },
+    leave: { type: Number, required: true },
+    leaveDays: { type: Number, required: true },
+    grossSalary: { type: Number, required: true },
+    absent: { type: Number, required: true },
+    absentDays: { type: Number, required: true },
+    sickLeave: { type: Number, required: true },
+    sickLeaveDays: { type: Number, required: true },
+    loan: { type: Number, required: true },
+    fixedDeduction: { type: Number, required: true },
+    temporaryDeduction: { type: Number, required: true },
+    grossNetSalary: { type: Number, required: true },
+    sponsor: { type: String, required: true },
+    remark: { type: String }
+}, {
+    timestamps: true
+});
+const PayrollHistorySchema = new mongoose_1.Schema({
+    employeeId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'PayrollEmployee', required: true },
+    month: { type: String, required: true }, // Format: "2024-01", "2024-02", etc.
+    year: { type: Number, required: true },
+    totalSalary: { type: Number, required: true },
+    days: { type: Number, required: true },
+    basicSalary: { type: Number, required: true },
+    fixedAllowance: { type: Number, required: true },
+    temporaryAllowance: { type: Number, required: true },
+    overtime: { type: Number, required: true },
+    leave: { type: Number, required: true },
+    leaveDays: { type: Number, required: true },
+    grossSalary: { type: Number, required: true },
+    absent: { type: Number, required: true },
+    absentDays: { type: Number, required: true },
+    sickLeave: { type: Number, required: true },
+    sickLeaveDays: { type: Number, required: true },
+    loan: { type: Number, required: true },
+    fixedDeduction: { type: Number, required: true },
+    temporaryDeduction: { type: Number, required: true },
+    grossNetSalary: { type: Number, required: true },
+    sponsor: { type: String, required: true },
+    remark: { type: String }
+}, {
+    timestamps: true
+});
+// Create compound index for employeeId and month to ensure unique monthly records
+PayrollHistorySchema.index({ employeeId: 1, month: 1 }, { unique: true });
+exports.PayrollEmployee = mongoose_1.default.model('PayrollEmployee', PayrollEmployeeSchema);
+exports.PayrollHistory = mongoose_1.default.model('PayrollHistory', PayrollHistorySchema);
 const PayrollSchema = new mongoose_1.Schema({
     employee: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Employee', required: true },
     period: { type: String, required: true },
@@ -45,6 +104,8 @@ const PayrollSchema = new mongoose_1.Schema({
     netPay: { type: Number, required: true },
     status: { type: String, enum: ['pending', 'processed', 'paid'], default: 'pending' },
     runDate: { type: Date, default: Date.now },
-    project: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
+    project: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' }
+}, {
+    timestamps: true
 });
 exports.default = mongoose_1.default.model('Payroll', PayrollSchema);

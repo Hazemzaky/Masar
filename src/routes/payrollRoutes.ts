@@ -1,15 +1,47 @@
-import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import express from 'express';
 import {
-  createPayroll, getPayrolls, getPayroll, updatePayroll, processPayroll
+  createPayroll,
+  getPayrolls,
+  getPayroll,
+  updatePayroll,
+  processPayroll,
+  // New payroll employee management
+  createPayrollEmployee,
+  getPayrollEmployees,
+  getPayrollEmployee,
+  updatePayrollEmployee,
+  deletePayrollEmployee,
+  // Payroll history management
+  getPayrollHistory,
+  getEmployeePayrollHistory,
+  updateMonthlyPayroll
 } from '../controllers/payrollController';
+import { authenticate } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
-router.post('/', authenticate, createPayroll);
-router.get('/', authenticate, getPayrolls);
-router.get('/:id', authenticate, getPayroll);
-router.put('/:id', authenticate, updatePayroll);
-router.post('/:id/process', authenticate, processPayroll);
+// Apply authentication middleware to all routes
+router.use(authenticate);
+
+// New Payroll Employee Management Routes
+router.post('/employees', createPayrollEmployee);
+router.get('/employees', getPayrollEmployees);
+router.get('/employees/:id', getPayrollEmployee);
+router.put('/employees/:id', updatePayrollEmployee);
+router.delete('/employees/:id', deletePayrollEmployee);
+
+// Payroll History Routes
+router.get('/history', getPayrollHistory);
+router.get('/history/:employeeId', getEmployeePayrollHistory);
+
+// Monthly Payroll Update Route
+router.post('/update-monthly', updateMonthlyPayroll);
+
+// Legacy Payroll Routes (for backward compatibility)
+router.post('/', createPayroll);
+router.get('/', getPayrolls);
+router.get('/:id', getPayroll);
+router.put('/:id', updatePayroll);
+router.post('/:id/process', processPayroll);
 
 export default router; 

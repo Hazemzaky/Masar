@@ -1,5 +1,120 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IPayrollEmployee extends Document {
+  company: string;
+  employeeCode: string;
+  fullName: string;
+  position: string;
+  department: string;
+  totalSalary: number;
+  days: number;
+  basicSalary: number;
+  fixedAllowance: number;
+  temporaryAllowance: number;
+  overtime: number;
+  leave: number;
+  leaveDays: number;
+  grossSalary: number;
+  absent: number;
+  absentDays: number;
+  sickLeave: number;
+  sickLeaveDays: number;
+  loan: number;
+  fixedDeduction: number;
+  temporaryDeduction: number;
+  grossNetSalary: number;
+  sponsor: string;
+  remark: string;
+}
+
+export interface IPayrollHistory extends Document {
+  employeeId: mongoose.Types.ObjectId;
+  month: string; // Format: "2024-01", "2024-02", etc.
+  year: number;
+  totalSalary: number;
+  days: number;
+  basicSalary: number;
+  fixedAllowance: number;
+  temporaryAllowance: number;
+  overtime: number;
+  leave: number;
+  leaveDays: number;
+  grossSalary: number;
+  absent: number;
+  absentDays: number;
+  sickLeave: number;
+  sickLeaveDays: number;
+  loan: number;
+  fixedDeduction: number;
+  temporaryDeduction: number;
+  grossNetSalary: number;
+  sponsor: string;
+  remark: string;
+}
+
+const PayrollEmployeeSchema = new Schema<IPayrollEmployee>({
+  company: { type: String, required: true },
+  employeeCode: { type: String, required: true, unique: true },
+  fullName: { type: String, required: true },
+  position: { type: String, required: true },
+  department: { type: String, required: true },
+  totalSalary: { type: Number, required: true },
+  days: { type: Number, required: true },
+  basicSalary: { type: Number, required: true },
+  fixedAllowance: { type: Number, required: true },
+  temporaryAllowance: { type: Number, required: true },
+  overtime: { type: Number, required: true },
+  leave: { type: Number, required: true },
+  leaveDays: { type: Number, required: true },
+  grossSalary: { type: Number, required: true },
+  absent: { type: Number, required: true },
+  absentDays: { type: Number, required: true },
+  sickLeave: { type: Number, required: true },
+  sickLeaveDays: { type: Number, required: true },
+  loan: { type: Number, required: true },
+  fixedDeduction: { type: Number, required: true },
+  temporaryDeduction: { type: Number, required: true },
+  grossNetSalary: { type: Number, required: true },
+  sponsor: { type: String, required: true },
+  remark: { type: String }
+}, {
+  timestamps: true
+});
+
+const PayrollHistorySchema = new Schema<IPayrollHistory>({
+  employeeId: { type: Schema.Types.ObjectId, ref: 'PayrollEmployee', required: true },
+  month: { type: String, required: true }, // Format: "2024-01", "2024-02", etc.
+  year: { type: Number, required: true },
+  totalSalary: { type: Number, required: true },
+  days: { type: Number, required: true },
+  basicSalary: { type: Number, required: true },
+  fixedAllowance: { type: Number, required: true },
+  temporaryAllowance: { type: Number, required: true },
+  overtime: { type: Number, required: true },
+  leave: { type: Number, required: true },
+  leaveDays: { type: Number, required: true },
+  grossSalary: { type: Number, required: true },
+  absent: { type: Number, required: true },
+  absentDays: { type: Number, required: true },
+  sickLeave: { type: Number, required: true },
+  sickLeaveDays: { type: Number, required: true },
+  loan: { type: Number, required: true },
+  fixedDeduction: { type: Number, required: true },
+  temporaryDeduction: { type: Number, required: true },
+  grossNetSalary: { type: Number, required: true },
+  sponsor: { type: String, required: true },
+  remark: { type: String }
+}, {
+  timestamps: true
+});
+
+// Create compound index for employeeId and month to ensure unique monthly records
+PayrollHistorySchema.index({ employeeId: 1, month: 1 }, { unique: true });
+
+export const PayrollEmployee = mongoose.model<IPayrollEmployee>('PayrollEmployee', PayrollEmployeeSchema);
+export const PayrollHistory = mongoose.model<IPayrollHistory>('PayrollHistory', PayrollHistorySchema);
+
+// Keep the old Payroll model for backward compatibility
 export interface IPayroll extends Document {
   employee: mongoose.Types.ObjectId;
   period: string;
@@ -14,7 +129,7 @@ export interface IPayroll extends Document {
   project?: mongoose.Types.ObjectId;
 }
 
-const PayrollSchema: Schema = new Schema({
+const PayrollSchema = new Schema<IPayroll>({
   employee: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
   period: { type: String, required: true },
   baseSalary: { type: Number, required: true },
@@ -25,7 +140,9 @@ const PayrollSchema: Schema = new Schema({
   netPay: { type: Number, required: true },
   status: { type: String, enum: ['pending', 'processed', 'paid'], default: 'pending' },
   runDate: { type: Date, default: Date.now },
-  project: { type: Schema.Types.ObjectId, ref: 'Project' },
+  project: { type: Schema.Types.ObjectId, ref: 'Project' }
+}, {
+  timestamps: true
 });
 
 export default mongoose.model<IPayroll>('Payroll', PayrollSchema); 
