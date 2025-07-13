@@ -307,16 +307,13 @@ exports.processPayroll = processPayroll;
 // New function to get available employees (not assigned to any project)
 const getAvailableEmployees = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Get all employees first to see if there are any
-        const allEmployees = yield Payroll_1.PayrollEmployee.find().select('fullName employeeCode position department currentProject');
-        console.log('All employees found:', allEmployees.length);
-        // For now, return all employees so we can see if there are any in the database
-        // Later we can filter to only show unassigned employees
-        const availableEmployees = yield Payroll_1.PayrollEmployee.find()
+        // Only return employees who are not assigned to any project
+        const availableEmployees = yield Payroll_1.PayrollEmployee.find({
+            currentProject: { $exists: false }
+        })
             .select('fullName employeeCode position department currentProject')
             .sort({ fullName: 1 });
         console.log('Available employees found:', availableEmployees.length);
-        console.log('Sample employee:', availableEmployees[0]);
         res.json(availableEmployees);
     }
     catch (error) {

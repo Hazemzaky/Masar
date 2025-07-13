@@ -81,12 +81,26 @@ const checkEmployeeAvailability = (req, res) => __awaiter(void 0, void 0, void 0
 exports.checkEmployeeAvailability = checkEmployeeAvailability;
 const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees, assignedDrivers } = req.body;
+        const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees, assignedDrivers, assignedAssets } = req.body;
         // Validate required fields
         if (!customer || !equipmentDescription || !rentTime || !rentType || !timing || !operatorDriver) {
             return res.status(400).json({
                 message: 'Missing required fields: customer, equipmentDescription, rentTime, rentType, timing, operatorDriver'
             });
+        }
+        // If assignedAssets is provided, check their availability
+        if (assignedAssets && Array.isArray(assignedAssets) && assignedAssets.length > 0) {
+            const availableAssets = yield Asset_1.default.find({
+                _id: { $in: assignedAssets },
+                availability: 'available',
+                status: 'active',
+                currentProject: { $exists: false }
+            });
+            if (availableAssets.length !== assignedAssets.length) {
+                return res.status(400).json({
+                    message: 'Some assets are not available for assignment'
+                });
+            }
         }
         // If assignedDrivers is provided, check their availability
         if (assignedDrivers && Array.isArray(assignedDrivers) && assignedDrivers.length > 0) {
@@ -127,10 +141,18 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             description,
             revenue: revenue ? Number(revenue) : undefined,
             notes,
+            assignedAssets: assignedAssets || [],
             assignedDrivers: assignedDrivers || []
         };
         const project = new Project_1.default(projectData);
         yield project.save();
+        // If assets are assigned, update their assignment
+        if (assignedAssets && Array.isArray(assignedAssets) && assignedAssets.length > 0) {
+            yield Asset_1.default.updateMany({ _id: { $in: assignedAssets } }, {
+                availability: 'assigned',
+                currentProject: project._id
+            });
+        }
         // If drivers are assigned, update their project assignment
         if (assignedDrivers && Array.isArray(assignedDrivers) && assignedDrivers.length > 0) {
             yield Promise.all(assignedDrivers.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -199,11 +221,12 @@ const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             }
             // Assign new assets
             if (newAssets.length > 0) {
-                // Verify all new assets are available
+                // Verify all new assets are available and not assigned to other projects
                 const availableAssets = yield Asset_1.default.find({
                     _id: { $in: newAssets },
                     availability: 'available',
-                    status: 'active'
+                    status: 'active',
+                    currentProject: null
                 });
                 if (availableAssets.length !== newAssets.length) {
                     return res.status(400).json({
@@ -233,6 +256,7 @@ const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             if (newDrivers.length > 0) {
                 const availabilityCheck = yield Promise.all(newDrivers.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
                     const employee = yield Payroll_2.PayrollEmployee.findById(employeeId);
+                    // Only allow if not assigned to any project OR already assigned to this project
                     return {
                         employeeId,
                         available: !(employee === null || employee === void 0 ? void 0 : employee.currentProject) || employee.currentProject.toString() === projectId,
@@ -347,7 +371,8 @@ const getAvailableAssets = (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const availableAssets = yield Asset_1.default.find({
             availability: 'available',
-            status: 'active'
+            status: 'active',
+            currentProject: null // Only show assets not currently assigned to any project
         }).select('description type brand plateNumber serialNumber fleetNumber');
         res.json(availableAssets);
     }
