@@ -316,15 +316,22 @@ export const processPayroll = async (req: Request, res: Response): Promise<void>
 // New function to get available employees (not assigned to any project)
 export const getAvailableEmployees = async (req: Request, res: Response): Promise<void> => {
   try {
-    const availableEmployees = await PayrollEmployee.find({
-      $or: [
-        { currentProject: { $exists: false } },
-        { currentProject: null }
-      ]
-    }).select('fullName employeeCode position department');
+    // Get all employees first to see if there are any
+    const allEmployees = await PayrollEmployee.find().select('fullName employeeCode position department currentProject');
+    console.log('All employees found:', allEmployees.length);
+    
+    // For now, return all employees so we can see if there are any in the database
+    // Later we can filter to only show unassigned employees
+    const availableEmployees = await PayrollEmployee.find()
+      .select('fullName employeeCode position department currentProject')
+      .sort({ fullName: 1 });
+    
+    console.log('Available employees found:', availableEmployees.length);
+    console.log('Sample employee:', availableEmployees[0]);
     
     res.json(availableEmployees);
   } catch (error: any) {
+    console.error('Error in getAvailableEmployees:', error);
     res.status(500).json({ message: error.message });
   }
 };

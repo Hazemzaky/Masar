@@ -27,17 +27,119 @@ exports.deactivateEmployee = exports.updateEmployee = exports.getEmployee = expo
 const Employee_1 = __importDefault(require("../models/Employee"));
 const createEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { name, email, position, department, salary, benefits, leaveBalance, hireDate } = req.body;
+        const { name, email, position, department, salary, benefits, leaveBalance, hireDate, 
+        // Additional fields
+        photo, location, supervisor, status, employmentType, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule, employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory, gpsTrackingStatus, certifiedEquipment, currentShiftZone, pickRate, errorRate, directReports, currentProjects, departmentalKPIs, phoneNumber, emergencyContactName, emergencyContactNumber, emergencyContactRelationship, languageSkills, logisticsSoftwareKnowledge, equipmentCertifications, firstAidTraining, firstAidExpiryDate, customsComplianceCert, cvResume, employmentContract, idPassportCopy, workPermit, drivingLicense, healthClearance, certificates, performanceRating, attendanceRecord, disciplinaryActions, warningsIssued, lastEvaluationDate, nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances, bonuses, deductions, uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment, vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin } = req.body;
+        // Validate required fields
+        if (!name || !email || !position || !department || !salary) {
+            res.status(400).json({ message: 'Missing required fields: name, email, position, department, salary' });
+            return;
+        }
         // Validate benefits
         const validBenefits = Array.isArray(benefits)
             ? benefits.filter((b) => b && typeof b.type === 'string' && typeof b.value === 'number')
             : [];
-        const employee = new Employee_1.default({ name, email, position, department, salary, benefits: validBenefits, leaveBalance, hireDate });
+        // Create employee object with all fields
+        const employeeData = {
+            name,
+            email,
+            position,
+            department,
+            salary: Number(salary),
+            benefits: validBenefits,
+            leaveBalance: Number(leaveBalance) || 0,
+            hireDate: hireDate ? new Date(hireDate) : new Date(),
+            // Additional fields
+            photo,
+            location,
+            supervisor,
+            status: status || 'Active',
+            employmentType: employmentType || 'Full-time',
+            dateOfHire,
+            contractExpiryDate,
+            shiftSchedule: shiftSchedule || 'Day',
+            workSchedule,
+            employeeGrade,
+            licenseType,
+            licenseExpiryDate,
+            assignedVehicle,
+            routeHistory,
+            gpsTrackingStatus: Boolean(gpsTrackingStatus),
+            certifiedEquipment,
+            currentShiftZone,
+            pickRate,
+            errorRate,
+            directReports,
+            currentProjects,
+            departmentalKPIs,
+            phoneNumber,
+            emergencyContactName,
+            emergencyContactNumber,
+            emergencyContactRelationship,
+            languageSkills,
+            logisticsSoftwareKnowledge,
+            equipmentCertifications,
+            firstAidTraining,
+            firstAidExpiryDate,
+            customsComplianceCert,
+            cvResume,
+            employmentContract,
+            idPassportCopy,
+            workPermit,
+            drivingLicense,
+            healthClearance,
+            certificates,
+            performanceRating,
+            attendanceRecord,
+            disciplinaryActions,
+            warningsIssued,
+            lastEvaluationDate,
+            nextEvaluationDate,
+            goalsKPIs,
+            salaryBand,
+            bankAccount,
+            allowances,
+            bonuses,
+            deductions,
+            uniformIssued: Boolean(uniformIssued),
+            uniformSize,
+            uniformIssueDate,
+            ppeIssued: Boolean(ppeIssued),
+            ppeDetails,
+            itEquipment,
+            vehicleAssigned,
+            systemAccounts,
+            accessLevels,
+            biometricId,
+            accessCardId,
+            lastLogin
+        };
+        const employee = new Employee_1.default(employeeData);
         yield employee.save();
         res.status(201).json(employee);
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error('Error creating employee:', error);
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            const validationErrors = Object.values(error.errors).map((err) => err.message);
+            res.status(400).json({
+                message: 'Validation error',
+                errors: validationErrors
+            });
+            return;
+        }
+        // Handle duplicate key errors
+        if (error.code === 11000) {
+            res.status(400).json({
+                message: 'Employee with this email already exists'
+            });
+            return;
+        }
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
+        });
     }
 });
 exports.createEmployee = createEmployee;
@@ -67,11 +169,73 @@ const getEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.getEmployee = getEmployee;
 const updateEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const _a = req.body, { benefits } = _a, rest = __rest(_a, ["benefits"]);
+        const _a = req.body, { benefits, 
+        // Additional fields
+        photo, location, supervisor, status, employmentType, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule, employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory, gpsTrackingStatus, certifiedEquipment, currentShiftZone, pickRate, errorRate, directReports, currentProjects, departmentalKPIs, phoneNumber, emergencyContactName, emergencyContactNumber, emergencyContactRelationship, languageSkills, logisticsSoftwareKnowledge, equipmentCertifications, firstAidTraining, firstAidExpiryDate, customsComplianceCert, cvResume, employmentContract, idPassportCopy, workPermit, drivingLicense, healthClearance, certificates, performanceRating, attendanceRecord, disciplinaryActions, warningsIssued, lastEvaluationDate, nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances, bonuses, deductions, uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment, vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin } = _a, rest = __rest(_a, ["benefits", "photo", "location", "supervisor", "status", "employmentType", "dateOfHire", "contractExpiryDate", "shiftSchedule", "workSchedule", "employeeGrade", "licenseType", "licenseExpiryDate", "assignedVehicle", "routeHistory", "gpsTrackingStatus", "certifiedEquipment", "currentShiftZone", "pickRate", "errorRate", "directReports", "currentProjects", "departmentalKPIs", "phoneNumber", "emergencyContactName", "emergencyContactNumber", "emergencyContactRelationship", "languageSkills", "logisticsSoftwareKnowledge", "equipmentCertifications", "firstAidTraining", "firstAidExpiryDate", "customsComplianceCert", "cvResume", "employmentContract", "idPassportCopy", "workPermit", "drivingLicense", "healthClearance", "certificates", "performanceRating", "attendanceRecord", "disciplinaryActions", "warningsIssued", "lastEvaluationDate", "nextEvaluationDate", "goalsKPIs", "salaryBand", "bankAccount", "allowances", "bonuses", "deductions", "uniformIssued", "uniformSize", "uniformIssueDate", "ppeIssued", "ppeDetails", "itEquipment", "vehicleAssigned", "systemAccounts", "accessLevels", "biometricId", "accessCardId", "lastLogin"]);
         const validBenefits = Array.isArray(benefits)
             ? benefits.filter((b) => b && typeof b.type === 'string' && typeof b.value === 'number')
             : [];
-        const employee = yield Employee_1.default.findByIdAndUpdate(req.params.id, Object.assign(Object.assign({}, rest), { benefits: validBenefits }), { new: true });
+        // Create update data object with all fields
+        const updateData = Object.assign(Object.assign({}, rest), { benefits: validBenefits, 
+            // Additional fields
+            photo,
+            location,
+            supervisor,
+            status,
+            employmentType,
+            dateOfHire,
+            contractExpiryDate,
+            shiftSchedule,
+            workSchedule,
+            employeeGrade,
+            licenseType,
+            licenseExpiryDate,
+            assignedVehicle,
+            routeHistory, gpsTrackingStatus: gpsTrackingStatus !== undefined ? Boolean(gpsTrackingStatus) : undefined, certifiedEquipment,
+            currentShiftZone,
+            pickRate,
+            errorRate,
+            directReports,
+            currentProjects,
+            departmentalKPIs,
+            phoneNumber,
+            emergencyContactName,
+            emergencyContactNumber,
+            emergencyContactRelationship,
+            languageSkills,
+            logisticsSoftwareKnowledge,
+            equipmentCertifications,
+            firstAidTraining,
+            firstAidExpiryDate,
+            customsComplianceCert,
+            cvResume,
+            employmentContract,
+            idPassportCopy,
+            workPermit,
+            drivingLicense,
+            healthClearance,
+            certificates,
+            performanceRating,
+            attendanceRecord,
+            disciplinaryActions,
+            warningsIssued,
+            lastEvaluationDate,
+            nextEvaluationDate,
+            goalsKPIs,
+            salaryBand,
+            bankAccount,
+            allowances,
+            bonuses,
+            deductions, uniformIssued: uniformIssued !== undefined ? Boolean(uniformIssued) : undefined, uniformSize,
+            uniformIssueDate, ppeIssued: ppeIssued !== undefined ? Boolean(ppeIssued) : undefined, ppeDetails,
+            itEquipment,
+            vehicleAssigned,
+            systemAccounts,
+            accessLevels,
+            biometricId,
+            accessCardId,
+            lastLogin });
+        const employee = yield Employee_1.default.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!employee) {
             res.status(404).json({ message: 'Employee not found' });
             return;
@@ -79,7 +243,27 @@ const updateEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
         res.json(employee);
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error('Error updating employee:', error);
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            const validationErrors = Object.values(error.errors).map((err) => err.message);
+            res.status(400).json({
+                message: 'Validation error',
+                errors: validationErrors
+            });
+            return;
+        }
+        // Handle duplicate key errors
+        if (error.code === 11000) {
+            res.status(400).json({
+                message: 'Employee with this email already exists'
+            });
+            return;
+        }
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
+        });
     }
 });
 exports.updateEmployee = updateEmployee;
