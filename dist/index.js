@@ -54,33 +54,33 @@ app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
-// Routes
-app.use('/auth', authRoutes_1.default);
-app.use('/employees', employeeRoutes_1.default);
-app.use('/expenses', expenseRoutes_1.default);
-app.use('/assets', assetRoutes_1.default);
-app.use('/asset-categories', assetCategoryRoutes_1.default);
-app.use('/maintenance', maintenanceRoutes_1.default);
-app.use('/fuel-logs', fuelLogRoutes_1.default);
-app.use('/driver-hours', driverHourRoutes_1.default);
-app.use('/leaves', leaveRoutes_1.default);
-app.use('/payroll', payrollRoutes_1.default);
-app.use('/projects', projectRoutes_1.default);
-app.use('/procurement', procurementRoutes_1.default);
-app.use('/budgets', budgetRoutes_1.default);
-app.use('/dashboard', dashboardRoutes_1.default);
-app.use('/accounts', accountRoutes_1.default);
-app.use('/journal-entries', journalEntryRoutes_1.default);
-app.use('/periods', periodRoutes_1.default);
-app.use('/depreciation', depreciationRoutes_1.default);
-app.use('/invoices', invoiceRoutes_1.default);
-app.use('/inventory', inventoryRoutes_1.default);
-app.use('/hse', hseRoutes_1.default);
-app.use('/travel-requests', travelRequestRoutes_1.default);
-app.use('/travel-authorizations', travelAuthorizationRoutes_1.default);
-app.use('/travel', travelRoutes_1.default);
-app.use('/reimbursements', reimbursementRoutes_1.default);
-app.use('/admin', adminRoutes_1.default);
+// API Routes with /api prefix
+app.use('/api/auth', authRoutes_1.default);
+app.use('/api/employees', employeeRoutes_1.default);
+app.use('/api/expenses', expenseRoutes_1.default);
+app.use('/api/assets', assetRoutes_1.default);
+app.use('/api/asset-categories', assetCategoryRoutes_1.default);
+app.use('/api/maintenance', maintenanceRoutes_1.default);
+app.use('/api/fuel-logs', fuelLogRoutes_1.default);
+app.use('/api/driver-hours', driverHourRoutes_1.default);
+app.use('/api/leaves', leaveRoutes_1.default);
+app.use('/api/payroll', payrollRoutes_1.default);
+app.use('/api/projects', projectRoutes_1.default);
+app.use('/api/procurement', procurementRoutes_1.default);
+app.use('/api/budgets', budgetRoutes_1.default);
+app.use('/api/dashboard', dashboardRoutes_1.default);
+app.use('/api/accounts', accountRoutes_1.default);
+app.use('/api/journal-entries', journalEntryRoutes_1.default);
+app.use('/api/periods', periodRoutes_1.default);
+app.use('/api/depreciation', depreciationRoutes_1.default);
+app.use('/api/invoices', invoiceRoutes_1.default);
+app.use('/api/inventory', inventoryRoutes_1.default);
+app.use('/api/hse', hseRoutes_1.default);
+app.use('/api/travel-requests', travelRequestRoutes_1.default);
+app.use('/api/travel-authorizations', travelAuthorizationRoutes_1.default);
+app.use('/api/travel', travelRoutes_1.default);
+app.use('/api/reimbursements', reimbursementRoutes_1.default);
+app.use('/api/admin', adminRoutes_1.default);
 // Scheduled task for monthly payroll update (runs on 24th of each month)
 const scheduleMonthlyPayrollUpdate = () => {
     const now = new Date();

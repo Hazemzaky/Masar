@@ -56,33 +56,33 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/employees', employeeRoutes);
-app.use('/expenses', expenseRoutes);
-app.use('/assets', assetRoutes);
-app.use('/asset-categories', assetCategoryRoutes);
-app.use('/maintenance', maintenanceRoutes);
-app.use('/fuel-logs', fuelLogRoutes);
-app.use('/driver-hours', driverHourRoutes);
-app.use('/leaves', leaveRoutes);
-app.use('/payroll', payrollRoutes);
-app.use('/projects', projectRoutes);
-app.use('/procurement', procurementRoutes);
-app.use('/budgets', budgetRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/accounts', accountRoutes);
-app.use('/journal-entries', journalEntryRoutes);
-app.use('/periods', periodRoutes);
-app.use('/depreciation', depreciationRoutes);
-app.use('/invoices', invoiceRoutes);
-app.use('/inventory', inventoryRoutes);
-app.use('/hse', hseRoutes);
-app.use('/travel-requests', travelRequestRoutes);
-app.use('/travel-authorizations', travelAuthorizationRoutes);
-app.use('/travel', travelRoutes);
-app.use('/reimbursements', reimbursementRoutes);
-app.use('/admin', adminRoutes);
+// API Routes with /api prefix
+app.use('/api/auth', authRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/assets', assetRoutes);
+app.use('/api/asset-categories', assetCategoryRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/fuel-logs', fuelLogRoutes);
+app.use('/api/driver-hours', driverHourRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/procurement', procurementRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/journal-entries', journalEntryRoutes);
+app.use('/api/periods', periodRoutes);
+app.use('/api/depreciation', depreciationRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/hse', hseRoutes);
+app.use('/api/travel-requests', travelRequestRoutes);
+app.use('/api/travel-authorizations', travelAuthorizationRoutes);
+app.use('/api/travel', travelRoutes);
+app.use('/api/reimbursements', reimbursementRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Scheduled task for monthly payroll update (runs on 24th of each month)
 const scheduleMonthlyPayrollUpdate = () => {
