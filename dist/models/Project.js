@@ -48,5 +48,6 @@ const ProjectSchema = new mongoose_1.Schema({
     revenue: { type: Number },
     notes: { type: String },
     assignedAssets: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Asset' }], // Array of assigned asset IDs
+    assignedDrivers: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'PayrollEmployee' }], // Array of assigned driver IDs
 }, { timestamps: true });
 exports.default = mongoose_1.default.model('Project', ProjectSchema);

@@ -81,16 +81,16 @@ const checkEmployeeAvailability = (req, res) => __awaiter(void 0, void 0, void 0
 exports.checkEmployeeAvailability = checkEmployeeAvailability;
 const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees } = req.body;
+        const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees, assignedDrivers } = req.body;
         // Validate required fields
         if (!customer || !equipmentDescription || !rentTime || !rentType || !timing || !operatorDriver) {
             return res.status(400).json({
                 message: 'Missing required fields: customer, equipmentDescription, rentTime, rentType, timing, operatorDriver'
             });
         }
-        // If assignedEmployees is provided, check their availability
-        if (assignedEmployees && Array.isArray(assignedEmployees) && assignedEmployees.length > 0) {
-            const availabilityCheck = yield Promise.all(assignedEmployees.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
+        // If assignedDrivers is provided, check their availability
+        if (assignedDrivers && Array.isArray(assignedDrivers) && assignedDrivers.length > 0) {
+            const availabilityCheck = yield Promise.all(assignedDrivers.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
                 const employee = yield Payroll_2.PayrollEmployee.findById(employeeId);
                 return {
                     employeeId,
@@ -101,7 +101,7 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             const unavailableEmployees = availabilityCheck.filter(check => !check.available);
             if (unavailableEmployees.length > 0) {
                 return res.status(400).json({
-                    message: 'Some employees are not available for assignment',
+                    message: 'Some drivers are not available for assignment',
                     unavailableEmployees: unavailableEmployees.map(u => {
                         var _a, _b;
                         return ({
@@ -126,13 +126,14 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             status: 'active',
             description,
             revenue: revenue ? Number(revenue) : undefined,
-            notes
+            notes,
+            assignedDrivers: assignedDrivers || []
         };
         const project = new Project_1.default(projectData);
         yield project.save();
-        // If employees are assigned, update their project assignment
-        if (assignedEmployees && Array.isArray(assignedEmployees) && assignedEmployees.length > 0) {
-            yield Promise.all(assignedEmployees.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
+        // If drivers are assigned, update their project assignment
+        if (assignedDrivers && Array.isArray(assignedDrivers) && assignedDrivers.length > 0) {
+            yield Promise.all(assignedDrivers.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
                 yield Payroll_2.PayrollEmployee.findByIdAndUpdate(employeeId, {
                     currentProject: project._id,
                     projectAssignmentDate: new Date()
@@ -149,7 +150,9 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.createProject = createProject;
 const getProjects = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const projects = yield Project_1.default.find().populate('assignedAssets');
+        const projects = yield Project_1.default.find()
+            .populate('assignedAssets')
+            .populate('assignedDrivers', 'fullName employeeCode position department');
         res.json(projects);
     }
     catch (error) {
@@ -159,7 +162,9 @@ const getProjects = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.getProjects = getProjects;
 const getProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const project = yield Project_1.default.findById(req.params.id).populate('assignedAssets');
+        const project = yield Project_1.default.findById(req.params.id)
+            .populate('assignedAssets')
+            .populate('assignedDrivers', 'fullName employeeCode position department');
         if (!project) {
             res.status(404).json({ message: 'Project not found' });
             return;
@@ -173,9 +178,9 @@ const getProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 exports.getProject = getProject;
 const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const _a = req.body, { assignedAssets } = _a, updateData = __rest(_a, ["assignedAssets"]);
+        const _a = req.body, { assignedAssets, assignedDrivers } = _a, updateData = __rest(_a, ["assignedAssets", "assignedDrivers"]);
         const projectId = req.params.id;
-        // Get current project to check existing asset assignments
+        // Get current project to check existing asset and driver assignments
         const currentProject = yield Project_1.default.findById(projectId);
         if (!currentProject) {
             res.status(404).json({ message: 'Project not found' });
@@ -213,7 +218,54 @@ const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             }
             updateData.assignedAssets = newAssets;
         }
-        const project = yield Project_1.default.findByIdAndUpdate(projectId, updateData, { new: true }).populate('assignedAssets');
+        // Handle driver assignment changes
+        if (assignedDrivers !== undefined) {
+            const oldDrivers = currentProject.assignedDrivers || [];
+            const newDrivers = assignedDrivers || [];
+            // Unassign old drivers
+            if (oldDrivers.length > 0) {
+                yield Payroll_2.PayrollEmployee.updateMany({ _id: { $in: oldDrivers } }, {
+                    currentProject: null,
+                    projectAssignmentDate: null
+                });
+            }
+            // Check availability of new drivers
+            if (newDrivers.length > 0) {
+                const availabilityCheck = yield Promise.all(newDrivers.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
+                    const employee = yield Payroll_2.PayrollEmployee.findById(employeeId);
+                    return {
+                        employeeId,
+                        available: !(employee === null || employee === void 0 ? void 0 : employee.currentProject) || employee.currentProject.toString() === projectId,
+                        employee: employee
+                    };
+                })));
+                const unavailableDrivers = availabilityCheck.filter(check => !check.available);
+                if (unavailableDrivers.length > 0) {
+                    return res.status(400).json({
+                        message: 'Some drivers are not available for assignment',
+                        unavailableDrivers: unavailableDrivers.map(u => {
+                            var _a, _b;
+                            return ({
+                                employeeId: u.employeeId,
+                                employeeName: (_a = u.employee) === null || _a === void 0 ? void 0 : _a.fullName,
+                                currentProject: (_b = u.employee) === null || _b === void 0 ? void 0 : _b.currentProject
+                            });
+                        })
+                    });
+                }
+                // Assign new drivers
+                yield Promise.all(newDrivers.map((employeeId) => __awaiter(void 0, void 0, void 0, function* () {
+                    yield Payroll_2.PayrollEmployee.findByIdAndUpdate(employeeId, {
+                        currentProject: projectId,
+                        projectAssignmentDate: new Date()
+                    });
+                })));
+            }
+            updateData.assignedDrivers = newDrivers;
+        }
+        const project = yield Project_1.default.findByIdAndUpdate(projectId, updateData, { new: true })
+            .populate('assignedAssets')
+            .populate('assignedDrivers', 'fullName employeeCode position department');
         res.json(project);
     }
     catch (error) {
@@ -233,6 +285,13 @@ const deleteProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             yield Asset_1.default.updateMany({ _id: { $in: project.assignedAssets } }, {
                 availability: 'available',
                 currentProject: null
+            });
+        }
+        // Unassign drivers before deleting project
+        if (project.assignedDrivers && project.assignedDrivers.length > 0) {
+            yield Payroll_2.PayrollEmployee.updateMany({ _id: { $in: project.assignedDrivers } }, {
+                currentProject: null,
+                projectAssignmentDate: null
             });
         }
         yield Project_1.default.findByIdAndDelete(req.params.id);

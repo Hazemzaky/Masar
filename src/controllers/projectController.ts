@@ -61,7 +61,7 @@ export const checkEmployeeAvailability = async (req: Request, res: Response) => 
 
 export const createProject = async (req: Request, res: Response) => {
   try {
-    const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees } = req.body;
+    const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees, assignedDrivers } = req.body;
 
     // Validate required fields
     if (!customer || !equipmentDescription || !rentTime || !rentType || !timing || !operatorDriver) {
@@ -70,10 +70,10 @@ export const createProject = async (req: Request, res: Response) => {
       });
     }
 
-    // If assignedEmployees is provided, check their availability
-    if (assignedEmployees && Array.isArray(assignedEmployees) && assignedEmployees.length > 0) {
+    // If assignedDrivers is provided, check their availability
+    if (assignedDrivers && Array.isArray(assignedDrivers) && assignedDrivers.length > 0) {
       const availabilityCheck = await Promise.all(
-        assignedEmployees.map(async (employeeId: string) => {
+        assignedDrivers.map(async (employeeId: string) => {
           const employee = await PayrollEmployee.findById(employeeId);
           return {
             employeeId,
@@ -87,7 +87,7 @@ export const createProject = async (req: Request, res: Response) => {
       
       if (unavailableEmployees.length > 0) {
         return res.status(400).json({
-          message: 'Some employees are not available for assignment',
+          message: 'Some drivers are not available for assignment',
           unavailableEmployees: unavailableEmployees.map(u => ({
             employeeId: u.employeeId,
             employeeName: u.employee?.fullName,
@@ -110,16 +110,17 @@ export const createProject = async (req: Request, res: Response) => {
       status: 'active',
       description,
       revenue: revenue ? Number(revenue) : undefined,
-      notes
+      notes,
+      assignedDrivers: assignedDrivers || []
     };
 
     const project = new Project(projectData);
     await project.save();
 
-    // If employees are assigned, update their project assignment
-    if (assignedEmployees && Array.isArray(assignedEmployees) && assignedEmployees.length > 0) {
+    // If drivers are assigned, update their project assignment
+    if (assignedDrivers && Array.isArray(assignedDrivers) && assignedDrivers.length > 0) {
       await Promise.all(
-        assignedEmployees.map(async (employeeId: string) => {
+        assignedDrivers.map(async (employeeId: string) => {
           await PayrollEmployee.findByIdAndUpdate(employeeId, {
             currentProject: project._id,
             projectAssignmentDate: new Date()
@@ -137,7 +138,9 @@ export const createProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: Request, res: Response) => {
   try {
-    const projects = await Project.find().populate('assignedAssets');
+    const projects = await Project.find()
+      .populate('assignedAssets')
+      .populate('assignedDrivers', 'fullName employeeCode position department');
     res.json(projects);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
@@ -146,7 +149,9 @@ export const getProjects = async (req: Request, res: Response) => {
 
 export const getProject = async (req: Request, res: Response) => {
   try {
-    const project = await Project.findById(req.params.id).populate('assignedAssets');
+    const project = await Project.findById(req.params.id)
+      .populate('assignedAssets')
+      .populate('assignedDrivers', 'fullName employeeCode position department');
     if (!project) {
       res.status(404).json({ message: 'Project not found' });
       return;
@@ -159,10 +164,10 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const updateProject = async (req: Request, res: Response) => {
   try {
-    const { assignedAssets, ...updateData } = req.body;
+    const { assignedAssets, assignedDrivers, ...updateData } = req.body;
     const projectId = req.params.id;
 
-    // Get current project to check existing asset assignments
+    // Get current project to check existing asset and driver assignments
     const currentProject = await Project.findById(projectId);
     if (!currentProject) {
       res.status(404).json({ message: 'Project not found' });
@@ -213,7 +218,65 @@ export const updateProject = async (req: Request, res: Response) => {
       updateData.assignedAssets = newAssets;
     }
 
-    const project = await Project.findByIdAndUpdate(projectId, updateData, { new: true }).populate('assignedAssets');
+    // Handle driver assignment changes
+    if (assignedDrivers !== undefined) {
+      const oldDrivers = currentProject.assignedDrivers || [];
+      const newDrivers = assignedDrivers || [];
+
+      // Unassign old drivers
+      if (oldDrivers.length > 0) {
+        await PayrollEmployee.updateMany(
+          { _id: { $in: oldDrivers } },
+          { 
+            currentProject: null,
+            projectAssignmentDate: null
+          }
+        );
+      }
+
+      // Check availability of new drivers
+      if (newDrivers.length > 0) {
+        const availabilityCheck = await Promise.all(
+          newDrivers.map(async (employeeId: string) => {
+            const employee = await PayrollEmployee.findById(employeeId);
+            return {
+              employeeId,
+              available: !employee?.currentProject || employee.currentProject.toString() === projectId,
+              employee: employee
+            };
+          })
+        );
+
+        const unavailableDrivers = availabilityCheck.filter(check => !check.available);
+        
+        if (unavailableDrivers.length > 0) {
+          return res.status(400).json({
+            message: 'Some drivers are not available for assignment',
+            unavailableDrivers: unavailableDrivers.map(u => ({
+              employeeId: u.employeeId,
+              employeeName: u.employee?.fullName,
+              currentProject: u.employee?.currentProject
+            }))
+          });
+        }
+
+        // Assign new drivers
+        await Promise.all(
+          newDrivers.map(async (employeeId: string) => {
+            await PayrollEmployee.findByIdAndUpdate(employeeId, {
+              currentProject: projectId,
+              projectAssignmentDate: new Date()
+            });
+          })
+        );
+      }
+
+      updateData.assignedDrivers = newDrivers;
+    }
+
+    const project = await Project.findByIdAndUpdate(projectId, updateData, { new: true })
+      .populate('assignedAssets')
+      .populate('assignedDrivers', 'fullName employeeCode position department');
     res.json(project);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
@@ -235,6 +298,17 @@ export const deleteProject = async (req: Request, res: Response) => {
         { 
           availability: 'available',
           currentProject: null
+        }
+      );
+    }
+
+    // Unassign drivers before deleting project
+    if (project.assignedDrivers && project.assignedDrivers.length > 0) {
+      await PayrollEmployee.updateMany(
+        { _id: { $in: project.assignedDrivers } },
+        { 
+          currentProject: null,
+          projectAssignmentDate: null
         }
       );
     }
