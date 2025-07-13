@@ -36,10 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const AssetSchema = new mongoose_1.Schema({
     description: { type: String, required: true },
+    // Source category (uppermost type)
+    type: { type: String, enum: ['Vehicle', 'Attachment', 'Equipment', 'Building', 'Furniture', 'IT', 'Other'], required: true },
     mainCategory: { type: String, required: true },
     subCategory: { type: String, required: true },
     subSubCategory: { type: String },
     subSubSubCategory: { type: String },
+    subSubSubSubCategory: { type: String },
     brand: { type: String },
     status: {
         type: String,
