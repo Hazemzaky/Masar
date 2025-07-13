@@ -32,6 +32,55 @@ const Payroll_1 = __importDefault(require("../models/Payroll"));
 const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const DriverHour_1 = __importDefault(require("../models/DriverHour"));
 const Payroll_2 = require("../models/Payroll");
+const Tariff_1 = __importDefault(require("../models/Tariff"));
+// Helper function to calculate revenue based on tariff
+const calculateRevenueFromTariff = (assetType, mainCategory, subCategory, startTime, endTime) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Find applicable tariff for the asset type and category
+        const tariff = yield Tariff_1.default.findOne({
+            assetType,
+            mainCategory,
+            subCategory,
+            isActive: true,
+            effectiveDate: { $lte: new Date() },
+            $or: [
+                { expiryDate: { $exists: false } },
+                { expiryDate: { $gte: new Date() } }
+            ]
+        });
+        if (!tariff) {
+            return null;
+        }
+        const durationMs = endTime.getTime() - startTime.getTime();
+        let duration;
+        let revenue;
+        switch (tariff.pricingType) {
+            case 'per_hour':
+                duration = durationMs / (1000 * 60 * 60); // Convert to hours
+                revenue = duration * tariff.rate;
+                break;
+            case 'per_day':
+                duration = durationMs / (1000 * 60 * 60 * 24); // Convert to days
+                revenue = duration * tariff.rate;
+                break;
+            case 'per_month':
+                duration = durationMs / (1000 * 60 * 60 * 24 * 30); // Convert to months (approximate)
+                revenue = duration * tariff.rate;
+                break;
+            default:
+                return null;
+        }
+        return {
+            revenue: Math.round(revenue * 100) / 100, // Round to 2 decimal places
+            tariffRate: tariff.rate,
+            tariffType: tariff.pricingType
+        };
+    }
+    catch (error) {
+        console.error('Error calculating revenue from tariff:', error);
+        return null;
+    }
+});
 // New function to check employee availability for project assignment
 const checkEmployeeAvailability = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -81,7 +130,7 @@ const checkEmployeeAvailability = (req, res) => __awaiter(void 0, void 0, void 0
 exports.checkEmployeeAvailability = checkEmployeeAvailability;
 const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees, assignedDrivers, assignedAssets } = req.body;
+        const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, startTimeHour, startTimeMinute, endTime, endTimeHour, endTimeMinute, description, revenue, notes, assignedEmployees, assignedDrivers, assignedAssets } = req.body;
         // Validate required fields
         if (!customer || !equipmentDescription || !rentTime || !rentType || !timing || !operatorDriver) {
             return res.status(400).json({
@@ -127,6 +176,38 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 });
             }
         }
+        // Process start time with hour and minute
+        let processedStartTime;
+        if (startTime) {
+            processedStartTime = new Date(startTime);
+            if (startTimeHour !== undefined && startTimeMinute !== undefined) {
+                processedStartTime.setHours(startTimeHour, startTimeMinute, 0, 0);
+            }
+        }
+        // Process end time with hour and minute (only if project is being completed)
+        let processedEndTime;
+        if (endTime) {
+            processedEndTime = new Date(endTime);
+            if (endTimeHour !== undefined && endTimeMinute !== undefined) {
+                processedEndTime.setHours(endTimeHour, endTimeMinute, 0, 0);
+            }
+        }
+        // Auto-calculate revenue if we have assigned assets and start/end times
+        let calculatedRevenue = revenue ? Number(revenue) : undefined;
+        let tariffRate;
+        let tariffType;
+        if (assignedAssets && assignedAssets.length > 0 && processedStartTime && processedEndTime) {
+            // Get the first assigned asset to determine tariff
+            const firstAsset = yield Asset_1.default.findById(assignedAssets[0]);
+            if (firstAsset) {
+                const revenueCalculation = yield calculateRevenueFromTariff(firstAsset.type, firstAsset.mainCategory, firstAsset.subCategory, processedStartTime, processedEndTime);
+                if (revenueCalculation) {
+                    calculatedRevenue = revenueCalculation.revenue;
+                    tariffRate = revenueCalculation.tariffRate;
+                    tariffType = revenueCalculation.tariffType;
+                }
+            }
+        }
         // Create the project
         const projectData = {
             customer,
@@ -135,11 +216,17 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             rentType,
             timing,
             operatorDriver,
-            startTime: startTime ? new Date(startTime) : undefined,
-            endTime: endTime ? new Date(endTime) : undefined,
+            startTime: processedStartTime,
+            startTimeHour: startTimeHour !== undefined ? Number(startTimeHour) : undefined,
+            startTimeMinute: startTimeMinute !== undefined ? Number(startTimeMinute) : undefined,
+            endTime: processedEndTime,
+            endTimeHour: endTimeHour !== undefined ? Number(endTimeHour) : undefined,
+            endTimeMinute: endTimeMinute !== undefined ? Number(endTimeMinute) : undefined,
             status: 'active',
             description,
-            revenue: revenue ? Number(revenue) : undefined,
+            revenue: calculatedRevenue,
+            tariffRate,
+            tariffType,
             notes,
             assignedAssets: assignedAssets || [],
             assignedDrivers: assignedDrivers || []
@@ -390,9 +477,24 @@ const completeProject = (req, res) => __awaiter(void 0, void 0, void 0, function
             res.status(404).json({ message: 'Project not found' });
             return;
         }
-        // Update project status to completed
+        // Update project status to completed and set end time
+        const now = new Date();
         project.status = 'completed';
-        project.endTime = new Date();
+        project.endTime = now;
+        project.endTimeHour = now.getHours();
+        project.endTimeMinute = now.getMinutes();
+        // Recalculate revenue if we have assigned assets
+        if (project.assignedAssets && project.assignedAssets.length > 0 && project.startTime) {
+            const firstAsset = yield Asset_1.default.findById(project.assignedAssets[0]);
+            if (firstAsset) {
+                const revenueCalculation = yield calculateRevenueFromTariff(firstAsset.type, firstAsset.mainCategory, firstAsset.subCategory, project.startTime, now);
+                if (revenueCalculation) {
+                    project.revenue = revenueCalculation.revenue;
+                    project.tariffRate = revenueCalculation.tariffRate;
+                    project.tariffType = revenueCalculation.tariffType;
+                }
+            }
+        }
         yield project.save();
         // Unassign all employees from this project
         yield Payroll_2.PayrollEmployee.updateMany({ currentProject: id }, {

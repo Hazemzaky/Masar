@@ -31,6 +31,7 @@ import travelAuthorizationRoutes from './routes/travelAuthorizationRoutes';
 import travelRoutes from './routes/travelRoutes';
 import reimbursementRoutes from './routes/reimbursementRoutes';
 import adminRoutes from './routes/adminRoutes';
+import tariffRoutes from './routes/tariffRoutes';
 
 // Import payroll update function
 import { updateMonthlyPayroll } from './controllers/payrollController';
@@ -83,6 +84,7 @@ app.use('/api/travel-authorizations', travelAuthorizationRoutes);
 app.use('/api/travel', travelRoutes);
 app.use('/api/reimbursements', reimbursementRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/tariffs', tariffRoutes);
 
 // Scheduled task for monthly payroll update (runs on 24th of each month)
 const scheduleMonthlyPayrollUpdate = () => {

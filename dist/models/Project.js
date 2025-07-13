@@ -42,10 +42,16 @@ const ProjectSchema = new mongoose_1.Schema({
     timing: { type: String, enum: ['8_hours', '12_hours', '24_hours'], required: true },
     operatorDriver: { type: String, enum: ['1', '2'], required: true },
     startTime: { type: Date },
+    startTimeHour: { type: Number, min: 0, max: 23 },
+    startTimeMinute: { type: Number, min: 0, max: 59 },
     endTime: { type: Date },
+    endTimeHour: { type: Number, min: 0, max: 23 },
+    endTimeMinute: { type: Number, min: 0, max: 59 },
     status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
     description: { type: String },
     revenue: { type: Number },
+    tariffRate: { type: Number },
+    tariffType: { type: String, enum: ['per_hour', 'per_day', 'per_month'] },
     notes: { type: String },
     assignedAssets: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Asset' }], // Array of assigned asset IDs
     assignedDrivers: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'PayrollEmployee' }], // Array of assigned driver IDs

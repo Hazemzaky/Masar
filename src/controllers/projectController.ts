@@ -7,6 +7,59 @@ import Payroll from '../models/Payroll';
 import FuelLog from '../models/FuelLog';
 import DriverHour from '../models/DriverHour';
 import { PayrollEmployee } from '../models/Payroll';
+import Tariff from '../models/Tariff';
+
+// Helper function to calculate revenue based on tariff
+const calculateRevenueFromTariff = async (assetType: string, mainCategory: string, subCategory: string, startTime: Date, endTime: Date): Promise<{ revenue: number; tariffRate: number; tariffType: string } | null> => {
+  try {
+    // Find applicable tariff for the asset type and category
+    const tariff = await Tariff.findOne({
+      assetType,
+      mainCategory,
+      subCategory,
+      isActive: true,
+      effectiveDate: { $lte: new Date() },
+      $or: [
+        { expiryDate: { $exists: false } },
+        { expiryDate: { $gte: new Date() } }
+      ]
+    });
+
+    if (!tariff) {
+      return null;
+    }
+
+    const durationMs = endTime.getTime() - startTime.getTime();
+    let duration: number;
+    let revenue: number;
+
+    switch (tariff.pricingType) {
+      case 'per_hour':
+        duration = durationMs / (1000 * 60 * 60); // Convert to hours
+        revenue = duration * tariff.rate;
+        break;
+      case 'per_day':
+        duration = durationMs / (1000 * 60 * 60 * 24); // Convert to days
+        revenue = duration * tariff.rate;
+        break;
+      case 'per_month':
+        duration = durationMs / (1000 * 60 * 60 * 24 * 30); // Convert to months (approximate)
+        revenue = duration * tariff.rate;
+        break;
+      default:
+        return null;
+    }
+
+    return {
+      revenue: Math.round(revenue * 100) / 100, // Round to 2 decimal places
+      tariffRate: tariff.rate,
+      tariffType: tariff.pricingType
+    };
+  } catch (error) {
+    console.error('Error calculating revenue from tariff:', error);
+    return null;
+  }
+};
 
 // New function to check employee availability for project assignment
 export const checkEmployeeAvailability = async (req: Request, res: Response) => {
@@ -61,7 +114,26 @@ export const checkEmployeeAvailability = async (req: Request, res: Response) => 
 
 export const createProject = async (req: Request, res: Response) => {
   try {
-    const { customer, equipmentDescription, rentTime, rentType, timing, operatorDriver, startTime, endTime, description, revenue, notes, assignedEmployees, assignedDrivers, assignedAssets } = req.body;
+    const { 
+      customer, 
+      equipmentDescription, 
+      rentTime, 
+      rentType, 
+      timing, 
+      operatorDriver, 
+      startTime, 
+      startTimeHour, 
+      startTimeMinute,
+      endTime, 
+      endTimeHour, 
+      endTimeMinute,
+      description, 
+      revenue, 
+      notes, 
+      assignedEmployees, 
+      assignedDrivers, 
+      assignedAssets 
+    } = req.body;
 
     // Validate required fields
     if (!customer || !equipmentDescription || !rentTime || !rentType || !timing || !operatorDriver) {
@@ -113,6 +185,49 @@ export const createProject = async (req: Request, res: Response) => {
       }
     }
 
+    // Process start time with hour and minute
+    let processedStartTime: Date | undefined;
+    if (startTime) {
+      processedStartTime = new Date(startTime);
+      if (startTimeHour !== undefined && startTimeMinute !== undefined) {
+        processedStartTime.setHours(startTimeHour, startTimeMinute, 0, 0);
+      }
+    }
+
+    // Process end time with hour and minute (only if project is being completed)
+    let processedEndTime: Date | undefined;
+    if (endTime) {
+      processedEndTime = new Date(endTime);
+      if (endTimeHour !== undefined && endTimeMinute !== undefined) {
+        processedEndTime.setHours(endTimeHour, endTimeMinute, 0, 0);
+      }
+    }
+
+    // Auto-calculate revenue if we have assigned assets and start/end times
+    let calculatedRevenue = revenue ? Number(revenue) : undefined;
+    let tariffRate: number | undefined;
+    let tariffType: string | undefined;
+
+    if (assignedAssets && assignedAssets.length > 0 && processedStartTime && processedEndTime) {
+      // Get the first assigned asset to determine tariff
+      const firstAsset = await Asset.findById(assignedAssets[0]);
+      if (firstAsset) {
+        const revenueCalculation = await calculateRevenueFromTariff(
+          firstAsset.type,
+          firstAsset.mainCategory,
+          firstAsset.subCategory,
+          processedStartTime,
+          processedEndTime
+        );
+        
+        if (revenueCalculation) {
+          calculatedRevenue = revenueCalculation.revenue;
+          tariffRate = revenueCalculation.tariffRate;
+          tariffType = revenueCalculation.tariffType;
+        }
+      }
+    }
+
     // Create the project
     const projectData = {
       customer,
@@ -121,11 +236,17 @@ export const createProject = async (req: Request, res: Response) => {
       rentType,
       timing,
       operatorDriver,
-      startTime: startTime ? new Date(startTime) : undefined,
-      endTime: endTime ? new Date(endTime) : undefined,
+      startTime: processedStartTime,
+      startTimeHour: startTimeHour !== undefined ? Number(startTimeHour) : undefined,
+      startTimeMinute: startTimeMinute !== undefined ? Number(startTimeMinute) : undefined,
+      endTime: processedEndTime,
+      endTimeHour: endTimeHour !== undefined ? Number(endTimeHour) : undefined,
+      endTimeMinute: endTimeMinute !== undefined ? Number(endTimeMinute) : undefined,
       status: 'active',
       description,
-      revenue: revenue ? Number(revenue) : undefined,
+      revenue: calculatedRevenue,
+      tariffRate,
+      tariffType,
       notes,
       assignedAssets: assignedAssets || [],
       assignedDrivers: assignedDrivers || []
@@ -414,9 +535,33 @@ export const completeProject = async (req: Request, res: Response) => {
       return;
     }
 
-    // Update project status to completed
+    // Update project status to completed and set end time
+    const now = new Date();
     project.status = 'completed';
-    project.endTime = new Date();
+    project.endTime = now;
+    project.endTimeHour = now.getHours();
+    project.endTimeMinute = now.getMinutes();
+
+    // Recalculate revenue if we have assigned assets
+    if (project.assignedAssets && project.assignedAssets.length > 0 && project.startTime) {
+      const firstAsset = await Asset.findById(project.assignedAssets[0]);
+      if (firstAsset) {
+        const revenueCalculation = await calculateRevenueFromTariff(
+          firstAsset.type,
+          firstAsset.mainCategory,
+          firstAsset.subCategory,
+          project.startTime,
+          now
+        );
+        
+        if (revenueCalculation) {
+          project.revenue = revenueCalculation.revenue;
+          project.tariffRate = revenueCalculation.tariffRate;
+          project.tariffType = revenueCalculation.tariffType as 'per_hour' | 'per_day' | 'per_month';
+        }
+      }
+    }
+
     await project.save();
 
     // Unassign all employees from this project

@@ -36,6 +36,7 @@ const travelAuthorizationRoutes_1 = __importDefault(require("./routes/travelAuth
 const travelRoutes_1 = __importDefault(require("./routes/travelRoutes"));
 const reimbursementRoutes_1 = __importDefault(require("./routes/reimbursementRoutes"));
 const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
+const tariffRoutes_1 = __importDefault(require("./routes/tariffRoutes"));
 // Import payroll update function
 const payrollController_1 = require("./controllers/payrollController");
 dotenv_1.default.config();
@@ -81,6 +82,7 @@ app.use('/api/travel-authorizations', travelAuthorizationRoutes_1.default);
 app.use('/api/travel', travelRoutes_1.default);
 app.use('/api/reimbursements', reimbursementRoutes_1.default);
 app.use('/api/admin', adminRoutes_1.default);
+app.use('/api/tariffs', tariffRoutes_1.default);
 // Scheduled task for monthly payroll update (runs on 24th of each month)
 const scheduleMonthlyPayrollUpdate = () => {
     const now = new Date();
