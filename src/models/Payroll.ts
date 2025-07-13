@@ -31,25 +31,25 @@ export interface IPayrollHistory extends Document {
   employeeId: mongoose.Types.ObjectId;
   month: string; // Format: "2024-01", "2024-02", etc.
   year: number;
-  totalSalary: number;
-  days: number;
-  basicSalary: number;
-  fixedAllowance: number;
-  temporaryAllowance: number;
-  overtime: number;
-  leave: number;
-  leaveDays: number;
-  grossSalary: number;
-  absent: number;
-  absentDays: number;
-  sickLeave: number;
-  sickLeaveDays: number;
-  loan: number;
-  fixedDeduction: number;
-  temporaryDeduction: number;
-  grossNetSalary: number;
-  sponsor: string;
-  remark: string;
+  totalSalary?: number;
+  days?: number;
+  basicSalary?: number;
+  fixedAllowance?: number;
+  temporaryAllowance?: number;
+  overtime?: number;
+  leave?: number;
+  leaveDays?: number;
+  grossSalary?: number;
+  absent?: number;
+  absentDays?: number;
+  sickLeave?: number;
+  sickLeaveDays?: number;
+  loan?: number;
+  fixedDeduction?: number;
+  temporaryDeduction?: number;
+  grossNetSalary?: number;
+  sponsor?: string;
+  remark?: string;
 }
 
 const PayrollEmployeeSchema = new Schema<IPayrollEmployee>({
@@ -85,25 +85,25 @@ const PayrollHistorySchema = new Schema<IPayrollHistory>({
   employeeId: { type: Schema.Types.ObjectId, ref: 'PayrollEmployee', required: true },
   month: { type: String, required: true }, // Format: "2024-01", "2024-02", etc.
   year: { type: Number, required: true },
-  totalSalary: { type: Number, required: true },
-  days: { type: Number, required: true },
-  basicSalary: { type: Number, required: true },
-  fixedAllowance: { type: Number, required: true },
-  temporaryAllowance: { type: Number, required: true },
-  overtime: { type: Number, required: true },
-  leave: { type: Number, required: true },
-  leaveDays: { type: Number, required: true },
-  grossSalary: { type: Number, required: true },
-  absent: { type: Number, required: true },
-  absentDays: { type: Number, required: true },
-  sickLeave: { type: Number, required: true },
-  sickLeaveDays: { type: Number, required: true },
-  loan: { type: Number, required: true },
-  fixedDeduction: { type: Number, required: true },
-  temporaryDeduction: { type: Number, required: true },
-  grossNetSalary: { type: Number, required: true },
-  sponsor: { type: String, required: true },
-  remark: { type: String }
+  totalSalary: { type: Number, default: 0 },
+  days: { type: Number, default: 0 },
+  basicSalary: { type: Number, default: 0 },
+  fixedAllowance: { type: Number, default: 0 },
+  temporaryAllowance: { type: Number, default: 0 },
+  overtime: { type: Number, default: 0 },
+  leave: { type: Number, default: 0 },
+  leaveDays: { type: Number, default: 0 },
+  grossSalary: { type: Number, default: 0 },
+  absent: { type: Number, default: 0 },
+  absentDays: { type: Number, default: 0 },
+  sickLeave: { type: Number, default: 0 },
+  sickLeaveDays: { type: Number, default: 0 },
+  loan: { type: Number, default: 0 },
+  fixedDeduction: { type: Number, default: 0 },
+  temporaryDeduction: { type: Number, default: 0 },
+  grossNetSalary: { type: Number, default: 0 },
+  sponsor: { type: String, default: '' },
+  remark: { type: String, default: '' }
 }, {
   timestamps: true
 });

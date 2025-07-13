@@ -64,21 +64,36 @@ export const updatePayrollEmployee = async (req: Request, res: Response): Promis
       month: currentMonth
     });
 
+    // Only save fields that exist in PayrollHistory schema
+    const historyFields = [
+      'totalSalary', 'days', 'basicSalary', 'fixedAllowance', 'temporaryAllowance',
+      'overtime', 'leave', 'leaveDays', 'grossSalary', 'absent', 'absentDays',
+      'sickLeave', 'sickLeaveDays', 'loan', 'fixedDeduction', 'temporaryDeduction',
+      'grossNetSalary', 'sponsor', 'remark'
+    ];
+
+    const historyData: any = {};
+    historyFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        historyData[field] = updateData[field];
+      }
+    });
+
     if (existingHistory) {
       // Update existing history record
       await PayrollHistory.findByIdAndUpdate(existingHistory._id, {
-        ...updateData,
+        ...historyData,
         year: now.getFullYear()
       });
     } else {
       // Create new history record
-      const historyData = {
+      const newHistoryData = {
         employeeId: id,
         month: currentMonth,
         year: now.getFullYear(),
-        ...updateData
+        ...historyData
       };
-      await PayrollHistory.create(historyData);
+      await PayrollHistory.create(newHistoryData);
     }
 
     res.json(updatedEmployee);
@@ -136,17 +151,12 @@ export const updatePayrollPayment = async (req: Request, res: Response): Promise
         year: now.getFullYear()
       });
     } else {
-      // Create new history record with current employee data + payment updates
+      // Create new history record with payment data only
       const historyData = {
         employeeId: id,
         month: currentMonth,
         year: now.getFullYear(),
-        company: currentEmployee.company,
-        employeeCode: currentEmployee.employeeCode,
-        fullName: currentEmployee.fullName,
-        position: currentEmployee.position,
-        department: currentEmployee.department,
-        sponsor: currentEmployee.sponsor,
+        sponsor: currentEmployee.sponsor, // Include sponsor from current employee
         ...paymentUpdateData
       };
       await PayrollHistory.create(historyData);

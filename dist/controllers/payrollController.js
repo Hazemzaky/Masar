@@ -76,14 +76,27 @@ const updatePayrollEmployee = (req, res) => __awaiter(void 0, void 0, void 0, fu
             employeeId: id,
             month: currentMonth
         });
+        // Only save fields that exist in PayrollHistory schema
+        const historyFields = [
+            'totalSalary', 'days', 'basicSalary', 'fixedAllowance', 'temporaryAllowance',
+            'overtime', 'leave', 'leaveDays', 'grossSalary', 'absent', 'absentDays',
+            'sickLeave', 'sickLeaveDays', 'loan', 'fixedDeduction', 'temporaryDeduction',
+            'grossNetSalary', 'sponsor', 'remark'
+        ];
+        const historyData = {};
+        historyFields.forEach(field => {
+            if (updateData[field] !== undefined) {
+                historyData[field] = updateData[field];
+            }
+        });
         if (existingHistory) {
             // Update existing history record
-            yield Payroll_1.PayrollHistory.findByIdAndUpdate(existingHistory._id, Object.assign(Object.assign({}, updateData), { year: now.getFullYear() }));
+            yield Payroll_1.PayrollHistory.findByIdAndUpdate(existingHistory._id, Object.assign(Object.assign({}, historyData), { year: now.getFullYear() }));
         }
         else {
             // Create new history record
-            const historyData = Object.assign({ employeeId: id, month: currentMonth, year: now.getFullYear() }, updateData);
-            yield Payroll_1.PayrollHistory.create(historyData);
+            const newHistoryData = Object.assign({ employeeId: id, month: currentMonth, year: now.getFullYear() }, historyData);
+            yield Payroll_1.PayrollHistory.create(newHistoryData);
         }
         res.json(updatedEmployee);
     }
@@ -132,8 +145,8 @@ const updatePayrollPayment = (req, res) => __awaiter(void 0, void 0, void 0, fun
             yield Payroll_1.PayrollHistory.findByIdAndUpdate(existingHistory._id, Object.assign(Object.assign({}, paymentUpdateData), { year: now.getFullYear() }));
         }
         else {
-            // Create new history record with current employee data + payment updates
-            const historyData = Object.assign({ employeeId: id, month: currentMonth, year: now.getFullYear(), company: currentEmployee.company, employeeCode: currentEmployee.employeeCode, fullName: currentEmployee.fullName, position: currentEmployee.position, department: currentEmployee.department, sponsor: currentEmployee.sponsor }, paymentUpdateData);
+            // Create new history record with payment data only
+            const historyData = Object.assign({ employeeId: id, month: currentMonth, year: now.getFullYear(), sponsor: currentEmployee.sponsor }, paymentUpdateData);
             yield Payroll_1.PayrollHistory.create(historyData);
         }
         res.json(updatedEmployee);
