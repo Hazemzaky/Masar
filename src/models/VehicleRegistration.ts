@@ -20,22 +20,19 @@ export interface IVehicleRegistration extends Document {
   insuranceCost: number;
   insurancePaymentSystem: 'cash' | 'installments';
   insuranceInstallmentPeriod?: number; // in months, if installments
-  customsClearance: {
-    clearanceNumber: string;
-    clearanceDate: Date;
-    customsOffice: string;
-    importDuty: number;
-    clearanceStatus: 'pending' | 'completed' | 'delayed' | 'rejected';
-    clearanceNotes: string;
-  };
   hasPasses: boolean;
   passes: IPass[];
   documents: {
     registrationCard: string;
     insurancePolicy: string;
-    customsClearance: string;
     otherDocuments: string[];
   };
+  // Add registration card fields
+  registrationCardCountry?: string;
+  registrationCardBrand?: string;
+  registrationCardCapacity?: string;
+  registrationCardShape?: string;
+  registrationCardColour?: string;
   status: 'active' | 'expired' | 'suspended' | 'cancelled';
   renewalReminders: {
     enabled: boolean;
@@ -69,26 +66,19 @@ const vehicleRegistrationSchema = new Schema<IVehicleRegistration>({
   insuranceCost: { type: Number, required: true },
   insurancePaymentSystem: { type: String, enum: ['cash', 'installments'], required: true },
   insuranceInstallmentPeriod: { type: Number },
-  customsClearance: {
-    clearanceNumber: { type: String },
-    clearanceDate: { type: Date },
-    customsOffice: { type: String },
-    importDuty: { type: Number },
-    clearanceStatus: {
-      type: String,
-      enum: ['pending', 'completed', 'delayed', 'rejected'],
-      default: 'pending',
-    },
-    clearanceNotes: { type: String },
-  },
   hasPasses: { type: Boolean, default: false },
   passes: [passSchema],
   documents: {
     registrationCard: { type: String },
     insurancePolicy: { type: String },
-    customsClearance: { type: String },
     otherDocuments: [{ type: String }],
   },
+  // Add registration card fields
+  registrationCardCountry: { type: String },
+  registrationCardBrand: { type: String },
+  registrationCardCapacity: { type: String },
+  registrationCardShape: { type: String },
+  registrationCardColour: { type: String },
   status: {
     type: String,
     enum: ['active', 'expired', 'suspended', 'cancelled'],

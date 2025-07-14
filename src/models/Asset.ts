@@ -2,10 +2,6 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAsset extends Document {
   description: string;
-  /**
-   * Source category (uppermost type): Vehicle, Attachment, Equipment, Building, Furniture, IT, Other
-   */
-  type: 'Vehicle' | 'Attachment' | 'Equipment' | 'Building' | 'Furniture' | 'IT' | 'Other';
   mainCategory: string; // e.g., 'Vehicle', 'Equipment', 'Building', 'IT'
   subCategory: string; // e.g., 'Truck', 'Crane', 'Office', 'Computer'
   subSubCategory?: string; // e.g., 'Heavy Truck', 'Mobile Crane', 'Furniture', 'Laptop'
@@ -29,8 +25,6 @@ export interface IAsset extends Document {
 
 const AssetSchema = new Schema<IAsset>({
   description: { type: String, required: true },
-  // Source category (uppermost type)
-  type: { type: String, enum: ['Vehicle', 'Attachment', 'Equipment', 'Building', 'Furniture', 'IT', 'Other'], required: true },
   mainCategory: { type: String, required: true },
   subCategory: { type: String, required: true },
   subSubCategory: { type: String },

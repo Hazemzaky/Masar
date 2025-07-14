@@ -153,13 +153,18 @@ export const createVehicleRegistration = async (req: AuthRequest, res: Response)
       insuranceCost,
       insurancePaymentSystem,
       insuranceInstallmentPeriod,
-      customsClearance,
       hasPasses,
       passes,
       documents,
       status,
       renewalReminders,
-      notes
+      notes,
+      // New registration card fields
+      registrationCardCountry,
+      registrationCardBrand,
+      registrationCardCapacity,
+      registrationCardShape,
+      registrationCardColour
     } = req.body;
 
     const registration = new VehicleRegistration({
@@ -175,13 +180,18 @@ export const createVehicleRegistration = async (req: AuthRequest, res: Response)
       insuranceCost,
       insurancePaymentSystem,
       insuranceInstallmentPeriod,
-      customsClearance,
       hasPasses,
       passes,
       documents,
       status,
       renewalReminders,
       notes,
+      // New registration card fields
+      registrationCardCountry,
+      registrationCardBrand,
+      registrationCardCapacity,
+      registrationCardShape,
+      registrationCardColour,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
     });
@@ -217,13 +227,18 @@ export const updateVehicleRegistration = async (req: Request, res: Response): Pr
       insuranceCost,
       insurancePaymentSystem,
       insuranceInstallmentPeriod,
-      customsClearance,
       hasPasses,
       passes,
       documents,
       status,
       renewalReminders,
-      notes
+      notes,
+      // New registration card fields
+      registrationCardCountry,
+      registrationCardBrand,
+      registrationCardCapacity,
+      registrationCardShape,
+      registrationCardColour
     } = req.body;
 
     const updateData = {
@@ -239,13 +254,18 @@ export const updateVehicleRegistration = async (req: Request, res: Response): Pr
       insuranceCost,
       insurancePaymentSystem,
       insuranceInstallmentPeriod,
-      customsClearance,
       hasPasses,
       passes,
       documents,
       status,
       renewalReminders,
       notes,
+      // New registration card fields
+      registrationCardCountry,
+      registrationCardBrand,
+      registrationCardCapacity,
+      registrationCardShape,
+      registrationCardColour,
       updatedAt: new Date()
     };
 

@@ -9,7 +9,7 @@ export const getCategoryTree = async (req: Request, res: Response) => {
     const roots = await AssetCategory.find({ level: 1 }).lean();
     // Recursively populate children
     async function populateChildren(node: any) {
-      const children = await AssetCategory.find({ parent: node._id as mongoose.Types.ObjectId }).lean();
+      const children = await AssetCategory.find({ parent: node._id }).lean();
       node.children = await Promise.all(children.map(populateChildren));
       return node;
     }
@@ -81,7 +81,7 @@ export const deleteCategory = async (req: Request, res: Response) => {
     async function deleteRecursively(catId: mongoose.Types.ObjectId) {
       const children = await AssetCategory.find({ parent: catId });
       for (const child of children) {
-        await deleteRecursively(child._id as mongoose.Types.ObjectId);
+        await deleteRecursively(child._id);
       }
       await AssetCategory.findByIdAndDelete(catId);
     }
