@@ -286,9 +286,72 @@ export const updateEnvironmental = async (req: Request, res: Response): Promise<
 // HSE Dashboard Statistics
 export const getHSEDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Incidents
     const [
       totalIncidents,
       openIncidents,
+      ltiCount,
+      nearMissCount,
+      vehicleAccidentCount,
+      ltiIncidents,
+      nearMissIncidents,
+      accidentIncidents
+    ] = await Promise.all([
+      Incident.countDocuments(),
+      Incident.countDocuments({ status: 'open' }),
+      Incident.countDocuments({ tags: 'LTI' }),
+      Incident.countDocuments({ type: 'near_miss' }),
+      Incident.countDocuments({ type: 'accident' }),
+      Incident.find({ tags: 'LTI' }),
+      Incident.find({ type: 'near_miss' }),
+      Incident.find({ type: 'accident' })
+    ]);
+
+    // Open Safety Actions: count open correctiveActions in incidents, risk assessments, inspections
+    const [
+      incidentsWithOpenActions,
+      riskAssessmentsWithOpenActions,
+      inspectionsWithOpenActions
+    ] = await Promise.all([
+      Incident.find({ correctiveActions: { $exists: true, $ne: null } }),
+      RiskAssessment.find({ 'hazards.status': { $in: ['pending', 'in_progress', 'overdue'] } }),
+      SafetyInspection.find({ 'items.actionStatus': { $in: ['open', 'in_progress', 'overdue'] } })
+    ]);
+    let openSafetyActions = 0;
+    incidentsWithOpenActions.forEach(inc => {
+      if (Array.isArray(inc.correctiveActions)) openSafetyActions += inc.correctiveActions.length;
+      else if (inc.correctiveActions) openSafetyActions += 1;
+    });
+    riskAssessmentsWithOpenActions.forEach(risk => {
+      if (Array.isArray(risk.hazards)) {
+        openSafetyActions += risk.hazards.filter(h => ['pending', 'in_progress', 'overdue'].includes(h.status)).length;
+      }
+    });
+    inspectionsWithOpenActions.forEach(ins => {
+      if (Array.isArray(ins.items)) {
+        openSafetyActions += ins.items.filter(i => ['open', 'in_progress', 'overdue'].includes(i.actionStatus)).length;
+      }
+    });
+
+    // Audit Score: average of last 5 SafetyInspection overallScore
+    const recentInspections = await SafetyInspection.find().sort({ inspectionDate: -1 }).limit(5);
+    const auditScore = recentInspections.length > 0 ?
+      (recentInspections.reduce((sum, i) => sum + (i.overallScore || 0), 0) / recentInspections.length).toFixed(1) : null;
+
+    // Site Risk Levels: highest overallRiskLevel per location from risk assessments
+    const riskAssessments = await RiskAssessment.find();
+    const siteRiskLevels: Record<string, string> = {};
+    const riskOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+    riskAssessments.forEach(risk => {
+      if (!risk.location) return;
+      const current = siteRiskLevels[risk.location];
+      if (!current || riskOrder[risk.overallRiskLevel] > riskOrder[current]) {
+        siteRiskLevels[risk.location] = risk.overallRiskLevel;
+      }
+    });
+
+    // Existing stats
+    const [
       totalRiskAssessments,
       pendingRiskAssessments,
       totalPPE,
@@ -300,8 +363,6 @@ export const getHSEDashboard = async (req: Request, res: Response): Promise<void
       totalEnvironmental,
       activeEnvironmental
     ] = await Promise.all([
-      Incident.countDocuments(),
-      Incident.countDocuments({ status: 'open' }),
       RiskAssessment.countDocuments(),
       RiskAssessment.countDocuments({ status: 'pending_approval' }),
       PPE.countDocuments(),
@@ -315,12 +376,15 @@ export const getHSEDashboard = async (req: Request, res: Response): Promise<void
     ]);
 
     res.json({
-      incidents: { total: totalIncidents, open: openIncidents },
+      incidents: { total: totalIncidents, open: openIncidents, lti: ltiCount, nearMiss: nearMissCount, vehicleAccident: vehicleAccidentCount },
       riskAssessments: { total: totalRiskAssessments, pending: pendingRiskAssessments },
       ppe: { total: totalPPE, expiring: expiringPPE },
       inspections: { total: totalInspections, pending: pendingInspections },
       training: { total: totalTraining, expiring: expiringCertifications },
-      environmental: { total: totalEnvironmental, active: activeEnvironmental }
+      environmental: { total: totalEnvironmental, active: activeEnvironmental },
+      openSafetyActions,
+      auditScore,
+      siteRiskLevels
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
