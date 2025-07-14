@@ -1,5 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IPass {
+  passType: 'KOC' | 'KNPC' | 'GO' | 'RATQA' | 'ABDALI' | 'WANEET';
+  issuanceDate: Date;
+  expiryDate: Date;
+  sponsor: string;
+}
+
 export interface IVehicleRegistration extends Document {
   vehicle: mongoose.Types.ObjectId;
   plateNumber: string;
@@ -10,7 +17,9 @@ export interface IVehicleRegistration extends Document {
   insuranceCompany: string;
   insurancePolicyNumber: string;
   insuranceExpiry: Date;
-  insuranceAmount: number;
+  insuranceCost: number;
+  insurancePaymentSystem: 'cash' | 'installments';
+  insuranceInstallmentPeriod?: number; // in months, if installments
   customsClearance: {
     clearanceNumber: string;
     clearanceDate: Date;
@@ -19,18 +28,12 @@ export interface IVehicleRegistration extends Document {
     clearanceStatus: 'pending' | 'completed' | 'delayed' | 'rejected';
     clearanceNotes: string;
   };
-  mubarakAlKabeer: {
-    registrationNumber: string;
-    registrationDate: Date;
-    expiryDate: Date;
-    status: 'active' | 'expired' | 'pending_renewal';
-    notes: string;
-  };
+  hasPasses: boolean;
+  passes: IPass[];
   documents: {
     registrationCard: string;
     insurancePolicy: string;
     customsClearance: string;
-    mubarakAlKabeer: string;
     otherDocuments: string[];
   };
   status: 'active' | 'expired' | 'suspended' | 'cancelled';
@@ -46,6 +49,13 @@ export interface IVehicleRegistration extends Document {
   updatedAt: Date;
 }
 
+const passSchema = new Schema<IPass>({
+  passType: { type: String, enum: ['KOC', 'KNPC', 'GO', 'RATQA', 'ABDALI', 'WANEET'], required: true },
+  issuanceDate: { type: Date, required: true },
+  expiryDate: { type: Date, required: true },
+  sponsor: { type: String, required: true },
+});
+
 const vehicleRegistrationSchema = new Schema<IVehicleRegistration>({
   vehicle: { type: Schema.Types.ObjectId, ref: 'Asset', required: true },
   plateNumber: { type: String, required: true },
@@ -56,52 +66,44 @@ const vehicleRegistrationSchema = new Schema<IVehicleRegistration>({
   insuranceCompany: { type: String, required: true },
   insurancePolicyNumber: { type: String, required: true },
   insuranceExpiry: { type: Date, required: true },
-  insuranceAmount: { type: Number, required: true },
+  insuranceCost: { type: Number, required: true },
+  insurancePaymentSystem: { type: String, enum: ['cash', 'installments'], required: true },
+  insuranceInstallmentPeriod: { type: Number },
   customsClearance: {
     clearanceNumber: { type: String },
     clearanceDate: { type: Date },
     customsOffice: { type: String },
     importDuty: { type: Number },
-    clearanceStatus: { 
-      type: String, 
-      enum: ['pending', 'completed', 'delayed', 'rejected'], 
-      default: 'pending' 
+    clearanceStatus: {
+      type: String,
+      enum: ['pending', 'completed', 'delayed', 'rejected'],
+      default: 'pending',
     },
-    clearanceNotes: { type: String }
+    clearanceNotes: { type: String },
   },
-  mubarakAlKabeer: {
-    registrationNumber: { type: String },
-    registrationDate: { type: Date },
-    expiryDate: { type: Date },
-    status: { 
-      type: String, 
-      enum: ['active', 'expired', 'pending_renewal'], 
-      default: 'active' 
-    },
-    notes: { type: String }
-  },
+  hasPasses: { type: Boolean, default: false },
+  passes: [passSchema],
   documents: {
     registrationCard: { type: String },
     insurancePolicy: { type: String },
     customsClearance: { type: String },
-    mubarakAlKabeer: { type: String },
-    otherDocuments: [{ type: String }]
+    otherDocuments: [{ type: String }],
   },
-  status: { 
-    type: String, 
-    enum: ['active', 'expired', 'suspended', 'cancelled'], 
-    default: 'active' 
+  status: {
+    type: String,
+    enum: ['active', 'expired', 'suspended', 'cancelled'],
+    default: 'active',
   },
   renewalReminders: {
     enabled: { type: Boolean, default: true },
     reminderDays: [{ type: Number, default: [30, 15, 7, 1] }],
-    lastReminderSent: { type: Date }
+    lastReminderSent: { type: Date },
   },
   notes: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
 export default mongoose.model<IVehicleRegistration>('VehicleRegistration', vehicleRegistrationSchema); 

@@ -139,8 +139,49 @@ export const deleteGovernmentDocument = async (req: Request, res: Response): Pro
 // Vehicle Registration & Clearance
 export const createVehicleRegistration = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Destructure and map new fields for clarity
+    const {
+      vehicle,
+      plateNumber,
+      chassisNumber,
+      engineNumber,
+      registrationNumber,
+      registrationExpiry,
+      insuranceCompany,
+      insurancePolicyNumber,
+      insuranceExpiry,
+      insuranceCost,
+      insurancePaymentSystem,
+      insuranceInstallmentPeriod,
+      customsClearance,
+      hasPasses,
+      passes,
+      documents,
+      status,
+      renewalReminders,
+      notes
+    } = req.body;
+
     const registration = new VehicleRegistration({
-      ...req.body,
+      vehicle,
+      plateNumber,
+      chassisNumber,
+      engineNumber,
+      registrationNumber,
+      registrationExpiry,
+      insuranceCompany,
+      insurancePolicyNumber,
+      insuranceExpiry,
+      insuranceCost,
+      insurancePaymentSystem,
+      insuranceInstallmentPeriod,
+      customsClearance,
+      hasPasses,
+      passes,
+      documents,
+      status,
+      renewalReminders,
+      notes,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
     });
@@ -162,9 +203,55 @@ export const getVehicleRegistrations = async (req: Request, res: Response): Prom
 
 export const updateVehicleRegistration = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Destructure and map new fields for clarity
+    const {
+      vehicle,
+      plateNumber,
+      chassisNumber,
+      engineNumber,
+      registrationNumber,
+      registrationExpiry,
+      insuranceCompany,
+      insurancePolicyNumber,
+      insuranceExpiry,
+      insuranceCost,
+      insurancePaymentSystem,
+      insuranceInstallmentPeriod,
+      customsClearance,
+      hasPasses,
+      passes,
+      documents,
+      status,
+      renewalReminders,
+      notes
+    } = req.body;
+
+    const updateData = {
+      vehicle,
+      plateNumber,
+      chassisNumber,
+      engineNumber,
+      registrationNumber,
+      registrationExpiry,
+      insuranceCompany,
+      insurancePolicyNumber,
+      insuranceExpiry,
+      insuranceCost,
+      insurancePaymentSystem,
+      insuranceInstallmentPeriod,
+      customsClearance,
+      hasPasses,
+      passes,
+      documents,
+      status,
+      renewalReminders,
+      notes,
+      updatedAt: new Date()
+    };
+
     const registration = await VehicleRegistration.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: new Date() },
+      updateData,
       { new: true }
     );
     if (!registration) {
