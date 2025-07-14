@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import {
   // Incident Management
@@ -37,14 +38,39 @@ import {
   updateEnvironmental,
   deleteEnvironmental,
   
+  // Emergency Contacts Management
+  createEmergencyContact,
+  getEmergencyContacts,
+  updateEmergencyContact,
+  deleteEmergencyContact,
+  
+  // Emergency Plans Management
+  createEmergencyPlan,
+  getEmergencyPlans,
+  updateEmergencyPlan,
+  deleteEmergencyPlan,
+  
   // Dashboard
   getHSEDashboard
 } from '../controllers/hseController';
 
 const router = express.Router();
+const upload = multer({ dest: 'uploads/' });
 
 // Apply authentication middleware to all routes
 router.use(authenticate);
+
+// Emergency Contacts CRUD
+router.post('/emergency-contacts', createEmergencyContact);
+router.get('/emergency-contacts', getEmergencyContacts);
+router.put('/emergency-contacts/:id', updateEmergencyContact);
+router.delete('/emergency-contacts/:id', deleteEmergencyContact);
+
+// Emergency Plans CRUD
+router.post('/emergency-plans', upload.single('file'), createEmergencyPlan);
+router.get('/emergency-plans', getEmergencyPlans);
+router.put('/emergency-plans/:id', upload.single('file'), updateEmergencyPlan);
+router.delete('/emergency-plans/:id', deleteEmergencyPlan);
 
 // HSE Dashboard
 router.get('/dashboard', getHSEDashboard);
@@ -68,9 +94,9 @@ router.put('/ppe/:id', updatePPE);
 router.delete('/ppe/:id', deletePPE);
 
 // Safety Inspection Management Routes
-router.post('/safety-inspections', createSafetyInspection);
+router.post('/safety-inspections', upload.array('attachments'), createSafetyInspection);
 router.get('/safety-inspections', getSafetyInspections);
-router.put('/safety-inspections/:id', updateSafetyInspection);
+router.put('/safety-inspections/:id', upload.array('attachments'), updateSafetyInspection);
 router.delete('/safety-inspections/:id', deleteSafetyInspection);
 
 // Training Management Routes

@@ -81,7 +81,7 @@ export const deleteCategory = async (req: Request, res: Response) => {
     async function deleteRecursively(catId: mongoose.Types.ObjectId) {
       const children = await AssetCategory.find({ parent: catId });
       for (const child of children) {
-        await deleteRecursively(child._id);
+        await deleteRecursively(child._id as mongoose.Types.ObjectId);
       }
       await AssetCategory.findByIdAndDelete(catId);
     }

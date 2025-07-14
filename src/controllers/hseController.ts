@@ -5,6 +5,8 @@ import PPE from '../models/PPE';
 import SafetyInspection from '../models/SafetyInspection';
 import Training from '../models/Training';
 import Environmental from '../models/Environmental';
+import EmergencyContact from '../models/EmergencyContact';
+import EmergencyPlan from '../models/EmergencyPlan';
 
 import User from '../models/User';
 import Employee from '../models/Employee';
@@ -158,8 +160,17 @@ export const updatePPE = async (req: Request, res: Response): Promise<void> => {
 // Safety Inspection Management
 export const createSafetyInspection = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    let attachments: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      attachments = req.files.map((file: any) => `/uploads/${file.filename}`);
+    }
+    // Merge with any attachments from req.body (for non-file uploads)
+    if (req.body.attachments && Array.isArray(req.body.attachments)) {
+      attachments = attachments.concat(req.body.attachments);
+    }
     const safetyInspection = new SafetyInspection({
       ...req.body,
+      attachments,
       inspector: req.user?.userId
     });
     await safetyInspection.save();
@@ -183,9 +194,21 @@ export const getSafetyInspections = async (req: Request, res: Response): Promise
 
 export const updateSafetyInspection = async (req: Request, res: Response): Promise<void> => {
   try {
+    let attachments: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      attachments = req.files.map((file: any) => `/uploads/${file.filename}`);
+    }
+    // Merge with any attachments from req.body (for non-file uploads)
+    if (req.body.attachments && Array.isArray(req.body.attachments)) {
+      attachments = attachments.concat(req.body.attachments);
+    }
+    const updateData = { ...req.body };
+    if (attachments.length > 0) {
+      updateData.attachments = attachments;
+    }
     const safetyInspection = await SafetyInspection.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true }
     ).populate('inspector', 'email')
      .populate('completedBy', 'email');
@@ -283,6 +306,106 @@ export const updateEnvironmental = async (req: Request, res: Response): Promise<
   }
 };
 
+// Emergency Contacts CRUD
+export const createEmergencyContact = async (req: Request, res: Response) => {
+  try {
+    const contact = new EmergencyContact(req.body);
+    await contact.save();
+    res.status(201).json(contact);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getEmergencyContacts = async (req: Request, res: Response) => {
+  try {
+    const contacts = await EmergencyContact.find().sort({ name: 1 });
+    res.json(contacts);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateEmergencyContact = async (req: Request, res: Response) => {
+  try {
+    const contact = await EmergencyContact.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!contact) {
+      res.status(404).json({ message: 'Emergency contact not found' });
+      return;
+    }
+    res.json(contact);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteEmergencyContact = async (req: Request, res: Response) => {
+  try {
+    const contact = await EmergencyContact.findByIdAndDelete(req.params.id);
+    if (!contact) {
+      res.status(404).json({ message: 'Emergency contact not found' });
+      return;
+    }
+    res.json({ message: 'Emergency contact deleted' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Emergency Plans CRUD
+export const createEmergencyPlan = async (req: Request, res: Response) => {
+  try {
+    let fileUrl = req.body.fileUrl;
+    if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
+    }
+    const plan = new EmergencyPlan({ ...req.body, fileUrl });
+    await plan.save();
+    res.status(201).json(plan);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getEmergencyPlans = async (req: Request, res: Response) => {
+  try {
+    const plans = await EmergencyPlan.find().sort({ createdAt: -1 });
+    res.json(plans);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateEmergencyPlan = async (req: Request, res: Response) => {
+  try {
+    let fileUrl = req.body.fileUrl;
+    if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
+    }
+    const plan = await EmergencyPlan.findByIdAndUpdate(req.params.id, { ...req.body, fileUrl }, { new: true });
+    if (!plan) {
+      res.status(404).json({ message: 'Emergency plan not found' });
+      return;
+    }
+    res.json(plan);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteEmergencyPlan = async (req: Request, res: Response) => {
+  try {
+    const plan = await EmergencyPlan.findByIdAndDelete(req.params.id);
+    if (!plan) {
+      res.status(404).json({ message: 'Emergency plan not found' });
+      return;
+    }
+    res.json({ message: 'Emergency plan deleted' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // HSE Dashboard Statistics
 export const getHSEDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -345,7 +468,9 @@ export const getHSEDashboard = async (req: Request, res: Response): Promise<void
     riskAssessments.forEach(risk => {
       if (!risk.location) return;
       const current = siteRiskLevels[risk.location];
-      if (!current || riskOrder[risk.overallRiskLevel] > riskOrder[current]) {
+      const level = risk.overallRiskLevel as keyof typeof riskOrder;
+      const currentLevel = current as keyof typeof riskOrder;
+      if (!current || riskOrder[level] > riskOrder[currentLevel]) {
         siteRiskLevels[risk.location] = risk.overallRiskLevel;
       }
     });
