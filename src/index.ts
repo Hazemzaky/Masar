@@ -33,6 +33,7 @@ import foodAllowanceRoutes from './routes/foodAllowanceRoutes';
 import clientRoutes from './routes/clientRoutes';
 import trackerRoutes from './routes/trackerRoutes';
 import assetPassRoutes from './routes/assetPassRoutes';
+import employeePassRoutes from './routes/employeePassRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -124,6 +125,7 @@ app.use('/api/food-allowance', foodAllowanceRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/tracker', trackerRoutes);
 app.use('/api/asset-passes', assetPassRoutes);
+app.use('/api/employee-passes', employeePassRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

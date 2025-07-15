@@ -70,6 +70,7 @@ const foodAllowanceRoutes_1 = __importDefault(require("./routes/foodAllowanceRou
 const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
 const trackerRoutes_1 = __importDefault(require("./routes/trackerRoutes"));
 const assetPassRoutes_1 = __importDefault(require("./routes/assetPassRoutes"));
+const employeePassRoutes_1 = __importDefault(require("./routes/employeePassRoutes"));
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -151,6 +152,7 @@ app.use('/api/food-allowance', foodAllowanceRoutes_1.default);
 app.use('/api/clients', clientRoutes_1.default);
 app.use('/api/tracker', trackerRoutes_1.default);
 app.use('/api/asset-passes', assetPassRoutes_1.default);
+app.use('/api/employee-passes', employeePassRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
