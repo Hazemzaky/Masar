@@ -35,6 +35,7 @@ import trackerRoutes from './routes/trackerRoutes';
 import assetPassRoutes from './routes/assetPassRoutes';
 import employeePassRoutes from './routes/employeePassRoutes';
 import overtimeRoutes from './routes/overtimeRoutes';
+import tripAllowanceRoutes from './routes/tripAllowanceRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -128,6 +129,7 @@ app.use('/api/tracker', trackerRoutes);
 app.use('/api/asset-passes', assetPassRoutes);
 app.use('/api/employee-passes', employeePassRoutes);
 app.use('/api/overtime', overtimeRoutes);
+app.use('/api/trip-allowance', tripAllowanceRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
