@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import FoodAllowance from '../models/FoodAllowance';
 import Employee from '../models/Employee';
 import Project from '../models/Project';
+import { generateSerial } from '../utils/serialUtils';
 
 export const createFoodAllowance = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -10,7 +11,8 @@ export const createFoodAllowance = async (req: Request, res: Response): Promise<
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
-    const foodAllowance = new FoodAllowance({ rentType, companyName, driver, project, value: Number(value) });
+    const serial = await generateSerial('FA', 'HR', FoodAllowance); // Use correct docCode and model
+    const foodAllowance = new FoodAllowance({ rentType, companyName, driver, project, value: Number(value), serial });
     await foodAllowance.save();
     res.status(201).json(foodAllowance);
   } catch (error) {

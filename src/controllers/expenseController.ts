@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Expense from '../models/Expense';
 import { isPeriodClosed } from '../models/Period';
 import Income from '../models/Income';
+import { generateSerial } from '../utils/serialUtils';
 
 export const createExpense = async (
   req: Request & { file?: Express.Multer.File },
@@ -24,6 +25,7 @@ export const createExpense = async (
       return;
     }
     const proofUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+    const serial = await generateSerial('EX', managementDepartment, Expense);
     const expense = new Expense({
       amount,
       description,
@@ -37,6 +39,7 @@ export const createExpense = async (
       managementDepartment,
       proofUrl,
       customType: category === 'other' ? customType : undefined,
+      serial,
     });
     await expense.save();
     res.status(201).json(expense);
@@ -122,6 +125,7 @@ export const createIncome = async (req: Request, res: Response): Promise<void> =
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
+    const serial = await generateSerial('IN', managementDepartment, Income);
     const income = new Income({
       amount,
       description,
@@ -129,6 +133,7 @@ export const createIncome = async (req: Request, res: Response): Promise<void> =
       currency,
       managementDepartment,
       user: userId,
+      serial,
     });
     await income.save();
     res.status(201).json(income);

@@ -10,6 +10,7 @@ import EmergencyPlan from '../models/EmergencyPlan';
 
 import User from '../models/User';
 import Employee from '../models/Employee';
+import { generateSerial } from '../utils/serialUtils';
 
 // Extend Request interface to include user property
 interface AuthRequest extends Request {
@@ -86,9 +87,23 @@ export const updateIncident = async (req: Request, res: Response): Promise<void>
 // Risk Assessment Management
 export const createRiskAssessment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const docCode = 'RA';
+    const department = req.body.department || 'HS';
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+    const count = await RiskAssessment.countDocuments({
+      serial: { $regex: `^${docCode}-${department}-${dateStr}-` }
+    });
+    const seq = String(count + 1).padStart(3, '0');
+    const serial = `${docCode}-${department}-${dateStr}-${seq}`;
+
     const riskAssessment = new RiskAssessment({
       ...req.body,
-      assessor: req.user?.userId
+      assessor: req.user?.userId,
+      serial
     });
     await riskAssessment.save();
     res.status(201).json(riskAssessment);
@@ -131,7 +146,6 @@ export const updateRiskAssessment = async (req: Request, res: Response): Promise
 // PPE Management
 export const createPPE = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // Serial number generation
     const docCode = 'PPE';
     const department = req.body.department || 'HS';
     const now = new Date();
@@ -270,7 +284,6 @@ export const updateSafetyInspection = async (req: Request, res: Response): Promi
 // Training Management
 export const createTraining = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Serial number generation
     const docCode = 'TR';
     const department = req.body.department || 'HR';
     const now = new Date();
@@ -326,7 +339,6 @@ export const updateTraining = async (req: Request, res: Response): Promise<void>
 // Environmental Management
 export const createEnvironmental = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // Serial number generation
     const docCode = 'EN';
     const department = req.body.department || 'HS';
     const now = new Date();
