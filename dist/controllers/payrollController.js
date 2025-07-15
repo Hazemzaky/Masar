@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getEmployeeProjectAssignment = exports.getEmployeesByProject = exports.unassignEmployeeFromProject = exports.assignEmployeeToProject = exports.getAvailableEmployees = exports.processPayroll = exports.updatePayroll = exports.getPayroll = exports.getPayrolls = exports.createPayroll = exports.updateMonthlyPayroll = exports.getEmployeePayrollHistory = exports.getPayrollHistory = exports.deletePayrollEmployee = exports.updatePayrollPayment = exports.updatePayrollEmployee = exports.getPayrollEmployee = exports.getPayrollEmployees = exports.createPayrollEmployee = void 0;
 const Payroll_1 = require("../models/Payroll");
 const Payroll_2 = __importDefault(require("../models/Payroll"));
+const serialUtils_1 = require("../utils/serialUtils");
 // New Payroll Employee Management
 const createPayrollEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -246,7 +247,25 @@ exports.updateMonthlyPayroll = updateMonthlyPayroll;
 // Legacy Payroll Functions (for backward compatibility)
 const createPayroll = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const payroll = new Payroll_2.default(req.body);
+        const { employee, period, baseSalary, benefits, leaveCost, reimbursements, deductions, netPay, status, runDate, project, department } = req.body;
+        // Serial number generation
+        const docCode = 'PY';
+        const dept = department || 'PY';
+        const serial = yield (0, serialUtils_1.generateSerial)(docCode, dept, Payroll_2.default);
+        const payroll = new Payroll_2.default({
+            employee,
+            period,
+            baseSalary,
+            benefits,
+            leaveCost,
+            reimbursements,
+            deductions,
+            netPay,
+            status,
+            runDate,
+            project,
+            serial
+        });
         yield payroll.save();
         res.status(201).json(payroll);
     }

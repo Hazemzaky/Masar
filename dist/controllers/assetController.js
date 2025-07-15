@@ -14,16 +14,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAssetCategories = exports.getAvailableAssets = exports.calculateDepreciation = exports.changeAssetStatus = exports.deleteAsset = exports.updateAsset = exports.getAsset = exports.getAssets = exports.createAsset = void 0;
 const Asset_1 = __importDefault(require("../models/Asset"));
+const serialUtils_1 = require("../utils/serialUtils");
 const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log('Creating asset with data:', req.body);
         // Validate required fields
-        const { description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths } = req.body;
+        const { description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths, department } = req.body;
         if (!description || !mainCategory || !subCategory || !purchaseDate || !purchaseValue || !usefulLifeMonths) {
             return res.status(400).json({
                 message: 'Missing required fields: description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths'
             });
         }
+        // Serial number generation
+        const docCode = 'AS';
+        const dept = department || 'AS';
+        const serial = yield (0, serialUtils_1.generateSerial)(docCode, dept, Asset_1.default);
         // Create asset with proper field mapping
         const assetData = {
             description: req.body.description,
@@ -44,7 +49,8 @@ const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             plateNumber: req.body.plateNumber,
             serialNumber: req.body.serialNumber,
             fleetNumber: req.body.fleetNumber,
-            notes: req.body.notes
+            notes: req.body.notes,
+            serial
         };
         console.log('Processed asset data:', assetData);
         const asset = new Asset_1.default(assetData);

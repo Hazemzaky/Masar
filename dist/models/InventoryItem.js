@@ -52,5 +52,8 @@ const InventoryItemSchema = new mongoose_1.Schema({
     relatedAsset: { type: String },
     notes: { type: String },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    costType: { type: String, enum: ['direct', 'depreciated'], default: 'direct' }, // New field
+    depreciationDuration: { type: Number }, // New field (months)
+    serial: { type: String, required: true, unique: true }, // Serial number field
 });
 exports.default = mongoose_1.default.model('InventoryItem', InventoryItemSchema);

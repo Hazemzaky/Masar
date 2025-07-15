@@ -145,7 +145,13 @@ const createEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
 exports.createEmployee = createEmployee;
 const getEmployees = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const employees = yield Employee_1.default.find();
+        const { position } = req.query;
+        let filter = {};
+        if (position) {
+            // Case-insensitive, partial match
+            filter.position = { $regex: position, $options: 'i' };
+        }
+        const employees = yield Employee_1.default.find(filter);
         res.json(employees);
     }
     catch (error) {

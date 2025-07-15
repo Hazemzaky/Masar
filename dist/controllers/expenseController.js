@@ -16,6 +16,7 @@ exports.getIncome = exports.createIncome = exports.deleteExpense = exports.updat
 const Expense_1 = __importDefault(require("../models/Expense"));
 const Period_1 = require("../models/Period");
 const Income_1 = __importDefault(require("../models/Income"));
+const serialUtils_1 = require("../utils/serialUtils");
 const createExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -35,6 +36,7 @@ const createExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         const proofUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+        const serial = yield (0, serialUtils_1.generateSerial)('EX', managementDepartment, Expense_1.default);
         const expense = new Expense_1.default({
             amount,
             description,
@@ -48,6 +50,7 @@ const createExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             managementDepartment,
             proofUrl,
             customType: category === 'other' ? customType : undefined,
+            serial,
         });
         yield expense.save();
         res.status(201).json(expense);
@@ -140,6 +143,7 @@ const createIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             res.status(400).json({ message: 'Missing required fields' });
             return;
         }
+        const serial = yield (0, serialUtils_1.generateSerial)('IN', managementDepartment, Income_1.default);
         const income = new Income_1.default({
             amount,
             description,
@@ -147,6 +151,7 @@ const createIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             currency,
             managementDepartment,
             user: userId,
+            serial,
         });
         yield income.save();
         res.status(201).json(income);

@@ -106,7 +106,8 @@ const PayrollSchema = new mongoose_1.Schema({
     netPay: { type: Number, required: true },
     status: { type: String, enum: ['pending', 'processed', 'paid'], default: 'pending' },
     runDate: { type: Date, default: Date.now },
-    project: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' }
+    project: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
+    serial: { type: String, unique: true, sparse: true } // Document serial number
 }, {
     timestamps: true
 });

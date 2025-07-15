@@ -48,5 +48,6 @@ const JournalEntrySchema = new mongoose_1.Schema({
     period: { type: String, required: true },
     status: { type: String, enum: ['draft', 'posted', 'reversed'], default: 'draft' },
     reference: { type: String },
+    serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 exports.default = mongoose_1.default.model('JournalEntry', JournalEntrySchema);

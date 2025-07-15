@@ -61,7 +61,7 @@ const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             res.status(401).json({ message: 'User not authenticated' });
             return;
         }
-        const { recipient, dueDate, lineItems, fileUrl } = req.body;
+        const { recipient, dueDate, lineItems, fileUrl, serial } = req.body;
         if (!recipient || !dueDate || !lineItems || !Array.isArray(lineItems) || lineItems.length === 0) {
             res.status(400).json({ message: 'Missing required fields' });
             return;
@@ -76,6 +76,7 @@ const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             totalAmount,
             status: 'draft',
             history: [{ status: 'draft', date: new Date() }],
+            serial,
         });
         yield invoice.save();
         res.status(201).json(invoice);

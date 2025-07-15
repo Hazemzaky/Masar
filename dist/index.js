@@ -68,6 +68,8 @@ const travelAuthorizationRoutes_1 = __importDefault(require("./routes/travelAuth
 const assetCategoryRoutes_1 = __importDefault(require("./routes/assetCategoryRoutes"));
 const foodAllowanceRoutes_1 = __importDefault(require("./routes/foodAllowanceRoutes"));
 const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
+const trackerRoutes_1 = __importDefault(require("./routes/trackerRoutes"));
+const assetPassRoutes_1 = __importDefault(require("./routes/assetPassRoutes"));
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -88,6 +90,8 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json());
 app.use('/uploads', express_1.default.static('uploads'));
+app.use('/uploads/quotations', express_1.default.static('uploads/quotations'));
+app.use('/uploads/contracts', express_1.default.static('uploads/contracts'));
 app.get('/', (req, res) => {
     res.send('Financial Management API is running');
 });
@@ -145,6 +149,8 @@ app.use('/api/travel-authorizations', travelAuthorizationRoutes_1.default);
 app.use('/api/asset-categories', assetCategoryRoutes_1.default);
 app.use('/api/food-allowance', foodAllowanceRoutes_1.default);
 app.use('/api/clients', clientRoutes_1.default);
+app.use('/api/tracker', trackerRoutes_1.default);
+app.use('/api/asset-passes', assetPassRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

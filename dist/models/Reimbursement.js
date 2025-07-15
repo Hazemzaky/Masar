@@ -42,5 +42,6 @@ const ReimbursementSchema = new mongoose_1.Schema({
     status: { type: String, enum: ['pending', 'approved', 'rejected', 'paid'], default: 'pending' },
     approvedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     payroll: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Payroll' },
+    serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 exports.default = mongoose_1.default.model('Reimbursement', ReimbursementSchema);

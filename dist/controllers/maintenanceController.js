@@ -96,7 +96,19 @@ exports.deleteMaintenance = deleteMaintenance;
 const completeMaintenance = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
-        const { status, completedDate, completedTime, totalMaintenanceTime } = req.body;
+        const { status, completedDate, completedTime, totalMaintenanceTime, cancellationReason } = req.body;
+        // If cancelling, update status and cancellationReason
+        if (status === 'cancelled') {
+            const maintenance = yield Maintenance_1.default.findByIdAndUpdate(req.params.id, {
+                status: 'cancelled',
+                cancellationReason: cancellationReason || '',
+            }, { new: true }).populate('asset');
+            if (!maintenance) {
+                res.status(404).json({ message: 'Maintenance not found' });
+                return;
+            }
+            return res.json(maintenance);
+        }
         const maintenance = yield Maintenance_1.default.findByIdAndUpdate(req.params.id, {
             status,
             completedDate,

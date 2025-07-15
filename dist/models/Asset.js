@@ -41,6 +41,7 @@ const AssetSchema = new mongoose_1.Schema({
     subSubCategory: { type: String },
     subSubSubCategory: { type: String },
     subSubSubSubCategory: { type: String },
+    type: { type: String },
     brand: { type: String },
     status: {
         type: String,
@@ -62,6 +63,7 @@ const AssetSchema = new mongoose_1.Schema({
     plateNumber: { type: String },
     serialNumber: { type: String },
     fleetNumber: { type: String },
+    serial: { type: String, unique: true, sparse: true }, // Document serial number
     notes: { type: String },
 }, {
     timestamps: true

@@ -15,9 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.reverseJournalEntry = exports.postJournalEntry = exports.updateJournalEntry = exports.getJournalEntries = exports.createJournalEntry = void 0;
 const JournalEntry_1 = __importDefault(require("../models/JournalEntry"));
 const Period_1 = require("../models/Period");
+const serialUtils_1 = require("../utils/serialUtils");
 const createJournalEntry = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { date, description, lines, createdBy, period, reference } = req.body;
+        const { date, description, lines, createdBy, period, reference, department } = req.body;
         if (period && (yield (0, Period_1.isPeriodClosed)(period))) {
             res.status(403).json({ message: 'This period is locked and cannot be edited.' });
             return;
@@ -29,7 +30,11 @@ const createJournalEntry = (req, res) => __awaiter(void 0, void 0, void 0, funct
             res.status(400).json({ message: 'Debits and credits must be equal (double-entry)' });
             return;
         }
-        const entry = new JournalEntry_1.default({ date, description, lines, createdBy, period, reference });
+        // Serial number generation
+        const docCode = 'JE';
+        const dept = department || 'AC';
+        const serial = yield (0, serialUtils_1.generateSerial)(docCode, dept, JournalEntry_1.default);
+        const entry = new JournalEntry_1.default({ date, description, lines, createdBy, period, reference, serial });
         yield entry.save();
         res.status(201).json(entry);
     }

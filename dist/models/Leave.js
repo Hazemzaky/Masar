@@ -45,5 +45,6 @@ const LeaveSchema = new mongoose_1.Schema({
     approvedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     requestedAt: { type: Date, default: Date.now },
     approvedAt: { type: Date },
+    serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 exports.default = mongoose_1.default.model('Leave', LeaveSchema);

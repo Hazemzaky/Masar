@@ -43,5 +43,6 @@ const InventoryTransactionSchema = new mongoose_1.Schema({
     relatedMaintenance: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Maintenance' },
     user: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     notes: { type: String },
+    serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 exports.default = mongoose_1.default.model('InventoryTransaction', InventoryTransactionSchema);

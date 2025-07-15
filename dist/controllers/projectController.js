@@ -31,11 +31,16 @@ const Expense_1 = __importDefault(require("../models/Expense"));
 const Payroll_1 = __importDefault(require("../models/Payroll"));
 const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const DriverHour_1 = __importDefault(require("../models/DriverHour"));
+const serialUtils_1 = require("../utils/serialUtils");
 const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const _a = req.body, { assignedAssets } = _a, projectData = __rest(_a, ["assignedAssets"]);
+        const _a = req.body, { assignedAssets, department } = _a, projectData = __rest(_a, ["assignedAssets", "department"]);
+        // Serial number generation
+        const docCode = 'PJ';
+        const dept = department || 'PJ';
+        const serial = yield (0, serialUtils_1.generateSerial)(docCode, dept, Project_1.default);
         // Create the project first
-        const project = new Project_1.default(projectData);
+        const project = new Project_1.default(Object.assign(Object.assign({}, projectData), { serial }));
         yield project.save();
         // If assets are assigned, update their availability
         if (assignedAssets && assignedAssets.length > 0) {

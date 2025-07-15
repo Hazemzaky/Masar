@@ -57,7 +57,8 @@ const MaintenanceSchema = new mongoose_1.Schema({
     downtimeHours: { type: Number },
     notes: { type: String },
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
-    completedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }
+    completedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+    cancellationReason: { type: String },
 }, {
     timestamps: true
 });

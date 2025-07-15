@@ -60,5 +60,6 @@ const InvoiceSchema = new mongoose_1.Schema({
             date: { type: Date, required: true },
         }
     ],
+    serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 exports.default = mongoose_1.default.model('Invoice', InvoiceSchema);

@@ -33,10 +33,19 @@ exports.getTransactions = getTransactions;
 exports.getItemTransactions = getItemTransactions;
 const InventoryItem_1 = __importDefault(require("../models/InventoryItem"));
 const InventoryTransaction_1 = __importDefault(require("../models/InventoryTransaction"));
+const serialUtils_1 = require("../utils/serialUtils");
 function createItem(req, res) {
     (() => __awaiter(this, void 0, void 0, function* () {
         try {
-            const item = new InventoryItem_1.default(req.body);
+            // Accept costType and depreciationDuration from req.body
+            const { description, type, rop, quantity, uom, location, rack, aisle, bin, warranty, warrantyPeriod, warrantyStartDate, purchaseCost, supplier, relatedAsset, notes, status, costType, depreciationDuration } = req.body;
+            // Generate serial number
+            const department = (location && typeof location === 'string') ? location.substring(0, 2).toUpperCase() : 'ST';
+            const serial = yield (0, serialUtils_1.generateSerial)('IN', department, InventoryItem_1.default);
+            const item = new InventoryItem_1.default({
+                description, type, rop, quantity, uom, location, rack, aisle, bin, warranty, warrantyPeriod, warrantyStartDate, purchaseCost, supplier, relatedAsset, notes, status,
+                costType, depreciationDuration, serial
+            });
             yield item.save();
             res.status(201).json(item);
         }
@@ -72,7 +81,9 @@ function getItem(req, res) {
 function updateItem(req, res) {
     (() => __awaiter(this, void 0, void 0, function* () {
         try {
-            const item = yield InventoryItem_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
+            // Accept costType and depreciationDuration from req.body
+            const updateData = Object.assign({}, req.body);
+            const item = yield InventoryItem_1.default.findByIdAndUpdate(req.params.id, updateData, { new: true });
             if (!item)
                 return res.status(404).json({ message: 'Item not found' });
             res.json(item);

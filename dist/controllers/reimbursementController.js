@@ -15,9 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.rejectReimbursement = exports.approveReimbursement = exports.updateReimbursement = exports.getReimbursement = exports.getReimbursements = exports.createReimbursement = void 0;
 const Reimbursement_1 = __importDefault(require("../models/Reimbursement"));
 const Period_1 = require("../models/Period");
+const serialUtils_1 = require("../utils/serialUtils");
 const createReimbursement = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { employee, amount, description, date } = req.body;
+        const { employee, amount, description, date, department } = req.body;
         if (!employee || !amount || !description || !date) {
             res.status(400).json({ message: 'Missing required fields' });
             return;
@@ -27,7 +28,11 @@ const createReimbursement = (req, res) => __awaiter(void 0, void 0, void 0, func
             res.status(403).json({ message: 'This period is locked and cannot be edited.' });
             return;
         }
-        const reimbursement = new Reimbursement_1.default({ employee, amount, description, date });
+        // Serial number generation
+        const docCode = 'RB';
+        const dept = department || 'HR';
+        const serial = yield (0, serialUtils_1.generateSerial)(docCode, dept, Reimbursement_1.default);
+        const reimbursement = new Reimbursement_1.default({ employee, amount, description, date, serial });
         yield reimbursement.save();
         res.status(201).json(reimbursement);
     }
