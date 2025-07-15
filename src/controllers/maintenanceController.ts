@@ -86,7 +86,25 @@ export const deleteMaintenance = async (req: Request, res: Response) => {
 
 export const completeMaintenance = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, completedDate, completedTime, totalMaintenanceTime } = req.body;
+    const { status, completedDate, completedTime, totalMaintenanceTime, cancellationReason } = req.body;
+    
+    // If cancelling, update status and cancellationReason
+    if (status === 'cancelled') {
+      const maintenance = await Maintenance.findByIdAndUpdate(
+        req.params.id,
+        {
+          status: 'cancelled',
+          cancellationReason: cancellationReason || '',
+        },
+        { new: true }
+      ).populate('asset');
+      
+      if (!maintenance) {
+        res.status(404).json({ message: 'Maintenance not found' });
+        return;
+      }
+      return res.json(maintenance);
+    }
     
     const maintenance = await Maintenance.findByIdAndUpdate(
       req.params.id,

@@ -25,6 +25,7 @@ export interface IMaintenance extends Document {
   notes?: string;
   createdBy?: mongoose.Types.ObjectId;
   completedBy?: mongoose.Types.ObjectId;
+  cancellationReason?: string;
 }
 
 const MaintenancePartSchema = new Schema({
@@ -51,7 +52,8 @@ const MaintenanceSchema = new Schema<IMaintenance>({
   downtimeHours: { type: Number },
   notes: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
-  completedBy: { type: Schema.Types.ObjectId, ref: 'User' }
+  completedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  cancellationReason: { type: String },
 }, {
   timestamps: true
 });
