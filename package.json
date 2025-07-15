@@ -121,5 +121,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Financial Management System API Server"
+  "description": "Financial Management System API Server",
+  "files": [
+    "dist/",
+    "src/",
+    "src/models/Client.ts",
+    "src/controllers/clientController.ts",
+    "src/routes/clientRoutes.ts",
+    "src/models/Contract.ts"
+  ]
 }

@@ -7,6 +7,7 @@ import LegalCase from '../models/LegalCase';
 import CompanyFacility from '../models/CompanyFacility';
 import Employee from '../models/Employee';
 import Asset from '../models/Asset';
+import { generateSerial } from '../utils/serialUtils';
 
 interface AuthRequest extends Request {
   user?: {
@@ -85,8 +86,13 @@ export const deleteEmployeeResidency = async (req: Request, res: Response): Prom
 // Government Document Management
 export const createGovernmentDocument = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Serial number generation
+    const docCode = 'GD';
+    const dept = req.body.department || 'AD';
+    const serial = await generateSerial(docCode, dept, GovernmentDocument);
     const document = new GovernmentDocument({
       ...req.body,
+      serial,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
     });
@@ -354,8 +360,13 @@ export const deleteGovernmentCorrespondence = async (req: Request, res: Response
 // Legal Case Management
 export const createLegalCase = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Serial number generation
+    const docCode = 'LC';
+    const dept = req.body.department || 'LG';
+    const serial = await generateSerial(docCode, dept, LegalCase);
     const legalCase = new LegalCase({
       ...req.body,
+      serial,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
     });

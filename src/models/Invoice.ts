@@ -22,6 +22,7 @@ export interface IInvoice extends Document {
     status: string;
     date: Date;
   }>;
+  serial?: string; // Document serial number
 }
 
 const InvoiceSchema: Schema = new Schema({
@@ -50,6 +51,7 @@ const InvoiceSchema: Schema = new Schema({
       date: { type: Date, required: true },
     }
   ],
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 
 export default mongoose.model<IInvoice>('Invoice', InvoiceSchema); 

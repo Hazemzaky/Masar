@@ -3,6 +3,7 @@ import TravelAuthorization from '../models/TravelAuthorization';
 import TravelRequest from '../models/TravelRequest';
 import Employee from '../models/Employee';
 import User from '../models/User';
+import { generateSerial } from '../utils/serialUtils';
 
 interface AuthRequest extends Request {
   user?: {
@@ -15,7 +16,7 @@ interface AuthRequest extends Request {
 // Create travel authorization
 export const createTravelAuthorization = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { travelRequestId } = req.body;
+    const { travelRequestId, department } = req.body;
     
     // Verify travel request exists and is approved
     const travelRequest = await TravelRequest.findById(travelRequestId);
@@ -35,8 +36,14 @@ export const createTravelAuthorization = async (req: AuthRequest, res: Response)
       return;
     }
 
+    // Serial number generation
+    const docCode = 'TA';
+    const dept = department || 'TA';
+    const serial = await generateSerial(docCode, dept, TravelAuthorization);
+
     const authorizationData = {
       ...req.body,
+      serial,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId,
     };

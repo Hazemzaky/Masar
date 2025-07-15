@@ -131,6 +131,7 @@ export interface IPayroll extends Document {
   status: 'pending' | 'processed' | 'paid';
   runDate: Date;
   project?: mongoose.Types.ObjectId;
+  serial?: string; // Document serial number
 }
 
 const PayrollSchema = new Schema<IPayroll>({
@@ -144,7 +145,8 @@ const PayrollSchema = new Schema<IPayroll>({
   netPay: { type: Number, required: true },
   status: { type: String, enum: ['pending', 'processed', 'paid'], default: 'pending' },
   runDate: { type: Date, default: Date.now },
-  project: { type: Schema.Types.ObjectId, ref: 'Project' }
+  project: { type: Schema.Types.ObjectId, ref: 'Project' },
+  serial: { type: String, unique: true, sparse: true } // Document serial number
 }, {
   timestamps: true
 });

@@ -6,13 +6,17 @@ import Expense from '../models/Expense';
 import Payroll from '../models/Payroll';
 import FuelLog from '../models/FuelLog';
 import DriverHour from '../models/DriverHour';
+import { generateSerial } from '../utils/serialUtils';
 
 export const createProject = async (req: Request, res: Response) => {
   try {
-    const { assignedAssets, ...projectData } = req.body;
-    
+    const { assignedAssets, department, ...projectData } = req.body;
+    // Serial number generation
+    const docCode = 'PJ';
+    const dept = department || 'PJ';
+    const serial = await generateSerial(docCode, dept, Project);
     // Create the project first
-    const project = new Project(projectData);
+    const project = new Project({ ...projectData, serial });
     await project.save();
 
     // If assets are assigned, update their availability

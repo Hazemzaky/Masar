@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import Leave from '../models/Leave';
 import Employee from '../models/Employee';
 import { isPeriodClosed } from '../models/Period';
+import { generateSerial } from '../utils/serialUtils';
 
 export const createLeave = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { employee, type, startDate, endDate, days, cost } = req.body;
+    const { employee, type, startDate, endDate, days, cost, department } = req.body;
     if (!employee || !type || !startDate || !endDate || !days) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
@@ -15,7 +16,11 @@ export const createLeave = async (req: Request, res: Response): Promise<void> =>
       res.status(403).json({ message: 'This period is locked and cannot be edited.' });
       return;
     }
-    const leave = new Leave({ employee, type, startDate, endDate, days, cost });
+    // Serial number generation
+    const docCode = 'LV';
+    const dept = department || 'HR';
+    const serial = await generateSerial(docCode, dept, Leave);
+    const leave = new Leave({ employee, type, startDate, endDate, days, cost, serial });
     await leave.save();
     res.status(201).json(leave);
   } catch (error) {

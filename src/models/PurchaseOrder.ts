@@ -17,6 +17,7 @@ export interface IPurchaseOrder extends Document {
   status: 'open' | 'ordered' | 'delivered' | 'cancelled';
   scannedPO?: string;
   generatedPDF?: string;
+  serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +39,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>({
   status: { type: String, enum: ['open', 'ordered', 'delivered', 'cancelled'], default: 'open' },
   scannedPO: { type: String },
   generatedPDF: { type: String },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 }, { timestamps: true });
 
 export default mongoose.model<IPurchaseOrder>('PurchaseOrder', PurchaseOrderSchema); 

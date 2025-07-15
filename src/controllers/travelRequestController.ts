@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import TravelRequest from '../models/TravelRequest';
 import Employee from '../models/Employee';
 import User from '../models/User';
+import { generateSerial } from '../utils/serialUtils';
 
 interface AuthRequest extends Request {
   user?: {
@@ -14,8 +15,13 @@ interface AuthRequest extends Request {
 // Create travel request
 export const createTravelRequest = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Serial number generation
+    const docCode = 'TR';
+    const dept = req.body.department || 'TR';
+    const serial = await generateSerial(docCode, dept, TravelRequest);
     const requestData = {
       ...req.body,
+      serial,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId,
     };

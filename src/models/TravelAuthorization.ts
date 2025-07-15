@@ -113,6 +113,7 @@ export interface ITravelAuthorization extends Document {
     otherDocuments: string[];
   };
   
+  serial?: string; // Document serial number
   notes: string;
   createdBy: mongoose.Types.ObjectId;
   updatedBy: mongoose.Types.ObjectId;
@@ -233,6 +234,7 @@ const TravelAuthorizationSchema = new Schema<ITravelAuthorization>({
     otherDocuments: [{ type: String }],
   },
   
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
   notes: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },

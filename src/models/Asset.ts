@@ -20,6 +20,7 @@ export interface IAsset extends Document {
   plateNumber?: string;
   serialNumber?: string;
   fleetNumber?: string;
+  serial?: string; // Document serial number
   notes?: string;
 }
 
@@ -51,6 +52,7 @@ const AssetSchema = new Schema<IAsset>({
   plateNumber: { type: String },
   serialNumber: { type: String },
   fleetNumber: { type: String },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
   notes: { type: String },
 }, {
   timestamps: true

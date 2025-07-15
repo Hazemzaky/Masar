@@ -5,7 +5,15 @@ import InventoryTransaction from '../models/InventoryTransaction';
 export function createItem(req: Request, res: Response) {
   (async () => {
     try {
-      const item = new InventoryItem(req.body);
+      // Accept costType and depreciationDuration from req.body
+      const {
+        description, type, rop, quantity, uom, location, rack, aisle, bin, warranty, warrantyPeriod, warrantyStartDate, purchaseCost, supplier, relatedAsset, notes, status,
+        costType, depreciationDuration
+      } = req.body;
+      const item = new InventoryItem({
+        description, type, rop, quantity, uom, location, rack, aisle, bin, warranty, warrantyPeriod, warrantyStartDate, purchaseCost, supplier, relatedAsset, notes, status,
+        costType, depreciationDuration
+      });
       await item.save();
       res.status(201).json(item);
     } catch (error) {
@@ -40,7 +48,9 @@ export function getItem(req: Request, res: Response) {
 export function updateItem(req: Request, res: Response) {
   (async () => {
     try {
-      const item = await InventoryItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      // Accept costType and depreciationDuration from req.body
+      const updateData = { ...req.body };
+      const item = await InventoryItem.findByIdAndUpdate(req.params.id, updateData, { new: true });
       if (!item) return res.status(404).json({ message: 'Item not found' });
       res.json(item);
     } catch (error) {

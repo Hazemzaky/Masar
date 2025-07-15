@@ -15,6 +15,7 @@ export interface IJournalEntry extends Document {
   period: string;
   status: 'draft' | 'posted' | 'reversed';
   reference?: string;
+  serial?: string; // Document serial number
 }
 
 const JournalEntryLineSchema: Schema = new Schema({
@@ -32,6 +33,7 @@ const JournalEntrySchema: Schema = new Schema({
   period: { type: String, required: true },
   status: { type: String, enum: ['draft', 'posted', 'reversed'], default: 'draft' },
   reference: { type: String },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 
 export default mongoose.model<IJournalEntry>('JournalEntry', JournalEntrySchema); 

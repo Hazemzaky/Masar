@@ -9,6 +9,7 @@ import ProcurementInvoice from '../models/ProcurementInvoice';
 import InventoryItem from '../models/InventoryItem';
 import InventoryTransaction from '../models/InventoryTransaction';
 import LowStockAlert from '../models/LowStockAlert';
+import { generateSerial } from '../utils/serialUtils';
 
 // Extend Request type to include user
 interface AuthRequest extends Request {
@@ -24,6 +25,10 @@ export const createPurchaseRequest = async (req: AuthRequest, res: Response) => 
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
+    // Serial number generation
+    const docCode = 'PR';
+    const dept = department || 'PR';
+    const serial = await generateSerial(docCode, dept, PurchaseRequest);
     const pr = new PurchaseRequest({
       itemDescription,
       quantity,
@@ -34,6 +39,7 @@ export const createPurchaseRequest = async (req: AuthRequest, res: Response) => 
       attachments: attachments || [],
       status: 'pending',
       approvalHistory: [{ approver: requester, action: 'pending', date: new Date() }],
+      serial
     });
     await pr.save();
     res.status(201).json(pr);
@@ -240,12 +246,16 @@ function generatePONumber() {
 
 export const createPurchaseOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { purchaseRequest, vendor, items, totalAmount, deliveryTerms, paymentTerms, scannedPO, generatedPDF } = req.body;
+    const { purchaseRequest, vendor, items, totalAmount, deliveryTerms, paymentTerms, scannedPO, generatedPDF, department } = req.body;
     if (!purchaseRequest || !vendor || !items || !totalAmount) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
     const poNumber = generatePONumber();
+    // Serial number generation
+    const docCode = 'PO';
+    const dept = department || 'PR';
+    const serial = await generateSerial(docCode, dept, PurchaseOrder);
     const po = new PurchaseOrder({
       poNumber,
       purchaseRequest,
@@ -257,6 +267,7 @@ export const createPurchaseOrder = async (req: AuthRequest, res: Response): Prom
       status: 'open',
       scannedPO,
       generatedPDF,
+      serial
     });
     await po.save();
     res.status(201).json(po);
@@ -454,6 +465,19 @@ export const createGoodsReceipt = async (req: AuthRequest, res: Response): Promi
     }
 
     // Create the GRN
+    // Serial number generation
+    const docCode = 'GR';
+    const department = req.body.department || 'PR';
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+    const count = await GoodsReceipt.countDocuments({
+      serial: { $regex: `^${docCode}-${department}-${dateStr}-` }
+    });
+    const seq = String(count + 1).padStart(3, '0');
+    const serial = `${docCode}-${department}-${dateStr}-${seq}`;
     const grn = new GoodsReceipt({
       purchaseOrder,
       receivedBy,
@@ -461,6 +485,7 @@ export const createGoodsReceipt = async (req: AuthRequest, res: Response): Promi
       items,
       documents: documents || [],
       status: status || 'received',
+      serial
     });
 
     await grn.save();

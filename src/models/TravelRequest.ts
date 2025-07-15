@@ -55,6 +55,7 @@ export interface ITravelRequest extends Document {
   updatedBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  serial?: string; // Document serial number
 }
 
 const ApprovalStepSchema = new Schema<IApprovalStep>({
@@ -110,6 +111,7 @@ const TravelRequestSchema = new Schema<ITravelRequest>({
   notes: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 }, { timestamps: true });
 
 // Generate request number - always generate for new documents

@@ -16,6 +16,7 @@ export interface IGoodsReceipt extends Document {
   status: 'received' | 'partial' | 'damaged' | 'delayed';
   createdAt: Date;
   updatedAt: Date;
+  serial?: string; // Document serial number
 }
 
 const GRNItemSchema = new Schema<IGRNItem>({
@@ -32,6 +33,7 @@ const GoodsReceiptSchema = new Schema<IGoodsReceipt>({
   items: [GRNItemSchema],
   documents: [{ type: String }],
   status: { type: String, enum: ['received', 'partial', 'damaged', 'delayed'], default: 'received' },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 }, { timestamps: true });
 
 export default mongoose.model<IGoodsReceipt>('GoodsReceipt', GoodsReceiptSchema); 

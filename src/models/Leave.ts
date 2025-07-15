@@ -11,6 +11,7 @@ export interface ILeave extends Document {
   approvedBy?: mongoose.Types.ObjectId;
   requestedAt: Date;
   approvedAt?: Date;
+  serial?: string; // Document serial number
 }
 
 const LeaveSchema: Schema = new Schema({
@@ -24,6 +25,7 @@ const LeaveSchema: Schema = new Schema({
   approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   requestedAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 
 export default mongoose.model<ILeave>('Leave', LeaveSchema); 

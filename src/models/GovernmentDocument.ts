@@ -28,6 +28,7 @@ export interface IGovernmentDocument extends Document {
     lastReminderSent: Date;
   };
   notes: string;
+  serial?: string; // Document serial number
   createdBy: mongoose.Types.ObjectId;
   updatedBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -70,6 +71,7 @@ const governmentDocumentSchema = new Schema<IGovernmentDocument>({
     lastReminderSent: { type: Date }
   },
   notes: { type: String },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }, {

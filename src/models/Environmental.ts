@@ -40,6 +40,7 @@ export interface IEnvironmental extends Document {
   mitigationMeasures: string[];
   cost: number;
   attachments: string[];
+  serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
 }
@@ -101,7 +102,8 @@ const environmentalSchema = new Schema<IEnvironmental>({
   environmentalImpact: { type: String, required: true },
   mitigationMeasures: [{ type: String }],
   cost: { type: Number, required: true },
-  attachments: [{ type: String }]
+  attachments: [{ type: String }],
+  serial: { type: String, unique: true, sparse: true } // Document serial number
 }, {
   timestamps: true
 });

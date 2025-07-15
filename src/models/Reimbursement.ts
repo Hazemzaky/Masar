@@ -8,6 +8,7 @@ export interface IReimbursement extends Document {
   status: 'pending' | 'approved' | 'rejected' | 'paid';
   approvedBy?: mongoose.Types.ObjectId;
   payroll?: mongoose.Types.ObjectId;
+  serial?: string; // Document serial number
 }
 
 const ReimbursementSchema: Schema = new Schema({
@@ -18,6 +19,7 @@ const ReimbursementSchema: Schema = new Schema({
   status: { type: String, enum: ['pending', 'approved', 'rejected', 'paid'], default: 'pending' },
   approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   payroll: { type: Schema.Types.ObjectId, ref: 'Payroll' },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 
 export default mongoose.model<IReimbursement>('Reimbursement', ReimbursementSchema); 

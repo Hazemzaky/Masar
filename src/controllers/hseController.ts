@@ -23,9 +23,25 @@ interface AuthRequest extends Request {
 // Incident Management
 export const createIncident = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Serial number generation
+    const docCode = 'IN';
+    const department = req.body.department || 'HS'; // Default to HS (HSE)
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+    // Count existing incidents for this department and date
+    const count = await Incident.countDocuments({
+      serial: { $regex: `^${docCode}-${department}-${dateStr}-` }
+    });
+    const seq = String(count + 1).padStart(3, '0');
+    const serial = `${docCode}-${department}-${dateStr}-${seq}`;
+
     const incident = new Incident({
       ...req.body,
-      reportedBy: req.user?.userId
+      reportedBy: req.user?.userId,
+      serial
     });
     await incident.save();
     res.status(201).json(incident);
@@ -115,9 +131,23 @@ export const updateRiskAssessment = async (req: Request, res: Response): Promise
 // PPE Management
 export const createPPE = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Serial number generation
+    const docCode = 'PPE';
+    const department = req.body.department || 'HS';
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+    const count = await PPE.countDocuments({
+      serial: { $regex: `^${docCode}-${department}-${dateStr}-` }
+    });
+    const seq = String(count + 1).padStart(3, '0');
+    const serial = `${docCode}-${department}-${dateStr}-${seq}`;
     const ppe = new PPE({
       ...req.body,
-      issuedBy: req.user?.userId
+      issuedBy: req.user?.userId,
+      serial
     });
     await ppe.save();
     res.status(201).json(ppe);
@@ -168,10 +198,24 @@ export const createSafetyInspection = async (req: AuthRequest, res: Response): P
     if (req.body.attachments && Array.isArray(req.body.attachments)) {
       attachments = attachments.concat(req.body.attachments);
     }
+    // Serial number generation
+    const docCode = 'SI';
+    const department = req.body.department || 'HS';
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+    const count = await SafetyInspection.countDocuments({
+      serial: { $regex: `^${docCode}-${department}-${dateStr}-` }
+    });
+    const seq = String(count + 1).padStart(3, '0');
+    const serial = `${docCode}-${department}-${dateStr}-${seq}`;
     const safetyInspection = new SafetyInspection({
       ...req.body,
       attachments,
-      inspector: req.user?.userId
+      inspector: req.user?.userId,
+      serial
     });
     await safetyInspection.save();
     res.status(201).json(safetyInspection);
@@ -226,7 +270,23 @@ export const updateSafetyInspection = async (req: Request, res: Response): Promi
 // Training Management
 export const createTraining = async (req: Request, res: Response): Promise<void> => {
   try {
-    const training = new Training(req.body);
+    // Serial number generation
+    const docCode = 'TR';
+    const department = req.body.department || 'HR';
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+    const count = await Training.countDocuments({
+      serial: { $regex: `^${docCode}-${department}-${dateStr}-` }
+    });
+    const seq = String(count + 1).padStart(3, '0');
+    const serial = `${docCode}-${department}-${dateStr}-${seq}`;
+    const training = new Training({
+      ...req.body,
+      serial
+    });
     await training.save();
     res.status(201).json(training);
   } catch (error: any) {
@@ -266,9 +326,23 @@ export const updateTraining = async (req: Request, res: Response): Promise<void>
 // Environmental Management
 export const createEnvironmental = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Serial number generation
+    const docCode = 'EN';
+    const department = req.body.department || 'HS';
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+    const count = await Environmental.countDocuments({
+      serial: { $regex: `^${docCode}-${department}-${dateStr}-` }
+    });
+    const seq = String(count + 1).padStart(3, '0');
+    const serial = `${docCode}-${department}-${dateStr}-${seq}`;
     const environmental = new Environmental({
       ...req.body,
-      reportedBy: req.user?.userId
+      reportedBy: req.user?.userId,
+      serial
     });
     await environmental.save();
     res.status(201).json(environmental);

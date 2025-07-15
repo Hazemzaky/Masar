@@ -1,17 +1,23 @@
 import { Request, Response } from 'express';
 import Asset from '../models/Asset';
+import { generateSerial } from '../utils/serialUtils';
 
 export const createAsset = async (req: Request, res: Response) => {
   try {
     console.log('Creating asset with data:', req.body);
     
     // Validate required fields
-    const { description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths } = req.body;
+    const { description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths, department } = req.body;
     if (!description || !mainCategory || !subCategory || !purchaseDate || !purchaseValue || !usefulLifeMonths) {
       return res.status(400).json({ 
         message: 'Missing required fields: description, mainCategory, subCategory, purchaseDate, purchaseValue, usefulLifeMonths' 
       });
     }
+
+    // Serial number generation
+    const docCode = 'AS';
+    const dept = department || 'AS';
+    const serial = await generateSerial(docCode, dept, Asset);
 
     // Create asset with proper field mapping
     const assetData = {
@@ -33,7 +39,8 @@ export const createAsset = async (req: Request, res: Response) => {
       plateNumber: req.body.plateNumber,
       serialNumber: req.body.serialNumber,
       fleetNumber: req.body.fleetNumber,
-      notes: req.body.notes
+      notes: req.body.notes,
+      serial
     };
 
     console.log('Processed asset data:', assetData);

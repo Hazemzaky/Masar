@@ -50,6 +50,7 @@ export interface ILegalCase extends Document {
   updatedBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  serial?: string; // Document serial number
 }
 
 const legalCaseSchema = new Schema<ILegalCase>({
@@ -119,7 +120,8 @@ const legalCaseSchema = new Schema<ILegalCase>({
   notes: { type: String },
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  serial: { type: String, unique: true, sparse: true }
 }, {
   timestamps: true
 });

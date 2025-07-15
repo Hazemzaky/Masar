@@ -17,6 +17,7 @@ export interface IPurchaseRequest extends Document {
   attachments: string[];
   status: 'pending' | 'approved' | 'sent_to_procurement';
   approvalHistory: IApprovalHistory[];
+  serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +39,7 @@ const PurchaseRequestSchema = new Schema<IPurchaseRequest>({
   attachments: [{ type: String }],
   status: { type: String, enum: ['pending', 'approved', 'sent_to_procurement'], default: 'pending' },
   approvalHistory: [ApprovalHistorySchema],
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 }, { timestamps: true });
 
 export default mongoose.model<IPurchaseRequest>('PurchaseRequest', PurchaseRequestSchema); 

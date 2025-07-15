@@ -30,6 +30,7 @@ import travelRequestRoutes from './routes/travelRequestRoutes';
 import travelAuthorizationRoutes from './routes/travelAuthorizationRoutes';
 import assetCategoryRoutes from './routes/assetCategoryRoutes';
 import foodAllowanceRoutes from './routes/foodAllowanceRoutes';
+import clientRoutes from './routes/clientRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -56,6 +57,8 @@ app.use(cors({
 
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
+app.use('/uploads/quotations', express.static('uploads/quotations'));
+app.use('/uploads/contracts', express.static('uploads/contracts'));
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Financial Management API is running');
@@ -116,6 +119,7 @@ app.use('/api/travel-requests', travelRequestRoutes);
 app.use('/api/travel-authorizations', travelAuthorizationRoutes);
 app.use('/api/asset-categories', assetCategoryRoutes);
 app.use('/api/food-allowance', foodAllowanceRoutes);
+app.use('/api/clients', clientRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

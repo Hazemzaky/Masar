@@ -32,6 +32,7 @@ export interface IGovernmentCorrespondence extends Document {
   updatedBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  serial?: string; // Document serial number
 }
 
 const governmentCorrespondenceSchema = new Schema<IGovernmentCorrespondence>({
@@ -79,7 +80,8 @@ const governmentCorrespondenceSchema = new Schema<IGovernmentCorrespondence>({
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
   notes: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  serial: { type: String, unique: true, sparse: true }
 }, {
   timestamps: true
 });

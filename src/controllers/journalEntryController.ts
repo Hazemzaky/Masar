@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import JournalEntry from '../models/JournalEntry';
 import Account from '../models/Account';
 import { isPeriodClosed } from '../models/Period';
+import { generateSerial } from '../utils/serialUtils';
 
 export const createJournalEntry = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { date, description, lines, createdBy, period, reference } = req.body;
+    const { date, description, lines, createdBy, period, reference, department } = req.body;
     if (period && await isPeriodClosed(period)) {
       res.status(403).json({ message: 'This period is locked and cannot be edited.' });
       return;
@@ -17,7 +18,11 @@ export const createJournalEntry = async (req: Request, res: Response): Promise<v
       res.status(400).json({ message: 'Debits and credits must be equal (double-entry)' });
       return;
     }
-    const entry = new JournalEntry({ date, description, lines, createdBy, period, reference });
+    // Serial number generation
+    const docCode = 'JE';
+    const dept = department || 'AC';
+    const serial = await generateSerial(docCode, dept, JournalEntry);
+    const entry = new JournalEntry({ date, description, lines, createdBy, period, reference, serial });
     await entry.save();
     res.status(201).json(entry);
   } catch (error) {

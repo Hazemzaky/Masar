@@ -67,6 +67,7 @@ const travelRequestRoutes_1 = __importDefault(require("./routes/travelRequestRou
 const travelAuthorizationRoutes_1 = __importDefault(require("./routes/travelAuthorizationRoutes"));
 const assetCategoryRoutes_1 = __importDefault(require("./routes/assetCategoryRoutes"));
 const foodAllowanceRoutes_1 = __importDefault(require("./routes/foodAllowanceRoutes"));
+const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -143,6 +144,7 @@ app.use('/api/travel-requests', travelRequestRoutes_1.default);
 app.use('/api/travel-authorizations', travelAuthorizationRoutes_1.default);
 app.use('/api/asset-categories', assetCategoryRoutes_1.default);
 app.use('/api/food-allowance', foodAllowanceRoutes_1.default);
+app.use('/api/clients', clientRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

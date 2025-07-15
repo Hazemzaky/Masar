@@ -22,6 +22,7 @@ export interface IIncident extends Document {
   closedDate?: Date;
   closedBy?: mongoose.Types.ObjectId;
   tags: string[];
+  serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,7 +61,8 @@ const incidentSchema = new Schema<IIncident>({
   investigationDate: { type: Date },
   closedDate: { type: Date },
   closedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-  tags: [{ type: String }]
+  tags: [{ type: String }],
+  serial: { type: String, unique: true, sparse: true }
 }, {
   timestamps: true
 });

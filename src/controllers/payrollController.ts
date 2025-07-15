@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PayrollEmployee, PayrollHistory } from '../models/Payroll';
 import Payroll from '../models/Payroll';
+import { generateSerial } from '../utils/serialUtils';
 
 // New Payroll Employee Management
 export const createPayrollEmployee = async (req: Request, res: Response): Promise<void> => {
@@ -260,7 +261,25 @@ export const updateMonthlyPayroll = async (req: Request, res: Response): Promise
 // Legacy Payroll Functions (for backward compatibility)
 export const createPayroll = async (req: Request, res: Response): Promise<void> => {
   try {
-    const payroll = new Payroll(req.body);
+    const { employee, period, baseSalary, benefits, leaveCost, reimbursements, deductions, netPay, status, runDate, project, department } = req.body;
+    // Serial number generation
+    const docCode = 'PY';
+    const dept = department || 'PY';
+    const serial = await generateSerial(docCode, dept, Payroll);
+    const payroll = new Payroll({
+      employee,
+      period,
+      baseSalary,
+      benefits,
+      leaveCost,
+      reimbursements,
+      deductions,
+      netPay,
+      status,
+      runDate,
+      project,
+      serial
+    });
     await payroll.save();
     res.status(201).json(payroll);
   } catch (error: any) {

@@ -34,6 +34,7 @@ export interface ITraining extends Document {
   cost: number;
   notes?: string;
   attachments: string[];
+  serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
 }
@@ -88,7 +89,8 @@ const trainingSchema = new Schema<ITraining>({
   attendance: [attendanceSchema],
   cost: { type: Number, required: true },
   notes: { type: String },
-  attachments: [{ type: String }]
+  attachments: [{ type: String }],
+  serial: { type: String, unique: true, sparse: true }
 }, {
   timestamps: true
 });

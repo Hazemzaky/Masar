@@ -9,6 +9,7 @@ export interface IInventoryTransaction extends Document {
   relatedMaintenance?: mongoose.Types.ObjectId;
   user?: mongoose.Types.ObjectId;
   notes?: string;
+  serial?: string; // Document serial number
 }
 
 const InventoryTransactionSchema = new Schema<IInventoryTransaction>({
@@ -20,6 +21,7 @@ const InventoryTransactionSchema = new Schema<IInventoryTransaction>({
   relatedMaintenance: { type: Schema.Types.ObjectId, ref: 'Maintenance' },
   user: { type: Schema.Types.ObjectId, ref: 'User' },
   notes: { type: String },
+  serial: { type: String, unique: true, sparse: true }, // Document serial number
 });
 
 export default mongoose.model<IInventoryTransaction>('InventoryTransaction', InventoryTransactionSchema);

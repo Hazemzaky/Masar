@@ -18,6 +18,7 @@ export interface IPPE extends Document {
   returnDate?: Date;
   totalValue: number;
   notes?: string;
+  serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,7 +50,8 @@ const ppeSchema = new Schema<IPPE>({
   issueDate: { type: Date, required: true },
   returnDate: { type: Date },
   totalValue: { type: Number, required: true },
-  notes: { type: String }
+  notes: { type: String },
+  serial: { type: String, unique: true, sparse: true } // Document serial number
 }, {
   timestamps: true
 });

@@ -27,6 +27,7 @@ export interface ISafetyInspection extends Document {
   nextInspectionDate: Date;
   completedBy?: mongoose.Types.ObjectId;
   completedDate?: Date;
+  serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,7 +76,8 @@ const safetyInspectionSchema = new Schema<ISafetyInspection>({
   attachments: [{ type: String }],
   nextInspectionDate: { type: Date, required: true },
   completedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-  completedDate: { type: Date }
+  completedDate: { type: Date },
+  serial: { type: String, unique: true, sparse: true } // Document serial number
 }, {
   timestamps: true
 });

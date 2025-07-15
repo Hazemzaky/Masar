@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import Reimbursement from '../models/Reimbursement';
 import Employee from '../models/Employee';
 import { isPeriodClosed } from '../models/Period';
+import { generateSerial } from '../utils/serialUtils';
 
 export const createReimbursement = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { employee, amount, description, date } = req.body;
+    const { employee, amount, description, date, department } = req.body;
     if (!employee || !amount || !description || !date) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
@@ -15,7 +16,11 @@ export const createReimbursement = async (req: Request, res: Response): Promise<
       res.status(403).json({ message: 'This period is locked and cannot be edited.' });
       return;
     }
-    const reimbursement = new Reimbursement({ employee, amount, description, date });
+    // Serial number generation
+    const docCode = 'RB';
+    const dept = department || 'HR';
+    const serial = await generateSerial(docCode, dept, Reimbursement);
+    const reimbursement = new Reimbursement({ employee, amount, description, date, serial });
     await reimbursement.save();
     res.status(201).json(reimbursement);
   } catch (error) {

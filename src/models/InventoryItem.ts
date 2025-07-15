@@ -18,6 +18,8 @@ export interface IInventoryItem extends Document {
   relatedAsset?: string;
   notes?: string;
   status: 'active' | 'inactive';
+  costType?: 'direct' | 'depreciated'; // New field
+  depreciationDuration?: number; // New field (months)
 }
 
 const InventoryItemSchema = new Schema<IInventoryItem>({
@@ -38,6 +40,8 @@ const InventoryItemSchema = new Schema<IInventoryItem>({
   relatedAsset: { type: String },
   notes: { type: String },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  costType: { type: String, enum: ['direct', 'depreciated'], default: 'direct' }, // New field
+  depreciationDuration: { type: Number }, // New field (months)
 });
 
 export default mongoose.model<IInventoryItem>('InventoryItem', InventoryItemSchema); 
