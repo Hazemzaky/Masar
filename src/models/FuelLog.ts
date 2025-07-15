@@ -1,20 +1,32 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IFuelLog extends Document {
-  date: Date;
-  vehicle?: string;
+  dateTime: Date;
+  asset: mongoose.Types.ObjectId;
+  currentKm: number;
+  lastKm: number;
+  distanceTraveled: number;
+  client: mongoose.Types.ObjectId;
+  type: 'callout' | 'monthly';
+  litresConsumed: number;
+  pricePerLitre: number;
+  totalCost: number;
   driver?: mongoose.Types.ObjectId;
-  liters: number;
-  cost: number;
   project?: mongoose.Types.ObjectId;
 }
 
 const FuelLogSchema = new Schema<IFuelLog>({
-  date: { type: Date, required: true },
-  vehicle: { type: String },
+  dateTime: { type: Date, required: true },
+  asset: { type: Schema.Types.ObjectId, ref: 'Asset', required: true },
+  currentKm: { type: Number, required: true },
+  lastKm: { type: Number, required: true },
+  distanceTraveled: { type: Number, required: true },
+  client: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
+  type: { type: String, enum: ['callout', 'monthly'], required: true },
+  litresConsumed: { type: Number, required: true },
+  pricePerLitre: { type: Number, required: true },
+  totalCost: { type: Number, required: true },
   driver: { type: Schema.Types.ObjectId, ref: 'Employee' },
-  liters: { type: Number, required: true },
-  cost: { type: Number, required: true },
   project: { type: Schema.Types.ObjectId, ref: 'Project' },
 });
 
