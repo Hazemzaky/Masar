@@ -7,6 +7,7 @@ export interface IAsset extends Document {
   subSubCategory?: string; // e.g., 'Heavy Truck', 'Mobile Crane', 'Furniture', 'Laptop'
   subSubSubCategory?: string; // 4th level
   subSubSubSubCategory?: string; // 5th level
+  type?: string;
   brand?: string;
   status: 'active' | 'disposed' | 'accident/scraped' | 'other' | 'pending';
   availability: 'available' | 'assigned' | 'maintenance' | 'out_of_service';
@@ -31,6 +32,7 @@ const AssetSchema = new Schema<IAsset>({
   subSubCategory: { type: String },
   subSubSubCategory: { type: String },
   subSubSubSubCategory: { type: String },
+  type: { type: String },
   brand: { type: String },
   status: { 
     type: String, 

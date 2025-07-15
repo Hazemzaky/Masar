@@ -9,6 +9,7 @@ export interface IProcurementInvoice extends Document {
   matchedGRN?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  serial?: string;
 }
 
 const ProcurementInvoiceSchema = new Schema<IProcurementInvoice>({
@@ -18,6 +19,7 @@ const ProcurementInvoiceSchema = new Schema<IProcurementInvoice>({
   status: { type: String, enum: ['pending', 'approved', 'paid'], default: 'pending' },
   paymentDate: { type: Date },
   matchedGRN: { type: Schema.Types.ObjectId, ref: 'GoodsReceipt' },
+  serial: { type: String, unique: true, sparse: true },
 }, { timestamps: true });
 
 export default mongoose.model<IProcurementInvoice>('ProcurementInvoice', ProcurementInvoiceSchema); 

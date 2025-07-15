@@ -31,6 +31,7 @@ import travelAuthorizationRoutes from './routes/travelAuthorizationRoutes';
 import assetCategoryRoutes from './routes/assetCategoryRoutes';
 import foodAllowanceRoutes from './routes/foodAllowanceRoutes';
 import clientRoutes from './routes/clientRoutes';
+import trackerRoutes from './routes/trackerRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -120,6 +121,7 @@ app.use('/api/travel-authorizations', travelAuthorizationRoutes);
 app.use('/api/asset-categories', assetCategoryRoutes);
 app.use('/api/food-allowance', foodAllowanceRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/tracker', trackerRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -141,7 +141,13 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
 
 export const getEmployees = async (req: Request, res: Response): Promise<void> => {
   try {
-    const employees = await Employee.find();
+    const { position } = req.query;
+    let filter: any = {};
+    if (position) {
+      // Case-insensitive, partial match
+      filter.position = { $regex: position, $options: 'i' };
+    }
+    const employees = await Employee.find(filter);
     res.json(employees);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });

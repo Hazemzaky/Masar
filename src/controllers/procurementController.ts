@@ -637,7 +637,7 @@ export const deleteGoodsReceipt = async (req: AuthRequest, res: Response): Promi
 // --- Procurement Invoice Endpoints ---
 export const createProcurementInvoice = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { purchaseOrder, invoiceFile, amount, status, paymentDate, matchedGRN } = req.body;
+    const { purchaseOrder, invoiceFile, amount, status, paymentDate, matchedGRN, serial } = req.body;
     if (!purchaseOrder || !invoiceFile || !amount) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
@@ -649,6 +649,7 @@ export const createProcurementInvoice = async (req: AuthRequest, res: Response):
       status: status || 'pending',
       paymentDate,
       matchedGRN,
+      serial,
     });
     await invoice.save();
     res.status(201).json(invoice);
