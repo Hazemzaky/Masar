@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import InventoryItem from '../models/InventoryItem';
 import InventoryTransaction from '../models/InventoryTransaction';
+import { generateSerial } from '../utils/serialUtils';
 
 export function createItem(req: Request, res: Response) {
   (async () => {
@@ -10,9 +11,12 @@ export function createItem(req: Request, res: Response) {
         description, type, rop, quantity, uom, location, rack, aisle, bin, warranty, warrantyPeriod, warrantyStartDate, purchaseCost, supplier, relatedAsset, notes, status,
         costType, depreciationDuration
       } = req.body;
+      // Generate serial number
+      const department = (location && typeof location === 'string') ? location.substring(0, 2).toUpperCase() : 'ST';
+      const serial = await generateSerial('IN', department, InventoryItem);
       const item = new InventoryItem({
         description, type, rop, quantity, uom, location, rack, aisle, bin, warranty, warrantyPeriod, warrantyStartDate, purchaseCost, supplier, relatedAsset, notes, status,
-        costType, depreciationDuration
+        costType, depreciationDuration, serial
       });
       await item.save();
       res.status(201).json(item);
