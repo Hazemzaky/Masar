@@ -19,9 +19,9 @@ interface AuthRequest extends Request {
 // Create a new Purchase Request
 export const createPurchaseRequest = async (req: AuthRequest, res: Response) => {
   try {
-    const { itemDescription, quantity, priority, budgetCode, department, attachments } = req.body;
+    const { itemDescription, quantity, priority, department, attachments } = req.body;
     const requester = req.user?.userId || req.body.requester; // support both direct and middleware
-    if (!itemDescription || !quantity || !priority || !budgetCode || !department || !requester) {
+    if (!itemDescription || !quantity || !priority || !department || !requester) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -33,7 +33,6 @@ export const createPurchaseRequest = async (req: AuthRequest, res: Response) => 
       itemDescription,
       quantity,
       priority,
-      budgetCode,
       department,
       requester,
       attachments: attachments || [],

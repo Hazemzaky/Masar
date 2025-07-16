@@ -35,11 +35,17 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const FuelLogSchema = new mongoose_1.Schema({
-    date: { type: Date, required: true },
-    vehicle: { type: String },
+    dateTime: { type: Date, required: true },
+    asset: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Asset', required: true },
+    currentKm: { type: Number, required: true },
+    lastKm: { type: Number, required: true },
+    distanceTraveled: { type: Number, required: true },
+    client: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Client', required: true },
+    type: { type: String, enum: ['callout', 'monthly'], required: true },
+    litresConsumed: { type: Number, required: true },
+    pricePerLitre: { type: Number, required: true },
+    totalCost: { type: Number, required: true },
     driver: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Employee' },
-    liters: { type: Number, required: true },
-    cost: { type: Number, required: true },
     project: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
 });
 exports.default = mongoose_1.default.model('FuelLog', FuelLogSchema);

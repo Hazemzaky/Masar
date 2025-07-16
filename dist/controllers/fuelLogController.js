@@ -16,7 +16,26 @@ exports.deleteFuelLog = exports.updateFuelLog = exports.getFuelLog = exports.get
 const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const createFuelLog = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const fuelLog = new FuelLog_1.default(req.body);
+        const { dateTime, asset, currentKm, lastKm, client, type, litresConsumed, pricePerLitre, driver, project } = req.body;
+        if (!dateTime || !asset || currentKm === undefined || lastKm === undefined || !client || !type || litresConsumed === undefined || pricePerLitre === undefined) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        const distanceTraveled = Number(currentKm) - Number(lastKm);
+        const totalCost = Number(litresConsumed) * Number(pricePerLitre);
+        const fuelLog = new FuelLog_1.default({
+            dateTime,
+            asset,
+            currentKm,
+            lastKm,
+            distanceTraveled,
+            client,
+            type,
+            litresConsumed,
+            pricePerLitre,
+            totalCost,
+            driver,
+            project
+        });
         yield fuelLog.save();
         res.status(201).json(fuelLog);
     }
@@ -30,7 +49,7 @@ const getFuelLogs = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const filter = {};
         if (req.query.project)
             filter.project = req.query.project;
-        const fuelLogs = yield FuelLog_1.default.find(filter).populate('driver').populate('project');
+        const fuelLogs = yield FuelLog_1.default.find(filter).populate('driver').populate('project').populate('asset', 'plateNumber description').populate('client', 'name');
         res.json(fuelLogs);
     }
     catch (error) {
@@ -40,7 +59,7 @@ const getFuelLogs = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.getFuelLogs = getFuelLogs;
 const getFuelLog = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const fuelLog = yield FuelLog_1.default.findById(req.params.id).populate('driver').populate('project');
+        const fuelLog = yield FuelLog_1.default.findById(req.params.id).populate('driver').populate('project').populate('asset', 'plateNumber description').populate('client', 'name');
         if (!fuelLog) {
             res.status(404).json({ message: 'Fuel log not found' });
             return;
@@ -54,7 +73,27 @@ const getFuelLog = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 exports.getFuelLog = getFuelLog;
 const updateFuelLog = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const fuelLog = yield FuelLog_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { dateTime, asset, currentKm, lastKm, client, type, litresConsumed, pricePerLitre, driver, project } = req.body;
+        if (!dateTime || !asset || currentKm === undefined || lastKm === undefined || !client || !type || litresConsumed === undefined || pricePerLitre === undefined) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        const distanceTraveled = Number(currentKm) - Number(lastKm);
+        const totalCost = Number(litresConsumed) * Number(pricePerLitre);
+        const updateData = {
+            dateTime,
+            asset,
+            currentKm,
+            lastKm,
+            distanceTraveled,
+            client,
+            type,
+            litresConsumed,
+            pricePerLitre,
+            totalCost,
+            driver,
+            project
+        };
+        const fuelLog = yield FuelLog_1.default.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!fuelLog) {
             res.status(404).json({ message: 'Fuel log not found' });
             return;

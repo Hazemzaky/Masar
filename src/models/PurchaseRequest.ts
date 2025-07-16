@@ -11,7 +11,6 @@ export interface IPurchaseRequest extends Document {
   itemDescription: string;
   quantity: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  budgetCode: string;
   requester: mongoose.Types.ObjectId;
   department: string;
   attachments: string[];
@@ -33,7 +32,6 @@ const PurchaseRequestSchema = new Schema<IPurchaseRequest>({
   itemDescription: { type: String, required: true },
   quantity: { type: Number, required: true },
   priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], required: true },
-  budgetCode: { type: String, required: true },
   requester: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   department: { type: String, required: true },
   attachments: [{ type: String }],
