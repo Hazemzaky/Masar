@@ -36,6 +36,8 @@ import assetPassRoutes from './routes/assetPassRoutes';
 import employeePassRoutes from './routes/employeePassRoutes';
 import overtimeRoutes from './routes/overtimeRoutes';
 import tripAllowanceRoutes from './routes/tripAllowanceRoutes';
+import quotationRoutes from './routes/quotationRoutes';
+import waterLogRoutes from './routes/waterLogRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -130,6 +132,8 @@ app.use('/api/asset-passes', assetPassRoutes);
 app.use('/api/employee-passes', employeePassRoutes);
 app.use('/api/overtime', overtimeRoutes);
 app.use('/api/trip-allowance', tripAllowanceRoutes);
+app.use('/api/quotations', quotationRoutes);
+app.use('/api/water-logs', waterLogRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -1,39 +1,81 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export interface IQuoteResponse {
-  vendor: mongoose.Types.ObjectId;
-  quoteFile: string;
-  price: number;
-  notes?: string;
-  status: 'pending' | 'submitted' | 'selected' | 'rejected';
-}
-
 export interface IQuotation extends Document {
-  purchaseRequest: mongoose.Types.ObjectId;
-  vendors: mongoose.Types.ObjectId[];
-  responses: IQuoteResponse[];
-  selectedVendor?: mongoose.Types.ObjectId;
-  justification?: string;
-  approvalStatus: 'pending' | 'approved' | 'rejected';
-  createdAt: Date;
-  updatedAt: Date;
+  quotationDate: Date;
+  validUntil: Date;
+  status: string;
+  clientName: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  billingAddress: string;
+  clientCategory: string;
+  equipmentType: string;
+  quantity: number;
+  rentalStart: Date;
+  rentalEnd: Date;
+  usageType: string;
+  projectLocation: string;
+  rateType: string;
+  rate: number;
+  operatorCharges: number;
+  fuelCharges: number;
+  mobilizationFee: number;
+  standbyCharges: number;
+  securityDeposit: number;
+  discounts: number;
+  taxes: number;
+  addOns: string;
+  paymentTerms: string;
+  paymentMethods: string;
+  penalty: string;
+  withOperator: string;
+  fuelProvidedBy: string;
+  insurance: string;
+  maintenance: string;
+  availability: string;
+  breakdownPolicy: string;
+  standbyConditions: string;
+  grandTotal: number;
 }
-
-const QuoteResponseSchema = new Schema<IQuoteResponse>({
-  vendor: { type: Schema.Types.ObjectId, ref: 'Vendor', required: true },
-  quoteFile: { type: String, required: true },
-  price: { type: Number, required: true },
-  notes: { type: String },
-  status: { type: String, enum: ['pending', 'submitted', 'selected', 'rejected'], default: 'pending' },
-});
 
 const QuotationSchema = new Schema<IQuotation>({
-  purchaseRequest: { type: Schema.Types.ObjectId, ref: 'PurchaseRequest', required: true },
-  vendors: [{ type: Schema.Types.ObjectId, ref: 'Vendor' }],
-  responses: [QuoteResponseSchema],
-  selectedVendor: { type: Schema.Types.ObjectId, ref: 'Vendor' },
-  justification: { type: String },
-  approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  quotationDate: { type: Date, required: true },
+  validUntil: { type: Date, required: true },
+  status: { type: String, default: 'Draft' },
+  clientName: { type: String, required: true },
+  contactPerson: String,
+  phone: String,
+  email: String,
+  billingAddress: String,
+  clientCategory: String,
+  equipmentType: String,
+  quantity: Number,
+  rentalStart: Date,
+  rentalEnd: Date,
+  usageType: String,
+  projectLocation: String,
+  rateType: String,
+  rate: Number,
+  operatorCharges: Number,
+  fuelCharges: Number,
+  mobilizationFee: Number,
+  standbyCharges: Number,
+  securityDeposit: Number,
+  discounts: Number,
+  taxes: Number,
+  addOns: String,
+  paymentTerms: String,
+  paymentMethods: String,
+  penalty: String,
+  withOperator: String,
+  fuelProvidedBy: String,
+  insurance: String,
+  maintenance: String,
+  availability: String,
+  breakdownPolicy: String,
+  standbyConditions: String,
+  grandTotal: Number,
 }, { timestamps: true });
 
 export default mongoose.model<IQuotation>('Quotation', QuotationSchema); 
