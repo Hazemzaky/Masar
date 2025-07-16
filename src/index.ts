@@ -38,6 +38,7 @@ import overtimeRoutes from './routes/overtimeRoutes';
 import tripAllowanceRoutes from './routes/tripAllowanceRoutes';
 import quotationRoutes from './routes/quotationRoutes';
 import waterLogRoutes from './routes/waterLogRoutes';
+import stationTrackRoutes from './routes/stationTrackRoutes';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -134,6 +135,7 @@ app.use('/api/overtime', overtimeRoutes);
 app.use('/api/trip-allowance', tripAllowanceRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/water-logs', waterLogRoutes);
+app.use('/api/station-tracks', stationTrackRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -49,9 +49,9 @@ export async function getWaterLog(req: Request, res: Response) {
 // 3. Create log
 export async function createWaterLog(req: Request, res: Response) {
   try {
-    const { prepaidCard, totalCost, status } = req.body;
+    const { prepaidCard, totalCost } = req.body;
     let cardDoc = null;
-    if (prepaidCard && status === 'success') {
+    if (prepaidCard) {
       cardDoc = await PrepaidCard.findById(prepaidCard);
       if (!cardDoc) return res.status(400).json({ message: 'Prepaid card not found' });
       if (cardDoc.status !== 'Active') return res.status(400).json({ message: 'Card is blocked' });
@@ -64,7 +64,7 @@ export async function createWaterLog(req: Request, res: Response) {
       cardDoc.lastUsed = new Date();
       await cardDoc.save();
     }
-    const log = new WaterLog(req.body);
+    const log = new WaterLog({ ...req.body, prepaidCard: prepaidCard || undefined });
     await log.save();
     res.status(201).json(log);
   } catch (error) {
