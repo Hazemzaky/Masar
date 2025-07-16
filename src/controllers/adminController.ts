@@ -170,7 +170,10 @@ export const createVehicleRegistration = async (req: AuthRequest, res: Response)
       registrationCardBrand,
       registrationCardCapacity,
       registrationCardShape,
-      registrationCardColour
+      registrationCardColour,
+      // New fields for asset registration type and periodic check
+      assetRegistrationType,
+      periodicCheck
     } = req.body;
 
     const registration = new VehicleRegistration({
@@ -198,6 +201,9 @@ export const createVehicleRegistration = async (req: AuthRequest, res: Response)
       registrationCardCapacity,
       registrationCardShape,
       registrationCardColour,
+      // New fields for asset registration type and periodic check
+      assetRegistrationType,
+      periodicCheck,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
     });
@@ -244,7 +250,10 @@ export const updateVehicleRegistration = async (req: Request, res: Response): Pr
       registrationCardBrand,
       registrationCardCapacity,
       registrationCardShape,
-      registrationCardColour
+      registrationCardColour,
+      // New fields for asset registration type and periodic check
+      assetRegistrationType,
+      periodicCheck
     } = req.body;
 
     const updateData = {
@@ -272,6 +281,9 @@ export const updateVehicleRegistration = async (req: Request, res: Response): Pr
       registrationCardCapacity,
       registrationCardShape,
       registrationCardColour,
+      // New fields for asset registration type and periodic check
+      assetRegistrationType,
+      periodicCheck,
       updatedAt: new Date()
     };
 

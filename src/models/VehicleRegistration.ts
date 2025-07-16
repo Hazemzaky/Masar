@@ -33,6 +33,12 @@ export interface IVehicleRegistration extends Document {
   registrationCardCapacity?: string;
   registrationCardShape?: string;
   registrationCardColour?: string;
+  // New fields for asset registration type and periodic check
+  assetRegistrationType: 'public' | 'private';
+  periodicCheck: {
+    issuanceDate: Date;
+    expiryDate: Date;
+  };
   status: 'active' | 'expired' | 'suspended' | 'cancelled';
   renewalReminders: {
     enabled: boolean;
@@ -79,6 +85,12 @@ const vehicleRegistrationSchema = new Schema<IVehicleRegistration>({
   registrationCardCapacity: { type: String },
   registrationCardShape: { type: String },
   registrationCardColour: { type: String },
+  // New fields for asset registration type and periodic check
+  assetRegistrationType: { type: String, enum: ['public', 'private'], required: true },
+  periodicCheck: {
+    issuanceDate: { type: Date, required: true },
+    expiryDate: { type: Date, required: true },
+  },
   status: {
     type: String,
     enum: ['active', 'expired', 'suspended', 'cancelled'],
