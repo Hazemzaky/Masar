@@ -37,6 +37,10 @@ export interface IQuotation extends Document {
   breakdownPolicy: string;
   standbyConditions: string;
   grandTotal: number;
+  responses?: any[];
+  selectedVendor?: string;
+  justification?: string;
+  approvalStatus?: string;
 }
 
 const QuotationSchema = new Schema<IQuotation>({
@@ -76,6 +80,10 @@ const QuotationSchema = new Schema<IQuotation>({
   breakdownPolicy: String,
   standbyConditions: String,
   grandTotal: Number,
+  responses: { type: Array, default: [] },
+  selectedVendor: { type: String },
+  justification: { type: String },
+  approvalStatus: { type: String },
 }, { timestamps: true });
 
 export default mongoose.model<IQuotation>('Quotation', QuotationSchema); 
