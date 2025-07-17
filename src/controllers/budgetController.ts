@@ -4,11 +4,19 @@ import Expense from '../models/Expense';
 
 export const createBudget = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { department, project, period, amount, forecast, scenarios, notes } = req.body;
+    const { department, project, period, year, category, subCategory, accountCode, amount, forecast, scenarios, notes } = req.body;
+    if (!year || !category) {
+      res.status(400).json({ message: 'Year and category are required.' });
+      return;
+    }
     const budget = new Budget({
       department,
       project,
       period,
+      year,
+      category,
+      subCategory,
+      accountCode,
       amount,
       forecast,
       scenarios,
@@ -25,11 +33,13 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
 
 export const getBudgets = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { department, project, period } = req.query;
+    const { department, project, period, year, category } = req.query;
     const filter: any = {};
     if (department) filter.department = department;
     if (project) filter.project = project;
     if (period) filter.period = period;
+    if (year) filter.year = Number(year);
+    if (category) filter.category = category;
     const budgets = await Budget.find(filter);
     res.json(budgets);
   } catch (error) {

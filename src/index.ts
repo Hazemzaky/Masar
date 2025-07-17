@@ -39,6 +39,14 @@ import tripAllowanceRoutes from './routes/tripAllowanceRoutes';
 import quotationRoutes from './routes/quotationRoutes';
 import waterLogRoutes from './routes/waterLogRoutes';
 import stationTrackRoutes from './routes/stationTrackRoutes';
+import budgetAssumptionsRoutes from './routes/budgetAssumptions';
+import budgetRevenueRoutes from './routes/budgetRevenue';
+import budgetOpexRoutes from './routes/budgetOpex';
+import budgetStaffingRoutes from './routes/budgetStaffing';
+import budgetLoanRoutes from './routes/budgetLoan';
+import budgetCapexRoutes from './routes/budgetCapex';
+import budgetVarianceRoutes from './routes/budgetVariance';
+import budgetContractRoutes from './routes/budgetContract';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -136,6 +144,14 @@ app.use('/api/trip-allowance', tripAllowanceRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/water-logs', waterLogRoutes);
 app.use('/api/station-tracks', stationTrackRoutes);
+app.use('/api/budget/assumptions', budgetAssumptionsRoutes);
+app.use('/api/budget/revenue', budgetRevenueRoutes);
+app.use('/api/budget/opex', budgetOpexRoutes);
+app.use('/api/budget/staffing', budgetStaffingRoutes);
+app.use('/api/budget/loans', budgetLoanRoutes);
+app.use('/api/budget/capex', budgetCapexRoutes);
+app.use('/api/budget/variance', budgetVarianceRoutes);
+app.use('/api/budget/contracts', budgetContractRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
