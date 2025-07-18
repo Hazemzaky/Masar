@@ -28,10 +28,13 @@ export const createVendor = async (req: Request, res: Response) => {
     if (req.file) {
       vendorData.tradeLicense = req.file.path;
     }
+    // Always initialize approvalHistory as an empty array on creation
+    vendorData.approvalHistory = [];
     const vendor = new Vendor(vendorData);
     await vendor.save();
     res.status(201).json(vendor);
   } catch (error: any) {
+    console.error('Vendor creation error:', error.message);
     res.status(400).json({ message: error.message });
   }
 };
