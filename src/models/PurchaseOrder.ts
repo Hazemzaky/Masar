@@ -8,16 +8,16 @@ export interface IPOItem {
 
 export interface IPurchaseOrder extends Document {
   poNumber: string;
-  purchaseRequest: mongoose.Types.ObjectId;
-  vendor: mongoose.Types.ObjectId;
+  purchaseRequest: mongoose.Types.ObjectId | string;
+  vendor: mongoose.Types.ObjectId | string;
   items: IPOItem[];
   totalAmount: number;
-  deliveryTerms: string;
-  paymentTerms: string;
-  status: 'open' | 'ordered' | 'delivered' | 'cancelled';
+  deliveryTerms?: string;
+  paymentTerms?: string;
+  status: 'open' | 'closed' | 'cancelled';
   scannedPO?: string;
   generatedPDF?: string;
-  serial?: string; // Document serial number
+  serial?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,10 +36,10 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>({
   totalAmount: { type: Number, required: true },
   deliveryTerms: { type: String },
   paymentTerms: { type: String },
-  status: { type: String, enum: ['open', 'ordered', 'delivered', 'cancelled'], default: 'open' },
+  status: { type: String, enum: ['open', 'closed', 'cancelled'], default: 'open' },
   scannedPO: { type: String },
   generatedPDF: { type: String },
-  serial: { type: String, unique: true, sparse: true }, // Document serial number
+  serial: { type: String },
 }, { timestamps: true });
 
 export default mongoose.model<IPurchaseOrder>('PurchaseOrder', PurchaseOrderSchema); 
