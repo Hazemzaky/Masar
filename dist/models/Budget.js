@@ -34,10 +34,18 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const tabCategories = [
+    'Budget Assumptions', 'Summary', 'Variance', 'Expected Sales', 'Sales', 'Other', 'Logistics Cost',
+    'Cost Of Water Sale', 'Cost Of Rental Equipment', 'GA', 'OPEX', 'Staff', 'Costs', 'Manpower', 'Capex'
+];
 const BudgetSchema = new mongoose_1.Schema({
     department: { type: String, required: true },
     project: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Project' },
     period: { type: String, required: true },
+    year: { type: Number, required: true },
+    category: { type: String, required: true, enum: tabCategories },
+    subCategory: { type: String },
+    accountCode: { type: String },
     amount: { type: Number, required: true },
     forecast: { type: Number, required: true },
     scenarios: {

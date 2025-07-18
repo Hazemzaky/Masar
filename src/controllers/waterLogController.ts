@@ -272,7 +272,7 @@ export async function getCardUsageLimits(req: Request, res: Response) {
       const weekObj = volumeThisWeek.find(d => d._id === card.cardId);
       return {
         cardId: card.cardId,
-        client: card.client?.name || '-',
+        client: typeof card.client === 'object' && card.client !== null && 'name' in card.client ? (card.client as any).name : '-',
         dispensesToday: todayObj ? todayObj.count : 0,
         volumeThisWeek: weekObj ? weekObj.total : 0,
         status: card.status,

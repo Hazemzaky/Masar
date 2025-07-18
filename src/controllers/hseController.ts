@@ -220,11 +220,12 @@ export const createSafetyInspection = async (req: AuthRequest, res: Response): P
       items = items.map((item, idx) => {
         // Handle per-item file uploads (e.g. itemAttachments-0, itemAttachments-1, ...)
         let itemAttachments: string[] = [];
-        if (req.files && req.files[`itemAttachments-${idx}`]) {
-          const files = req.files[`itemAttachments-${idx}`];
+        const filesObj = req.files as { [fieldname: string]: Express.Multer.File[] };
+        if (filesObj && filesObj[`itemAttachments-${idx}`]) {
+          const files = filesObj[`itemAttachments-${idx}`];
           itemAttachments = Array.isArray(files)
             ? files.map((file: any) => `/uploads/${file.filename}`)
-            : [`/uploads/${files.filename}`];
+            : [`/uploads/${(files as Express.Multer.File).filename}`];
         }
         // Merge with any attachments from body
         if (item.attachments && Array.isArray(item.attachments)) {
@@ -282,7 +283,7 @@ export const getSafetyInspections = async (req: Request, res: Response): Promise
   }
 };
 
-export const updateSafetyInspection = async (req: Request, res: Response): Promise<void> => {
+export const updateSafetyInspection = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     let attachments: string[] = [];
     if (req.files && Array.isArray(req.files)) {
@@ -303,11 +304,12 @@ export const updateSafetyInspection = async (req: Request, res: Response): Promi
       items = items.map((item, idx) => {
         // Handle per-item file uploads (e.g. itemAttachments-0, itemAttachments-1, ...)
         let itemAttachments: string[] = [];
-        if (req.files && req.files[`itemAttachments-${idx}`]) {
-          const files = req.files[`itemAttachments-${idx}`];
+        const filesObj = req.files as { [fieldname: string]: Express.Multer.File[] };
+        if (filesObj && filesObj[`itemAttachments-${idx}`]) {
+          const files = filesObj[`itemAttachments-${idx}`];
           itemAttachments = Array.isArray(files)
             ? files.map((file: any) => `/uploads/${file.filename}`)
-            : [`/uploads/${files.filename}`];
+            : [`/uploads/${(files as Express.Multer.File).filename}`];
         }
         // Merge with any attachments from body
         if (item.attachments && Array.isArray(item.attachments)) {

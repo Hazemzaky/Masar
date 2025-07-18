@@ -17,11 +17,19 @@ const Budget_1 = __importDefault(require("../models/Budget"));
 const Expense_1 = __importDefault(require("../models/Expense"));
 const createBudget = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { department, project, period, amount, forecast, scenarios, notes } = req.body;
+        const { department, project, period, year, category, subCategory, accountCode, amount, forecast, scenarios, notes } = req.body;
+        if (!year || !category) {
+            res.status(400).json({ message: 'Year and category are required.' });
+            return;
+        }
         const budget = new Budget_1.default({
             department,
             project,
             period,
+            year,
+            category,
+            subCategory,
+            accountCode,
             amount,
             forecast,
             scenarios,
@@ -39,7 +47,7 @@ const createBudget = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 exports.createBudget = createBudget;
 const getBudgets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { department, project, period } = req.query;
+        const { department, project, period, year, category } = req.query;
         const filter = {};
         if (department)
             filter.department = department;
@@ -47,6 +55,10 @@ const getBudgets = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             filter.project = project;
         if (period)
             filter.period = period;
+        if (year)
+            filter.year = Number(year);
+        if (category)
+            filter.category = category;
         const budgets = yield Budget_1.default.find(filter);
         res.json(budgets);
     }
