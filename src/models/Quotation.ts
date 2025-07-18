@@ -38,9 +38,11 @@ export interface IQuotation extends Document {
   standbyConditions: string;
   grandTotal: number;
   responses?: any[];
-  selectedVendor?: string;
   justification?: string;
   approvalStatus?: string;
+  purchaseRequest?: mongoose.Types.ObjectId | string;
+  vendors?: (mongoose.Types.ObjectId | string)[];
+  selectedVendor?: mongoose.Types.ObjectId | string;
 }
 
 const QuotationSchema = new Schema<IQuotation>({
@@ -81,9 +83,11 @@ const QuotationSchema = new Schema<IQuotation>({
   standbyConditions: String,
   grandTotal: Number,
   responses: { type: Array, default: [] },
-  selectedVendor: { type: String },
   justification: { type: String },
   approvalStatus: { type: String },
+  purchaseRequest: { type: Schema.Types.ObjectId, ref: 'PurchaseRequest' },
+  vendors: [{ type: Schema.Types.ObjectId, ref: 'Vendor' }],
+  selectedVendor: { type: Schema.Types.ObjectId, ref: 'Vendor' },
 }, { timestamps: true });
 
 export default mongoose.model<IQuotation>('Quotation', QuotationSchema); 

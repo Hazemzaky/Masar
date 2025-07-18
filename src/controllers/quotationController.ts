@@ -15,7 +15,10 @@ export const createQuotation = async (req: Request, res: Response) => {
 // Get all quotations
 export const getQuotations = async (req: Request, res: Response) => {
   try {
-    const quotations = await Quotation.find();
+    const quotations = await Quotation.find()
+      .populate('purchaseRequest')
+      .populate('vendors')
+      .populate('selectedVendor');
     res.json(quotations);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
@@ -25,7 +28,10 @@ export const getQuotations = async (req: Request, res: Response) => {
 // Get a single quotation by ID
 export const getQuotationById = async (req: Request, res: Response) => {
   try {
-    const quotation = await Quotation.findById(req.params.id);
+    const quotation = await Quotation.findById(req.params.id)
+      .populate('purchaseRequest')
+      .populate('vendors')
+      .populate('selectedVendor');
     if (!quotation) return res.status(404).json({ message: 'Quotation not found' });
     res.json(quotation);
   } catch (error) {
