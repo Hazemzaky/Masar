@@ -47,8 +47,11 @@ import budgetLoanRoutes from './routes/budgetLoan';
 import budgetCapexRoutes from './routes/budgetCapex';
 import budgetVarianceRoutes from './routes/budgetVariance';
 import budgetContractRoutes from './routes/budgetContract';
-import { authenticate } from './middleware/auth';
+import procurementInvoiceRoutes from './routes/procurementInvoiceRoutes';
+import vendorRoutes from './routes/vendorRoutes';
 import './models/Contract';
+import './models/ProcurementInvoice';
+import './models/Vendor';
 
 dotenv.config();
 
@@ -153,6 +156,8 @@ app.use('/api/budget/loans', budgetLoanRoutes);
 app.use('/api/budget/capex', budgetCapexRoutes);
 app.use('/api/budget/variance', budgetVarianceRoutes);
 app.use('/api/budget/contracts', budgetContractRoutes);
+app.use('/api/procurement-invoices', procurementInvoiceRoutes);
+app.use('/api/vendors', vendorRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
