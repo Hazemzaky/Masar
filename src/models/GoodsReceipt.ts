@@ -8,15 +8,14 @@ export interface IGRNItem {
 }
 
 export interface IGoodsReceipt extends Document {
-  purchaseOrder: mongoose.Types.ObjectId;
-  receivedBy: mongoose.Types.ObjectId;
+  purchaseOrder: mongoose.Types.ObjectId | string;
+  receivedBy: mongoose.Types.ObjectId | string;
   receivedDate: Date;
   items: IGRNItem[];
-  documents: string[];
-  status: 'received' | 'partial' | 'damaged' | 'delayed';
+  documents?: string[];
+  status: 'received' | 'pending' | 'rejected';
   createdAt: Date;
   updatedAt: Date;
-  serial?: string; // Document serial number
 }
 
 const GRNItemSchema = new Schema<IGRNItem>({
@@ -28,12 +27,11 @@ const GRNItemSchema = new Schema<IGRNItem>({
 
 const GoodsReceiptSchema = new Schema<IGoodsReceipt>({
   purchaseOrder: { type: Schema.Types.ObjectId, ref: 'PurchaseOrder', required: true },
-  receivedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  receivedBy: { type: Schema.Types.ObjectId, ref: 'User', required: false },
   receivedDate: { type: Date, required: true },
   items: [GRNItemSchema],
   documents: [{ type: String }],
-  status: { type: String, enum: ['received', 'partial', 'damaged', 'delayed'], default: 'received' },
-  serial: { type: String, unique: true, sparse: true }, // Document serial number
+  status: { type: String, enum: ['received', 'pending', 'rejected'], default: 'received' },
 }, { timestamps: true });
 
 export default mongoose.model<IGoodsReceipt>('GoodsReceipt', GoodsReceiptSchema); 
