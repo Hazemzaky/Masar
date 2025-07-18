@@ -48,6 +48,7 @@ import budgetCapexRoutes from './routes/budgetCapex';
 import budgetVarianceRoutes from './routes/budgetVariance';
 import budgetContractRoutes from './routes/budgetContract';
 import { authenticate } from './middleware/auth';
+import './models/Contract';
 
 dotenv.config();
 

@@ -212,6 +212,36 @@ export const createSafetyInspection = async (req: AuthRequest, res: Response): P
     if (req.body.attachments && Array.isArray(req.body.attachments)) {
       attachments = attachments.concat(req.body.attachments);
     }
+
+    // Handle per-item attachments and comments
+    let items = req.body.items;
+    if (typeof items === 'string') items = JSON.parse(items);
+    if (Array.isArray(items)) {
+      items = items.map((item, idx) => {
+        // Handle per-item file uploads (e.g. itemAttachments-0, itemAttachments-1, ...)
+        let itemAttachments: string[] = [];
+        if (req.files && req.files[`itemAttachments-${idx}`]) {
+          const files = req.files[`itemAttachments-${idx}`];
+          itemAttachments = Array.isArray(files)
+            ? files.map((file: any) => `/uploads/${file.filename}`)
+            : [`/uploads/${files.filename}`];
+        }
+        // Merge with any attachments from body
+        if (item.attachments && Array.isArray(item.attachments)) {
+          itemAttachments = itemAttachments.concat(item.attachments);
+        }
+        return {
+          ...item,
+          attachments: itemAttachments,
+          comments: item.comments || [],
+        };
+      });
+    }
+
+    // Handle digital signatures
+    let signatures = req.body.signatures;
+    if (typeof signatures === 'string') signatures = JSON.parse(signatures);
+
     // Serial number generation
     const docCode = 'SI';
     const department = req.body.department || 'HS';
@@ -228,6 +258,8 @@ export const createSafetyInspection = async (req: AuthRequest, res: Response): P
     const safetyInspection = new SafetyInspection({
       ...req.body,
       attachments,
+      items,
+      signatures,
       inspector: req.user?.userId,
       serial
     });
@@ -260,17 +292,45 @@ export const updateSafetyInspection = async (req: Request, res: Response): Promi
     if (req.body.attachments && Array.isArray(req.body.attachments)) {
       attachments = attachments.concat(req.body.attachments);
     }
-    const updateData = { ...req.body };
+    let updateData = { ...req.body };
     if (attachments.length > 0) {
       updateData.attachments = attachments;
     }
+    // Handle per-item attachments and comments
+    let items = req.body.items;
+    if (typeof items === 'string') items = JSON.parse(items);
+    if (Array.isArray(items)) {
+      items = items.map((item, idx) => {
+        // Handle per-item file uploads (e.g. itemAttachments-0, itemAttachments-1, ...)
+        let itemAttachments: string[] = [];
+        if (req.files && req.files[`itemAttachments-${idx}`]) {
+          const files = req.files[`itemAttachments-${idx}`];
+          itemAttachments = Array.isArray(files)
+            ? files.map((file: any) => `/uploads/${file.filename}`)
+            : [`/uploads/${files.filename}`];
+        }
+        // Merge with any attachments from body
+        if (item.attachments && Array.isArray(item.attachments)) {
+          itemAttachments = itemAttachments.concat(item.attachments);
+        }
+        return {
+          ...item,
+          attachments: itemAttachments,
+          comments: item.comments || [],
+        };
+      });
+      updateData.items = items;
+    }
+    // Handle digital signatures
+    let signatures = req.body.signatures;
+    if (typeof signatures === 'string') signatures = JSON.parse(signatures);
+    if (signatures) updateData.signatures = signatures;
     const safetyInspection = await SafetyInspection.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true }
     ).populate('inspector', 'email')
      .populate('completedBy', 'email');
-    
     if (!safetyInspection) {
       res.status(404).json({ message: 'Safety inspection not found' });
       return;

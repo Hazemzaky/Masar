@@ -10,6 +10,19 @@ export interface IInspectionItem {
   targetDate?: Date;
   completionDate?: Date;
   actionStatus: 'open' | 'in_progress' | 'completed' | 'overdue';
+  // New fields for per-action attachments and comments
+  attachments?: string[];
+  comments?: Array<{
+    user: mongoose.Types.ObjectId;
+    comment: string;
+    date: Date;
+  }>;
+}
+
+export interface ISignature {
+  user: mongoose.Types.ObjectId;
+  date: Date;
+  signatureData: string; // base64 or file path
 }
 
 export interface ISafetyInspection extends Document {
@@ -27,6 +40,7 @@ export interface ISafetyInspection extends Document {
   nextInspectionDate: Date;
   completedBy?: mongoose.Types.ObjectId;
   completedDate?: Date;
+  signatures?: ISignature[];
   serial?: string; // Document serial number
   createdAt: Date;
   updatedAt: Date;
@@ -50,8 +64,20 @@ const inspectionItemSchema = new Schema<IInspectionItem>({
     required: true, 
     enum: ['open', 'in_progress', 'completed', 'overdue'],
     default: 'open'
-  }
+  },
+  attachments: [{ type: String }],
+  comments: [{
+    user: { type: Schema.Types.ObjectId, ref: 'User' },
+    comment: { type: String },
+    date: { type: Date, default: Date.now }
+  }]
 });
+
+const signatureSchema = new Schema<ISignature>({
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  date: { type: Date, required: true },
+  signatureData: { type: String, required: true }
+}, { _id: false });
 
 const safetyInspectionSchema = new Schema<ISafetyInspection>({
   title: { type: String, required: true },
@@ -77,6 +103,7 @@ const safetyInspectionSchema = new Schema<ISafetyInspection>({
   nextInspectionDate: { type: Date, required: true },
   completedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   completedDate: { type: Date },
+  signatures: [signatureSchema],
   serial: { type: String, unique: true, sparse: true } // Document serial number
 }, {
   timestamps: true

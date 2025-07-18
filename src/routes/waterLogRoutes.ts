@@ -11,6 +11,8 @@ router.post('/prepaid-cards/recharge', authenticate, waterLogController.recharge
 router.post('/prepaid-cards/block-activate', authenticate, waterLogController.blockActivatePrepaidCard);
 router.get('/station-activity', authenticate, waterLogController.getStationActivity);
 router.get('/alerts', authenticate, waterLogController.getAlerts);
+router.get('/client-usage-chart', authenticate, waterLogController.getClientWaterUsageChart);
+router.get('/card-usage-limits', authenticate, waterLogController.getCardUsageLimits);
 router.get('/:id', authenticate, waterLogController.getWaterLog);
 router.post('/', authenticate, waterLogController.createWaterLog);
 router.put('/:id', authenticate, waterLogController.updateWaterLog);

@@ -3,6 +3,7 @@ import WaterLog from '../models/WaterLog';
 import Client from '../models/Client';
 import PrepaidCard from '../models/PrepaidCard';
 import Employee from '../models/Employee';
+import moment from 'moment';
 
 // 1. List water logs with filters
 export async function getWaterLogs(req: Request, res: Response) {
@@ -200,6 +201,84 @@ export async function getAlerts(req: Request, res: Response) {
     // Tamper alerts
     const tamperAlerts = await WaterLog.find({ status: 'tamper' }).sort({ dateTime: -1 }).limit(10).populate('client');
     res.json({ failedCards, manualFills, suspiciousLogs, tamperAlerts });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
+
+export async function getClientWaterUsageChart(req: Request, res: Response) {
+  try {
+    // Get last 8 weeks
+    const startDate = moment().subtract(7, 'weeks').startOf('isoWeek').toDate();
+    const usage = await WaterLog.aggregate([
+      { $match: { dateTime: { $gte: startDate } } },
+      {
+        $group: {
+          _id: {
+            client: '$client',
+            week: { $isoWeek: '$dateTime' },
+            year: { $isoWeekYear: '$dateTime' }
+          },
+          total: { $sum: '$volume' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: '_id.client',
+          foreignField: '_id',
+          as: 'client'
+        }
+      },
+      { $unwind: '$client' },
+      {
+        $project: {
+          client: '$client.name',
+          week: '$_id.week',
+          year: '$_id.year',
+          total: 1,
+          _id: 0
+        }
+      },
+      { $sort: { year: 1, week: 1, client: 1 } }
+    ]);
+    res.json(usage);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
+
+export async function getCardUsageLimits(req: Request, res: Response) {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + 1); // ISO week start (Monday)
+    // Aggregate dispenses today
+    const dispensesToday = await WaterLog.aggregate([
+      { $match: { dateTime: { $gte: today } } },
+      { $group: { _id: '$cardId', count: { $sum: 1 } } }
+    ]);
+    // Aggregate volume this week
+    const volumeThisWeek = await WaterLog.aggregate([
+      { $match: { dateTime: { $gte: weekStart } } },
+      { $group: { _id: '$cardId', total: { $sum: '$volume' } } }
+    ]);
+    // Get all cards
+    const cards = await PrepaidCard.find().populate('client');
+    // Build result
+    const result = cards.map(card => {
+      const todayObj = dispensesToday.find(d => d._id === card.cardId);
+      const weekObj = volumeThisWeek.find(d => d._id === card.cardId);
+      return {
+        cardId: card.cardId,
+        client: card.client?.name || '-',
+        dispensesToday: todayObj ? todayObj.count : 0,
+        volumeThisWeek: weekObj ? weekObj.total : 0,
+        status: card.status,
+      };
+    }).filter(row => row.dispensesToday > 3 || row.volumeThisWeek > 20000);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
