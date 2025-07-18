@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import PurchaseOrder from '../models/PurchaseOrder';
+import { generateSerial } from '../utils/serialUtils';
 
 export const getPurchaseOrders = async (req: Request, res: Response) => {
   try {
@@ -25,6 +26,14 @@ export const getPurchaseOrderById = async (req: Request, res: Response) => {
 export const createPurchaseOrder = async (req: Request, res: Response) => {
   try {
     const poData = req.body;
+    // Use serialing system for poNumber and serial
+    const docCode = 'PO';
+    const dept = poData.department || 'PR';
+    const serial = await generateSerial(docCode, dept, PurchaseOrder);
+    poData.serial = serial;
+    if (!poData.poNumber) {
+      poData.poNumber = serial;
+    }
     const po = new PurchaseOrder(poData);
     await po.save();
     res.status(201).json(po);
