@@ -19,4 +19,11 @@ router.put('/bulk/update', employeeController.bulkUpdateEmployees);
 // Statistics and analytics
 router.get('/stats/overview', employeeController.getEmployeeStats);
 
+// ==================== ATTENDANCE ENDPOINTS ====================
+router.post('/:id/attendance/check-in', employeeController.checkIn);
+router.post('/:id/attendance/check-out', employeeController.checkOut);
+router.post('/:id/attendance/mark-leave', employeeController.markLeave);
+router.get('/:id/attendance/history', employeeController.getAttendanceHistory);
+router.get('/:id/attendance/stats', employeeController.getAttendanceStats);
+
 export default router;

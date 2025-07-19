@@ -704,4 +704,324 @@ export const getEmployeeStats = async (req: Request, res: Response): Promise<voi
     console.error('Error fetching employee stats:', error);
     res.status(500).json({ message: 'Server error', error });
   }
+};
+
+// ==================== ATTENDANCE ENDPOINTS ====================
+
+// Check-in endpoint
+export const checkIn = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { checkInTime } = req.body;
+    
+    const employee = await Employee.findById(id);
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    const checkInDateTime = checkInTime || new Date().toISOString();
+    
+    // Check if attendance record already exists for today
+    const existingRecordIndex = employee.attendanceLog?.findIndex(record => record.date === today);
+    
+    if (existingRecordIndex !== undefined && existingRecordIndex >= 0) {
+      // Update existing record
+      employee.attendanceLog![existingRecordIndex].checkIn = checkInDateTime;
+      employee.attendanceLog![existingRecordIndex].status = 'present';
+    } else {
+      // Create new attendance record
+      const newRecord = {
+        date: today,
+        checkIn: checkInDateTime,
+        checkOut: '',
+        hours: 0,
+        status: 'present' as const
+      };
+      
+      if (!employee.attendanceLog) {
+        employee.attendanceLog = [];
+      }
+      employee.attendanceLog.push(newRecord);
+    }
+    
+    // Recalculate attendance statistics
+    await calculateAttendanceStats(employee);
+    
+    await employee.save();
+    
+    res.json({
+      message: 'Check-in recorded successfully',
+      attendance: employee.attendanceLog?.find(record => record.date === today),
+      stats: {
+        attendancePercentage: employee.attendancePercentage,
+        absenceFrequency: employee.absenceFrequency
+      }
+    });
+  } catch (error: any) {
+    console.error('Error recording check-in:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Check-out endpoint
+export const checkOut = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { checkOutTime } = req.body;
+    
+    const employee = await Employee.findById(id);
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    const checkOutDateTime = checkOutTime || new Date().toISOString();
+    
+    // Find today's attendance record
+    const todayRecordIndex = employee.attendanceLog?.findIndex(record => record.date === today);
+    
+    if (todayRecordIndex === undefined || todayRecordIndex < 0) {
+      res.status(400).json({ message: 'No check-in record found for today' });
+      return;
+    }
+    
+    const todayRecord = employee.attendanceLog![todayRecordIndex];
+    
+    if (!todayRecord.checkIn) {
+      res.status(400).json({ message: 'No check-in time recorded for today' });
+      return;
+    }
+    
+    // Calculate hours worked
+    const checkInTime = new Date(todayRecord.checkIn);
+    const checkOutTimeDate = new Date(checkOutDateTime);
+    const hoursWorked = (checkOutTimeDate.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+    
+    // Update attendance record
+    todayRecord.checkOut = checkOutDateTime;
+    todayRecord.hours = Math.round(hoursWorked * 100) / 100; // Round to 2 decimal places
+    
+    // Recalculate attendance statistics
+    await calculateAttendanceStats(employee);
+    
+    await employee.save();
+    
+    res.json({
+      message: 'Check-out recorded successfully',
+      attendance: todayRecord,
+      stats: {
+        attendancePercentage: employee.attendancePercentage,
+        absenceFrequency: employee.absenceFrequency
+      }
+    });
+  } catch (error: any) {
+    console.error('Error recording check-out:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Mark leave endpoint
+export const markLeave = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { leaveType = 'personal', reason } = req.body;
+    
+    const employee = await Employee.findById(id);
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Check if attendance record already exists for today
+    const existingRecordIndex = employee.attendanceLog?.findIndex(record => record.date === today);
+    
+    if (existingRecordIndex !== undefined && existingRecordIndex >= 0) {
+      // Update existing record
+      employee.attendanceLog![existingRecordIndex].status = 'on-leave';
+      employee.attendanceLog![existingRecordIndex].checkIn = '';
+      employee.attendanceLog![existingRecordIndex].checkOut = '';
+      employee.attendanceLog![existingRecordIndex].hours = 0;
+    } else {
+      // Create new attendance record
+      const newRecord = {
+        date: today,
+        checkIn: '',
+        checkOut: '',
+        hours: 0,
+        status: 'on-leave' as const
+      };
+      
+      if (!employee.attendanceLog) {
+        employee.attendanceLog = [];
+      }
+      employee.attendanceLog.push(newRecord);
+    }
+    
+    // Update leave balance if applicable
+    if (employee.leaveBalanceDetails && leaveType in employee.leaveBalanceDetails) {
+      const leaveTypeKey = leaveType as keyof typeof employee.leaveBalanceDetails;
+      if (employee.leaveBalanceDetails[leaveTypeKey] > 0) {
+        employee.leaveBalanceDetails[leaveTypeKey] -= 1;
+      }
+    }
+    
+    // Recalculate attendance statistics
+    await calculateAttendanceStats(employee);
+    
+    await employee.save();
+    
+    res.json({
+      message: 'Leave marked successfully',
+      attendance: employee.attendanceLog?.find(record => record.date === today),
+      leaveBalance: employee.leaveBalanceDetails,
+      stats: {
+        attendancePercentage: employee.attendancePercentage,
+        absenceFrequency: employee.absenceFrequency
+      }
+    });
+  } catch (error: any) {
+    console.error('Error marking leave:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get attendance history endpoint
+export const getAttendanceHistory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate, limit = 30 } = req.query;
+    
+    const employee = await Employee.findById(id);
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+    
+    let attendanceHistory = employee.attendanceLog || [];
+    
+    // Filter by date range if provided
+    if (startDate && endDate) {
+      attendanceHistory = attendanceHistory.filter((record: any) => 
+        record.date >= startDate && record.date <= endDate
+      );
+    }
+    
+    // Sort by date (newest first) and limit results
+    attendanceHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    attendanceHistory = attendanceHistory.slice(0, Number(limit));
+    
+    res.json({
+      employeeId: id,
+      employeeName: employee.name,
+      attendanceHistory,
+      totalRecords: attendanceHistory.length,
+      stats: {
+        attendancePercentage: employee.attendancePercentage,
+        absenceFrequency: employee.absenceFrequency
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching attendance history:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get attendance statistics endpoint
+export const getAttendanceStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { month, year } = req.query;
+    
+    const employee = await Employee.findById(id);
+    if (!employee) {
+      res.status(404).json({ message: 'Employee not found' });
+      return;
+    }
+    
+    let attendanceRecords = employee.attendanceLog || [];
+    
+    // Filter by month/year if provided
+    if (month && year) {
+      const targetMonth = `${year}-${String(month).padStart(2, '0')}`;
+      attendanceRecords = attendanceRecords.filter((record: any) => 
+        record.date.startsWith(targetMonth)
+      );
+    }
+    
+    // Calculate detailed statistics
+    const totalDays = attendanceRecords.length;
+    const presentDays = attendanceRecords.filter((record: any) => record.status === 'present').length;
+    const absentDays = attendanceRecords.filter((record: any) => record.status === 'absent').length;
+    const lateDays = attendanceRecords.filter((record: any) => record.status === 'late').length;
+    const leaveDays = attendanceRecords.filter((record: any) => record.status === 'on-leave').length;
+    
+    const totalHours = attendanceRecords.reduce((sum, record: any) => sum + (record.hours || 0), 0);
+    const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
+    
+    const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
+    
+    res.json({
+      employeeId: id,
+      employeeName: employee.name,
+      period: month && year ? `${month}/${year}` : 'All time',
+      statistics: {
+        totalDays,
+        presentDays,
+        absentDays,
+        lateDays,
+        leaveDays,
+        totalHours: Math.round(totalHours * 100) / 100,
+        averageHours: Math.round(averageHours * 100) / 100,
+        attendanceRate: Math.round(attendanceRate * 100) / 100,
+        attendancePercentage: employee.attendancePercentage,
+        absenceFrequency: employee.absenceFrequency
+      },
+      recentRecords: attendanceRecords.slice(-5) // Last 5 records
+    });
+  } catch (error: any) {
+    console.error('Error fetching attendance stats:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Helper function to calculate attendance statistics
+const calculateAttendanceStats = async (employee: any): Promise<void> => {
+  try {
+    const attendanceRecords = employee.attendanceLog || [];
+    
+    if (attendanceRecords.length === 0) {
+      employee.attendancePercentage = 0;
+      employee.absenceFrequency = 0;
+      return;
+    }
+    
+    // Calculate attendance percentage (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentRecords = attendanceRecords.filter((record: any) => 
+      new Date(record.date) >= thirtyDaysAgo
+    );
+    
+    const totalRecentDays = recentRecords.length;
+    const presentDays = recentRecords.filter((record: any) => record.status === 'present').length;
+    
+    employee.attendancePercentage = totalRecentDays > 0 
+      ? Math.round((presentDays / totalRecentDays) * 100) 
+      : 0;
+    
+    // Calculate absence frequency (last 30 days)
+    const absentDays = recentRecords.filter((record: any) => 
+      record.status === 'absent' || record.status === 'late'
+    ).length;
+    
+    employee.absenceFrequency = absentDays;
+    
+  } catch (error) {
+    console.error('Error calculating attendance stats:', error);
+  }
 }; 

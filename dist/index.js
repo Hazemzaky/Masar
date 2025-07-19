@@ -88,11 +88,13 @@ const procurementInvoiceRoutes_1 = __importDefault(require("./routes/procurement
 const vendorRoutes_1 = __importDefault(require("./routes/vendorRoutes"));
 const purchaseRequestRoutes_1 = __importDefault(require("./routes/purchaseRequestRoutes"));
 const goodsReceiptRoutes_1 = __importDefault(require("./routes/goodsReceiptRoutes"));
+const purchaseOrderRoutes_1 = __importDefault(require("./routes/purchaseOrderRoutes"));
 require("./models/Contract");
 require("./models/ProcurementInvoice");
 require("./models/Vendor");
 require("./models/PurchaseRequest");
 require("./models/GoodsReceipt");
+require("./models/PurchaseOrder");
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -192,6 +194,7 @@ app.use('/api/procurement-invoices', procurementInvoiceRoutes_1.default);
 app.use('/api/vendors', vendorRoutes_1.default);
 app.use('/api/purchase-requests', purchaseRequestRoutes_1.default);
 app.use('/api/goods-receipts', goodsReceiptRoutes_1.default);
+app.use('/api/purchase-orders', purchaseOrderRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
