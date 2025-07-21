@@ -8,6 +8,8 @@ import CompanyFacility from '../models/CompanyFacility';
 import Employee from '../models/Employee';
 import Asset from '../models/Asset';
 import { generateSerial } from '../utils/serialUtils';
+import multer from 'multer';
+import path from 'path';
 
 interface AuthRequest extends Request {
   user?: {
@@ -17,10 +19,32 @@ interface AuthRequest extends Request {
   };
 }
 
+// Multer setup for work permit uploads
+const workPermitStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../../uploads/work_permits'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+export const uploadWorkPermit = multer({ storage: workPermitStorage }).single('workPermitCopy');
+
 // Employee Residency & Visa Tracking
 export const createEmployeeResidency = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    let data = { ...req.body, createdBy: req.user?.userId, updatedBy: req.user?.userId };
+    let data = req.body;
+    // If file uploaded, set workPermitCopy to file path
+    if (req.file) {
+      data.workPermitCopy = `/uploads/work_permits/${req.file.filename}`;
+    }
+    data.createdBy = req.user?.userId;
+    data.updatedBy = req.user?.userId;
+    // Ensure work permit fields are properly set
+    if (data.workPermitStart) data.workPermitStart = new Date(data.workPermitStart);
+    if (data.workPermitEnd) data.workPermitEnd = new Date(data.workPermitEnd);
+    // (workPermitCopy is a string, no conversion needed)
     if (data.employeeType === 'citizen') {
       data.residencyNumber = undefined;
       data.residencyExpiry = undefined;
@@ -47,7 +71,16 @@ export const getEmployeeResidencies = async (req: Request, res: Response): Promi
 
 export const updateEmployeeResidency = async (req: Request, res: Response): Promise<void> => {
   try {
-    let data = { ...req.body, updatedAt: new Date() };
+    let data = req.body;
+    // If file uploaded, set workPermitCopy to file path
+    if (req.file) {
+      data.workPermitCopy = `/uploads/work_permits/${req.file.filename}`;
+    }
+    data.updatedAt = new Date();
+    // Ensure work permit fields are properly set
+    if (data.workPermitStart) data.workPermitStart = new Date(data.workPermitStart);
+    if (data.workPermitEnd) data.workPermitEnd = new Date(data.workPermitEnd);
+    // (workPermitCopy is a string, no conversion needed)
     if (data.employeeType === 'citizen') {
       data.residencyNumber = undefined;
       data.residencyExpiry = undefined;

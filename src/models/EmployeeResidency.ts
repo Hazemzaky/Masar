@@ -42,6 +42,9 @@ export interface IEmployeeResidency extends Document {
     reminderDays: number[];
     lastReminderSent: Date;
   };
+  workPermitStart?: Date;
+  workPermitEnd?: Date;
+  workPermitCopy?: string;
   createdBy: mongoose.Types.ObjectId;
   updatedBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -108,6 +111,9 @@ const employeeResidencySchema = new Schema<IEmployeeResidency>({
     reminderDays: [{ type: Number, default: [30, 15, 7, 1] }],
     lastReminderSent: { type: Date }
   },
+  workPermitStart: { type: Date },
+  workPermitEnd: { type: Date },
+  workPermitCopy: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }, {
