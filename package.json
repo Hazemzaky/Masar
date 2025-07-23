@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "dependencies": {
+    "@heroicons/react": "^1.0.6",
     "@types/moment": "^2.11.29",
     "accepts": "^2.0.0",
     "acorn": "^8.15.0",
