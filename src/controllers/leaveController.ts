@@ -3,6 +3,23 @@ import Leave from '../models/Leave';
 import Employee from '../models/Employee';
 import { isPeriodClosed } from '../models/Period';
 import { generateSerial } from '../utils/serialUtils';
+import mongoose from 'mongoose';
+
+// Helper: Check for overlapping leaves
+async function hasOverlappingLeave(employeeId: mongoose.Types.ObjectId, startDate: Date, endDate: Date, excludeId?: string) {
+  const filter: any = {
+    employee: employeeId,
+    status: { $ne: 'rejected' },
+    $or: [
+      { startDate: { $lte: endDate }, endDate: { $gte: startDate } },
+      { startDate: { $gte: startDate, $lte: endDate } },
+      { endDate: { $gte: startDate, $lte: endDate } }
+    ]
+  };
+  if (excludeId) filter._id = { $ne: excludeId };
+  const overlap = await Leave.findOne(filter);
+  return !!overlap;
+}
 
 export const createLeave = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -14,6 +31,17 @@ export const createLeave = async (req: Request, res: Response): Promise<void> =>
     const period = startDate ? new Date(startDate).toISOString().slice(0, 7) : undefined;
     if (period && await isPeriodClosed(period)) {
       res.status(403).json({ message: 'This period is locked and cannot be edited.' });
+      return;
+    }
+    // Check for overlapping leaves
+    if (await hasOverlappingLeave(employee, new Date(startDate), new Date(endDate))) {
+      res.status(400).json({ message: 'Overlapping leave request exists for this employee.' });
+      return;
+    }
+    // Check leave balance
+    const emp = await Employee.findById(employee);
+    if (emp && emp.leaveBalance < days) {
+      res.status(400).json({ message: 'Insufficient leave balance.' });
       return;
     }
     // Serial number generation
@@ -31,7 +59,13 @@ export const createLeave = async (req: Request, res: Response): Promise<void> =>
 
 export const getLeaves = async (req: Request, res: Response): Promise<void> => {
   try {
-    const leaves = await Leave.find().populate('employee');
+    // Filtering support
+    const { employee, status, department } = req.query;
+    const filter: any = {};
+    if (employee) filter.employee = employee;
+    if (status) filter.status = status;
+    if (department) filter.department = department;
+    const leaves = await Leave.find(filter).populate('employee');
     res.json(leaves);
   } catch (error) {
     console.error('Error in getLeaves:', error);
@@ -55,11 +89,16 @@ export const getLeave = async (req: Request, res: Response): Promise<void> => {
 
 export const updateLeave = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { startDate } = req.body;
-    if (startDate) {
+    const { startDate, employee, endDate } = req.body;
+    if (startDate && employee && endDate) {
       const period = new Date(startDate).toISOString().slice(0, 7);
       if (await isPeriodClosed(period)) {
         res.status(403).json({ message: 'This period is locked and cannot be edited.' });
+        return;
+      }
+      // Check for overlapping leaves (exclude current leave)
+      if (await hasOverlappingLeave(employee, new Date(startDate), new Date(endDate), req.params.id)) {
+        res.status(400).json({ message: 'Overlapping leave request exists for this employee.' });
         return;
       }
     }
@@ -84,6 +123,12 @@ export const approveLeave = async (req: Request, res: Response): Promise<void> =
     }
     leave.status = 'approved';
     await leave.save();
+    // Decrement employee leave balance
+    const emp = await Employee.findById(leave.employee);
+    if (emp) {
+      emp.leaveBalance = (emp.leaveBalance || 0) - leave.days;
+      await emp.save();
+    }
     res.json(leave);
   } catch (error) {
     console.error('Error in approveLeave:', error);
