@@ -439,8 +439,18 @@ export const createLegalCase = async (req: AuthRequest, res: Response): Promise<
     const docCode = 'LC';
     const dept = req.body.department || 'LG';
     const serial = await generateSerial(docCode, dept, LegalCase);
+    let legalRep = req.body.legalRepresentative;
+    if (req.body.legalRepType === 'Internal' && req.body.coId) {
+      const emp = await Employee.findOne({ employeeId: req.body.coId });
+      if (emp) legalRep.name = emp.name;
+      legalRep.firm = undefined;
+    }
+    if (req.body.legalRepType === 'External') {
+      legalRep.firm = req.body.legalRepresentative.firm;
+    }
     const legalCase = new LegalCase({
       ...req.body,
+      legalRepresentative: legalRep,
       serial,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
@@ -463,9 +473,18 @@ export const getLegalCases = async (req: Request, res: Response): Promise<void> 
 
 export const updateLegalCase = async (req: Request, res: Response): Promise<void> => {
   try {
+    let legalRep = req.body.legalRepresentative;
+    if (req.body.legalRepType === 'Internal' && req.body.coId) {
+      const emp = await Employee.findOne({ employeeId: req.body.coId });
+      if (emp) legalRep.name = emp.name;
+      legalRep.firm = undefined;
+    }
+    if (req.body.legalRepType === 'External') {
+      legalRep.firm = req.body.legalRepresentative.firm;
+    }
     const legalCase = await LegalCase.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: new Date() },
+      { ...req.body, legalRepresentative: legalRep, updatedAt: new Date() },
       { new: true }
     );
     if (!legalCase) {
