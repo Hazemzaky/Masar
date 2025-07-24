@@ -15,6 +15,9 @@ export interface ICompanyFacility extends Document {
     securityDeposit: number;
     renewalTerms: string;
     status: 'active' | 'expired' | 'pending_renewal' | 'terminated';
+    hasSecurityDeposit?: 'Yes' | 'No';
+    securityDepositAmount?: number;
+    securityDepositAmortization?: string;
   };
   municipalityApproval: {
     approvalNumber: string;
@@ -22,7 +25,7 @@ export interface ICompanyFacility extends Document {
     expiryDate: Date;
     approvalType: string;
     status: 'active' | 'expired' | 'pending_renewal';
-    renewalProcess: string;
+    renewalPlace?: string;
   };
   fireDepartmentApproval: {
     approvalNumber: string;
@@ -33,7 +36,7 @@ export interface ICompanyFacility extends Document {
     findings: string;
     correctiveActions: string[];
   };
-  mocApproval?: {
+  ministryApproval?: {
     approvalNumber: string;
     approvalDate: Date;
     expiryDate: Date;
@@ -52,8 +55,16 @@ export interface ICompanyFacility extends Document {
     rentAgreement: string;
     municipalityApproval: string;
     fireDepartmentApproval: string;
-    mocApproval?: string;
+    ministryApproval?: string;
+    ministriesDocuments?: string;
     otherDocuments: string[];
+  };
+  facilityDocs?: {
+    rentAgreement?: string;
+    municipality?: string;
+    fireDept?: string;
+    ministries?: string;
+    other?: string;
   };
   maintenanceHistory: {
     date: Date;
@@ -72,10 +83,10 @@ export interface ICompanyFacility extends Document {
 
 const companyFacilitySchema = new Schema<ICompanyFacility>({
   facilityName: { type: String, required: true },
-  facilityType: { 
-    type: String, 
-    enum: ['office', 'warehouse', 'workshop', 'showroom', 'residential', 'other'], 
-    required: true 
+  facilityType: {
+    type: String,
+    enum: ['office', 'warehouse', 'workshop', 'showroom', 'residential', 'other'],
+    required: true
   },
   address: { type: String, required: true },
   area: { type: Number, required: true },
@@ -88,46 +99,49 @@ const companyFacilitySchema = new Schema<ICompanyFacility>({
     monthlyRent: { type: Number, required: true },
     securityDeposit: { type: Number, required: true },
     renewalTerms: { type: String },
-    status: { 
-      type: String, 
-      enum: ['active', 'expired', 'pending_renewal', 'terminated'], 
-      default: 'active' 
-    }
+    status: {
+      type: String,
+      enum: ['active', 'expired', 'pending_renewal', 'terminated'],
+      default: 'active'
+    },
+    hasSecurityDeposit: { type: String, enum: ['Yes', 'No'] },
+    securityDepositAmount: { type: Number },
+    securityDepositAmortization: { type: String },
   },
   municipalityApproval: {
     approvalNumber: { type: String, required: true },
     approvalDate: { type: Date, required: true },
     expiryDate: { type: Date, required: true },
     approvalType: { type: String, required: true },
-    status: { 
-      type: String, 
-      enum: ['active', 'expired', 'pending_renewal'], 
-      default: 'active' 
+    status: {
+      type: String,
+      enum: ['active', 'expired', 'pending_renewal'],
+      default: 'active'
     },
-    renewalProcess: { type: String }
+    renewalPlace: { type: String },
   },
   fireDepartmentApproval: {
     approvalNumber: { type: String, required: true },
     approvalDate: { type: Date, required: true },
     expiryDate: { type: Date, required: true },
     inspectionDate: { type: Date, required: true },
-    status: { 
-      type: String, 
-      enum: ['active', 'expired', 'pending_renewal'], 
-      default: 'active' 
+    status: {
+      type: String,
+      enum: ['active', 'expired', 'pending_renewal'],
+      default: 'active'
     },
     findings: { type: String },
     correctiveActions: [{ type: String }]
   },
-  mocApproval: {
+  ministryApproval: {
     approvalNumber: { type: String },
     approvalDate: { type: Date },
     expiryDate: { type: Date },
     approvalType: { type: String },
-    status: { 
-      type: String, 
-      enum: ['active', 'expired', 'pending_renewal'], 
-      default: 'active' 
+    status: {
+      type: String,
+      enum: ['active', 'expired', 'pending_renewal'],
+      default: 'active'
     }
   },
   otherApprovals: [{
@@ -135,10 +149,10 @@ const companyFacilitySchema = new Schema<ICompanyFacility>({
     approvalNumber: { type: String, required: true },
     approvalDate: { type: Date, required: true },
     expiryDate: { type: Date, required: true },
-    status: { 
-      type: String, 
-      enum: ['active', 'expired', 'pending_renewal'], 
-      default: 'active' 
+    status: {
+      type: String,
+      enum: ['active', 'expired', 'pending_renewal'],
+      default: 'active'
     },
     notes: { type: String }
   }],
@@ -146,8 +160,16 @@ const companyFacilitySchema = new Schema<ICompanyFacility>({
     rentAgreement: { type: String },
     municipalityApproval: { type: String },
     fireDepartmentApproval: { type: String },
-    mocApproval: { type: String },
+    ministryApproval: { type: String },
+    ministriesDocuments: { type: String },
     otherDocuments: [{ type: String }]
+  },
+  facilityDocs: {
+    rentAgreement: { type: String },
+    municipality: { type: String },
+    fireDept: { type: String },
+    ministries: { type: String },
+    other: { type: String },
   },
   maintenanceHistory: [{
     date: { type: Date, required: true },
@@ -156,10 +178,10 @@ const companyFacilitySchema = new Schema<ICompanyFacility>({
     cost: { type: Number, required: true },
     performedBy: { type: String, required: true }
   }],
-  status: { 
-    type: String, 
-    enum: ['active', 'inactive', 'under_renovation', 'closed'], 
-    default: 'active' 
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'under_renovation', 'closed'],
+    default: 'active'
   },
   notes: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },

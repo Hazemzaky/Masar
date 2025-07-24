@@ -515,6 +515,14 @@ export const createCompanyFacility = async (req: AuthRequest, res: Response): Pr
   try {
     const facility = new CompanyFacility({
       ...req.body,
+      // Support new fields
+      'rentAgreement.hasSecurityDeposit': req.body.rentAgreement?.hasSecurityDeposit,
+      'rentAgreement.securityDepositAmount': req.body.rentAgreement?.securityDepositAmount,
+      'rentAgreement.securityDepositAmortization': req.body.rentAgreement?.securityDepositAmortization,
+      'municipalityApproval.renewalPlace': req.body.municipalityApproval?.renewalPlace,
+      ministryApproval: req.body.ministryApproval,
+      facilityDocs: req.body.facilityDocs,
+      'documents.ministriesDocuments': req.body.documents?.ministriesDocuments,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
     });
@@ -538,7 +546,18 @@ export const updateCompanyFacility = async (req: Request, res: Response): Promis
   try {
     const facility = await CompanyFacility.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: new Date() },
+      {
+        ...req.body,
+        // Support new fields
+        'rentAgreement.hasSecurityDeposit': req.body.rentAgreement?.hasSecurityDeposit,
+        'rentAgreement.securityDepositAmount': req.body.rentAgreement?.securityDepositAmount,
+        'rentAgreement.securityDepositAmortization': req.body.rentAgreement?.securityDepositAmortization,
+        'municipalityApproval.renewalPlace': req.body.municipalityApproval?.renewalPlace,
+        ministryApproval: req.body.ministryApproval,
+        facilityDocs: req.body.facilityDocs,
+        'documents.ministriesDocuments': req.body.documents?.ministriesDocuments,
+        updatedAt: new Date()
+      },
       { new: true }
     );
     if (!facility) {
