@@ -25,6 +25,7 @@ export interface IEmployeeResidency extends Document {
   status: 'active' | 'expired' | 'under_renewal' | 'cancelled' | 'deported';
   hasPasses: boolean;
   passes: IPass[];
+  passCopies?: string[];
   maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
   numberOfDependents?: number;
   dependentsLocation?: 'kuwait' | 'home_country' | 'other';
@@ -88,6 +89,7 @@ const employeeResidencySchema = new Schema<IEmployeeResidency>({
   },
   hasPasses: { type: Boolean, default: false },
   passes: [passSchema],
+  passCopies: [{ type: String }],
   maritalStatus: { 
     type: String, 
     enum: ['single', 'married', 'divorced', 'widowed'] 

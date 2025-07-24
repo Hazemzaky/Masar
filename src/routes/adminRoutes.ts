@@ -32,7 +32,7 @@ import {
   deleteCompanyFacility,
   // Dashboard
   getAdminDashboard,
-  uploadWorkPermit
+  uploadResidencyFiles
 } from '../controllers/adminController';
 import { getEmployees } from '../controllers/employeeController';
 import { authenticate } from '../middleware/auth';
@@ -43,9 +43,9 @@ const router = express.Router();
 router.get('/dashboard', authenticate, getAdminDashboard);
 
 // Employee Residency & Visa Tracking
-router.post('/employee-residencies', authenticate, uploadWorkPermit, createEmployeeResidency);
+router.post('/employee-residencies', authenticate, uploadResidencyFiles, createEmployeeResidency);
 router.get('/employee-residencies', authenticate, getEmployeeResidencies);
-router.put('/employee-residencies/:id', authenticate, uploadWorkPermit, updateEmployeeResidency);
+router.put('/employee-residencies/:id', authenticate, uploadResidencyFiles, updateEmployeeResidency);
 router.delete('/employee-residencies/:id', authenticate, deleteEmployeeResidency);
 
 // Government Document Management

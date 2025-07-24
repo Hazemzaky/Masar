@@ -20,24 +20,37 @@ interface AuthRequest extends Request {
 }
 
 // Multer setup for work permit uploads
-const workPermitStorage = multer.diskStorage({
+const residencyStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../../uploads/work_permits'));
+    if (file.fieldname === 'workPermitCopy') {
+      cb(null, path.join(__dirname, '../../uploads/work_permits'));
+    } else if (file.fieldname.startsWith('passCopies')) {
+      cb(null, path.join(__dirname, '../../uploads/pass_copies'));
+    } else {
+      cb(null, path.join(__dirname, '../../uploads/other'));
+    }
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + file.originalname);
   }
 });
-export const uploadWorkPermit = multer({ storage: workPermitStorage }).single('workPermitCopy');
+export const uploadResidencyFiles = multer({ storage: residencyStorage }).fields([
+  { name: 'workPermitCopy', maxCount: 1 },
+  { name: 'passCopies', maxCount: 10 }
+]);
 
 // Employee Residency & Visa Tracking
 export const createEmployeeResidency = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     let data = req.body;
-    // If file uploaded, set workPermitCopy to file path
-    if (req.file) {
-      data.workPermitCopy = `/uploads/work_permits/${req.file.filename}`;
+    // Handle workPermitCopy
+    if (req.files && (req.files as any).workPermitCopy && (req.files as any).workPermitCopy[0]) {
+      data.workPermitCopy = `/uploads/work_permits/${(req.files as any).workPermitCopy[0].filename}`;
+    }
+    // Handle passCopies
+    if (req.files && (req.files as any).passCopies) {
+      data.passCopies = (req.files as any).passCopies.map((f: any) => `/uploads/pass_copies/${f.filename}`);
     }
     data.createdBy = req.user?.userId;
     data.updatedBy = req.user?.userId;
@@ -69,12 +82,16 @@ export const getEmployeeResidencies = async (req: Request, res: Response): Promi
   }
 };
 
-export const updateEmployeeResidency = async (req: Request, res: Response): Promise<void> => {
+export const updateEmployeeResidency = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     let data = req.body;
-    // If file uploaded, set workPermitCopy to file path
-    if (req.file) {
-      data.workPermitCopy = `/uploads/work_permits/${req.file.filename}`;
+    // Handle workPermitCopy
+    if (req.files && (req.files as any).workPermitCopy && (req.files as any).workPermitCopy[0]) {
+      data.workPermitCopy = `/uploads/work_permits/${(req.files as any).workPermitCopy[0].filename}`;
+    }
+    // Handle passCopies
+    if (req.files && (req.files as any).passCopies) {
+      data.passCopies = (req.files as any).passCopies.map((f: any) => `/uploads/pass_copies/${f.filename}`);
     }
     data.updatedAt = new Date();
     // Ensure work permit fields are properly set
