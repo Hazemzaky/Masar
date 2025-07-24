@@ -9,7 +9,7 @@ export const createTracker = async (req: Request, res: Response) => {
     // Validate required fields
     const requiredFields = [
       'month', 'year', 'SR', 'departureMonth', 'date', 'TMR', 'from', 'to', 'departmentRequester',
-      'invoicedDate', 'field', 'OTM_PO', 'VPN', 'transferNumber', 'transferType', 'waterCardNo',
+      'invoicedDate', 'field', 'OTM_PO', 'VPN', 'trailerNumber', 'trailerType', 'waterCardNo',
       'gallons', 'EMP', 'name', 'nationality', 'passport', 'residencyNumber', 'contact',
       'dateLoaded', 'timeLoaded', 'returnedDate', 'returnedTime', 'durationTripTime',
       'daysInMission', 'kmAtOrigin', 'kmOnceReturned', 'totalKmPerTrip', 'tripAllowanceInKWD'

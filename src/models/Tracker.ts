@@ -14,8 +14,8 @@ export interface ITracker extends Document {
   field: string;
   OTM_PO: string;
   VPN: string;
-  transferNumber: string;
-  transferType: string;
+  trailerNumber: string;
+  trailerType: string;
   waterCardNo: string;
   gallons: number;
   EMP: mongoose.Types.ObjectId | string; // Reference to PayrollEmployee if possible
@@ -52,8 +52,8 @@ const TrackerSchema = new Schema<ITracker>({
   field: { type: String, required: true },
   OTM_PO: { type: String, required: true },
   VPN: { type: String, required: true },
-  transferNumber: { type: String, required: true },
-  transferType: { type: String, required: true },
+  trailerNumber: { type: String, required: true },
+  trailerType: { type: String, required: true },
   waterCardNo: { type: String, required: true },
   gallons: { type: Number, required: true },
   EMP: { type: Schema.Types.ObjectId, ref: 'PayrollEmployee', required: true },
