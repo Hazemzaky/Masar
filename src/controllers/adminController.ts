@@ -370,6 +370,11 @@ export const createGovernmentCorrespondence = async (req: AuthRequest, res: Resp
   try {
     const correspondence = new GovernmentCorrespondence({
       ...req.body,
+      // Support new fields
+      assignedEmployee: req.body.assignedEmployee,
+      hasFee: req.body.hasFee,
+      amortization: req.body.amortization,
+      fee: req.body.fee,
       createdBy: req.user?.userId,
       updatedBy: req.user?.userId
     });
@@ -393,7 +398,15 @@ export const updateGovernmentCorrespondence = async (req: Request, res: Response
   try {
     const correspondence = await GovernmentCorrespondence.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: new Date() },
+      {
+        ...req.body,
+        // Support new fields
+        assignedEmployee: req.body.assignedEmployee,
+        hasFee: req.body.hasFee,
+        amortization: req.body.amortization,
+        fee: req.body.fee,
+        updatedAt: new Date()
+      },
       { new: true }
     );
     if (!correspondence) {

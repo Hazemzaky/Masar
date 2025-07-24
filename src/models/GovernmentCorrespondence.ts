@@ -27,6 +27,10 @@ export interface IGovernmentCorrespondence extends Document {
   };
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assignedTo?: mongoose.Types.ObjectId;
+  assignedEmployee?: mongoose.Types.ObjectId;
+  hasFee?: 'yes' | 'no';
+  amortization?: string;
+  fee?: number;
   notes: string;
   createdBy: mongoose.Types.ObjectId;
   updatedBy: mongoose.Types.ObjectId;
@@ -78,6 +82,10 @@ const governmentCorrespondenceSchema = new Schema<IGovernmentCorrespondence>({
     default: 'medium' 
   },
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
+  assignedEmployee: { type: Schema.Types.ObjectId, ref: 'Employee' },
+  hasFee: { type: String, enum: ['yes', 'no'] },
+  amortization: { type: String },
+  fee: { type: Number },
   notes: { type: String },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
