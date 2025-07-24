@@ -14,6 +14,7 @@ export interface IExpense extends Document {
   proofUrl?: string;
   customType?: string;
   project?: mongoose.Types.ObjectId;
+  reconciled: boolean;
 }
 
 const ExpenseSchema: Schema = new Schema({
@@ -30,6 +31,7 @@ const ExpenseSchema: Schema = new Schema({
   proofUrl: { type: String },
   customType: { type: String },
   project: { type: Schema.Types.ObjectId, ref: 'Project' },
+  reconciled: { type: Boolean, default: false },
 });
 
 export default mongoose.model<IExpense>('Expense', ExpenseSchema); 
