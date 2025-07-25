@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Tracker from '../models/Tracker';
 import { PayrollEmployee } from '../models/Payroll';
+import PrepaidCard from '../models/PrepaidCard';
 
 // Create a new tracker entry
 export const createTracker = async (req: Request, res: Response) => {
@@ -23,6 +24,31 @@ export const createTracker = async (req: Request, res: Response) => {
     const emp = await PayrollEmployee.findById(data.EMP);
     if (!emp) {
       return res.status(400).json({ message: 'EMP (Payroll Employee) not found' });
+    }
+    // Water card balance management
+    if (data.isWaterTrip === 'yes') {
+      const card = await PrepaidCard.findOne({ cardId: data.waterCardNo });
+      if (!card) {
+        return res.status(400).json({ message: 'Water Card not found' });
+      }
+      if (card.status === 'Blocked' || card.balance <= 0) {
+        return res.status(400).json({ message: 'This water card is expired or blocked. Please use another card.' });
+      }
+      if (typeof data.gallons !== 'number' || isNaN(data.gallons) || data.gallons <= 0) {
+        return res.status(400).json({ message: 'Gallons must be a positive number.' });
+      }
+      if (card.balance < data.gallons) {
+        card.balance = 0;
+        card.status = 'Blocked';
+        await card.save();
+        return res.status(400).json({ message: 'Not enough balance on this water card. Card is now expired.' });
+      }
+      card.balance -= data.gallons;
+      if (card.balance === 0) {
+        card.status = 'Blocked';
+      }
+      card.lastUsed = new Date();
+      await card.save();
     }
     const tracker = new Tracker(data);
     await tracker.save();
