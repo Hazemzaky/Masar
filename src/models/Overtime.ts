@@ -40,4 +40,35 @@ const OvertimeSchema = new Schema<IOvertime>({
   totalCost: { type: Number, required: true },
 }, { timestamps: true });
 
-export default mongoose.model<IOvertime>('Overtime', OvertimeSchema); 
+export default mongoose.model<IOvertime>('Overtime', OvertimeSchema);
+
+// Overtime Attendance Model
+export interface IOvertimeAttendance extends Document {
+  site: string;
+  coId: string;
+  employeeName: string;
+  positionManager: string;
+  date: Date;
+  day: string;
+  dayType: 'Holiday Days' | 'Friday day' | 'Normal Day';
+  from: string; // time string, e.g. '08:00'
+  to: string;   // time string, e.g. '17:00'
+  totalHours: number;
+  remarks?: string;
+}
+
+const OvertimeAttendanceSchema = new Schema<IOvertimeAttendance>({
+  site: { type: String, required: true },
+  coId: { type: String, required: true },
+  employeeName: { type: String, required: true },
+  positionManager: { type: String, required: true },
+  date: { type: Date, required: true },
+  day: { type: String, required: true },
+  dayType: { type: String, enum: ['Holiday Days', 'Friday day', 'Normal Day'], required: true },
+  from: { type: String, required: true },
+  to: { type: String, required: true },
+  totalHours: { type: Number, required: true },
+  remarks: { type: String },
+}, { timestamps: true });
+
+export const OvertimeAttendance = mongoose.model<IOvertimeAttendance>('OvertimeAttendance', OvertimeAttendanceSchema); 
