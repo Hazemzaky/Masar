@@ -121,4 +121,15 @@ export const getWaterTrips = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
+};
+
+// Get all tracker trips eligible for trip allowance (totalKmPerTrip >= 40)
+export const getEligibleTripAllowanceTrips = async (req: Request, res: Response) => {
+  try {
+    const eligibleTrips = await Tracker.find({ totalKmPerTrip: { $gte: 40 } })
+      .select('SR name nationality residencyNumber EMP totalKmPerTrip');
+    res.json(eligibleTrips);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
 }; 
