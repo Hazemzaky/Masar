@@ -44,6 +44,24 @@ export const updateTripAllowance = async (req: Request, res: Response) => {
   }
 };
 
+export const updateTripAllowanceAmount = async (req: Request, res: Response) => {
+  try {
+    const { allowance } = req.body;
+    if (typeof allowance !== 'number') {
+      return res.status(400).json({ message: 'Allowance must be a number' });
+    }
+    const tripAllowance = await TripAllowance.findByIdAndUpdate(
+      req.params.id,
+      { $set: { allowance } },
+      { new: true }
+    );
+    if (!tripAllowance) return res.status(404).json({ message: 'Trip allowance record not found' });
+    res.json(tripAllowance);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
 export const deleteTripAllowance = async (req: Request, res: Response) => {
   try {
     const tripAllowance = await TripAllowance.findByIdAndDelete(req.params.id);
