@@ -3,50 +3,50 @@ import Employee from '../models/Employee';
 
 export const createEmployee = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { 
+    const {
       name, email, position, department, salary, benefits, leaveBalance, hireDate,
       // Enhanced comprehensive fields
       employeeId, personalEmail, dateOfBirth, nationality, passportNumber, civilId,
       gender, maritalStatus, employmentType, jobLevel, hourlyRate, site, status,
       phone, address, emergencyContact, performanceRating, lastReviewDate, skills,
       manager, location,
-      
+
       // Logistics-specific fields
       driverLicense, vehicleAssignment, workShifts, certifications,
-      
+
       // Compensation & Benefits
       compensationHistory, bonusRecords, allowances, bankInfo, payrollIncluded, bonusEligible,
-      
+
       // Leave & Attendance
       leaveBalanceDetails, upcomingLeaves, attendanceLog, attendancePercentage, absenceFrequency,
-      
+
       // Performance & Development
       performance,
-      
+
       // Documents & Compliance
       documents, compliance,
-      
+
       // Timeline & History
       timeline, hrActions,
-      
+
       // Recognition & Awards
       recognition,
-      
+
       // Equipment & Assets
       equipment,
-      
+
       // Private HR Notes
       privateNotes, hrNotes,
-      
+
       // Organizational
       orgChart, skillTags, customTags, attritionRisk, officeLocation, workMode, emergencyContacts,
-      
+
       // Readiness Tracker
       readinessTracker,
-      
+
       // Overtime & Hours
       overtime,
-      
+
       // Legacy fields for backward compatibility
       photo, supervisor, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule,
       employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory,
@@ -58,13 +58,31 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
       certificates, attendanceRecord, disciplinaryActions, warningsIssued, lastEvaluationDate,
       nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances_old, bonuses, deductions,
       uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment,
-      vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin
+      vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin,
+      employeeType, citizenType, residencyNumber,
     } = req.body;
 
     // Validate required fields
     if (!name || !email || !position || !department || !salary) {
       res.status(400).json({ message: 'Missing required fields: name, email, position, department, salary' });
       return;
+    }
+    // Validate employeeType logic
+    if (!employeeType || (employeeType !== 'Citizen' && employeeType !== 'Foreigner')) {
+      res.status(400).json({ message: 'Employee Type must be Citizen or Foreigner' });
+      return;
+    }
+    if (employeeType === 'Citizen') {
+      if (!civilId || !citizenType) {
+        res.status(400).json({ message: 'Citizen must have Civil ID and Citizen Type' });
+        return;
+      }
+    }
+    if (employeeType === 'Foreigner') {
+      if (!residencyNumber || !nationality) {
+        res.status(400).json({ message: 'Foreigner must have Residency No. and Nationality' });
+        return;
+      }
     }
 
     // Validate benefits
@@ -82,12 +100,11 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
       benefits: validBenefits,
       leaveBalance: Number(leaveBalance) || 0,
       hireDate: hireDate ? new Date(hireDate) : new Date(),
-      
+
       // Enhanced comprehensive fields
       employeeId,
       personalEmail,
       dateOfBirth,
-      nationality,
       passportNumber,
       civilId,
       gender,
@@ -105,13 +122,13 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
       skills: Array.isArray(skills) ? skills : [],
       manager,
       location,
-      
+
       // Logistics-specific fields
       driverLicense,
       vehicleAssignment,
       workShifts: Array.isArray(workShifts) ? workShifts : [],
       certifications: Array.isArray(certifications) ? certifications : [],
-      
+
       // Compensation & Benefits
       compensationHistory: Array.isArray(compensationHistory) ? compensationHistory : [],
       bonusRecords: Array.isArray(bonusRecords) ? bonusRecords : [],
@@ -119,35 +136,35 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
       bankInfo,
       payrollIncluded: payrollIncluded !== undefined ? Boolean(payrollIncluded) : true,
       bonusEligible: bonusEligible !== undefined ? Boolean(bonusEligible) : true,
-      
+
       // Leave & Attendance
       leaveBalanceDetails,
       upcomingLeaves: Array.isArray(upcomingLeaves) ? upcomingLeaves : [],
       attendanceLog: Array.isArray(attendanceLog) ? attendanceLog : [],
       attendancePercentage: attendancePercentage ? Number(attendancePercentage) : 0,
       absenceFrequency: absenceFrequency ? Number(absenceFrequency) : 0,
-      
+
       // Performance & Development
       performance,
-      
+
       // Documents & Compliance
       documents: Array.isArray(documents) ? documents : [],
       compliance,
-      
+
       // Timeline & History
       timeline: Array.isArray(timeline) ? timeline : [],
       hrActions: Array.isArray(hrActions) ? hrActions : [],
-      
+
       // Recognition & Awards
       recognition: Array.isArray(recognition) ? recognition : [],
-      
+
       // Equipment & Assets
       equipment: Array.isArray(equipment) ? equipment : [],
-      
+
       // Private HR Notes
       privateNotes,
       hrNotes: Array.isArray(hrNotes) ? hrNotes : [],
-      
+
       // Organizational
       orgChart,
       skillTags: Array.isArray(skillTags) ? skillTags : [],
@@ -156,13 +173,13 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
       officeLocation,
       workMode,
       emergencyContacts: Array.isArray(emergencyContacts) ? emergencyContacts : [],
-      
+
       // Readiness Tracker
       readinessTracker,
-      
+
       // Overtime & Hours
       overtime,
-      
+
       // Legacy fields for backward compatibility
       photo,
       supervisor,
@@ -220,7 +237,11 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
       accessLevels,
       biometricId,
       accessCardId,
-      lastLogin
+      lastLogin,
+      employeeType: employeeType === 'Citizen' || employeeType === 'Foreigner' ? employeeType : undefined,
+      citizenType: employeeType === 'Citizen' ? citizenType : undefined,
+      residencyNumber: employeeType === 'Foreigner' ? residencyNumber : undefined,
+      nationality: employeeType === 'Foreigner' ? nationality : undefined,
     };
 
     const employee = new Employee(employeeData);
@@ -228,65 +249,65 @@ export const createEmployee = async (req: Request, res: Response): Promise<void>
     res.status(201).json(employee);
   } catch (error: any) {
     console.error('Error creating employee:', error);
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      res.status(400).json({ 
-        message: 'Validation error', 
-        errors: validationErrors 
+      res.status(400).json({
+        message: 'Validation error',
+        errors: validationErrors
       });
       return;
     }
-    
+
     // Handle duplicate key errors
     if (error.code === 11000) {
-      res.status(400).json({ 
-        message: 'Employee with this email already exists' 
+      res.status(400).json({
+        message: 'Employee with this email already exists'
       });
       return;
     }
-    
-    res.status(500).json({ 
-      message: 'Server error', 
-      error: error.message 
+
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
     });
   }
 };
 
 export const getEmployees = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { 
-      position, department, status, site, employmentType, search, searchBy 
+    const {
+      position, department, status, site, employmentType, search, searchBy
     } = req.query;
-    
+
     let filter: any = {};
-    
+
     // Position filter
     if (position) {
       filter.position = { $regex: position, $options: 'i' };
     }
-    
+
     // Department filter
     if (department) {
       filter.department = { $regex: department, $options: 'i' };
     }
-    
+
     // Status filter
     if (status) {
       filter.status = status;
     }
-    
+
     // Site filter
     if (site) {
       filter.site = { $regex: site, $options: 'i' };
     }
-    
+
     // Employment type filter
     if (employmentType) {
       filter.employmentType = employmentType;
     }
-    
+
     // Search functionality
     if (search) {
       const searchRegex = { $regex: search, $options: 'i' };
@@ -315,15 +336,15 @@ export const getEmployees = async (req: Request, res: Response): Promise<void> =
           ];
       }
     }
-    
+
     const employees = await Employee.find(filter).sort({ createdAt: -1 });
-    
+
     // Calculate statistics
     const total = employees.length;
     const active = employees.filter(emp => emp.active && emp.status === 'active').length;
     const onLeave = employees.filter(emp => emp.status === 'on-leave').length;
     const resigned = employees.filter(emp => emp.status === 'resigned').length;
-    
+
     res.json({
       employees,
       stats: {
@@ -355,50 +376,50 @@ export const getEmployee = async (req: Request, res: Response): Promise<void> =>
 
 export const updateEmployee = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { 
-      benefits, 
+    const {
+      benefits,
       // Enhanced comprehensive fields
       employeeId, personalEmail, dateOfBirth, nationality, passportNumber, civilId,
       gender, maritalStatus, employmentType, jobLevel, hourlyRate, site, status,
       phone, address, emergencyContact, performanceRating, lastReviewDate, skills,
       manager, location,
-      
+
       // Logistics-specific fields
       driverLicense, vehicleAssignment, workShifts, certifications,
-      
+
       // Compensation & Benefits
       compensationHistory, bonusRecords, allowances, bankInfo, payrollIncluded, bonusEligible,
-      
+
       // Leave & Attendance
       leaveBalanceDetails, upcomingLeaves, attendanceLog, attendancePercentage, absenceFrequency,
-      
+
       // Performance & Development
       performance,
-      
+
       // Documents & Compliance
       documents, compliance,
-      
+
       // Timeline & History
       timeline, hrActions,
-      
+
       // Recognition & Awards
       recognition,
-      
+
       // Equipment & Assets
       equipment,
-      
+
       // Private HR Notes
       privateNotes, hrNotes,
-      
+
       // Organizational
       orgChart, skillTags, customTags, attritionRisk, officeLocation, workMode, emergencyContacts,
-      
+
       // Readiness Tracker
       readinessTracker,
-      
+
       // Overtime & Hours
       overtime,
-      
+
       // Legacy fields for backward compatibility
       photo, supervisor, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule,
       employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory,
@@ -411,8 +432,29 @@ export const updateEmployee = async (req: Request, res: Response): Promise<void>
       nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances_old, bonuses, deductions,
       uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment,
       vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin,
-      ...rest 
+      employeeType, citizenType, residencyNumber,
+      ...rest
     } = req.body;
+
+    // Validate employeeType logic
+    if (employeeType) {
+      if (employeeType !== 'Citizen' && employeeType !== 'Foreigner') {
+        res.status(400).json({ message: 'Employee Type must be Citizen or Foreigner' });
+        return;
+      }
+      if (employeeType === 'Citizen') {
+        if (!civilId || !citizenType) {
+          res.status(400).json({ message: 'Citizen must have Civil ID and Citizen Type' });
+          return;
+        }
+      }
+      if (employeeType === 'Foreigner') {
+        if (!residencyNumber || !nationality) {
+          res.status(400).json({ message: 'Foreigner must have Residency No. and Nationality' });
+          return;
+        }
+      }
+    }
 
     const validBenefits = Array.isArray(benefits)
       ? benefits.filter((b: any) => b && typeof b.type === 'string' && typeof b.value === 'number')
@@ -422,12 +464,11 @@ export const updateEmployee = async (req: Request, res: Response): Promise<void>
     const updateData = {
       ...rest,
       benefits: validBenefits,
-      
+
       // Enhanced comprehensive fields
       employeeId,
       personalEmail,
       dateOfBirth,
-      nationality,
       passportNumber,
       civilId,
       gender,
@@ -445,13 +486,13 @@ export const updateEmployee = async (req: Request, res: Response): Promise<void>
       skills: Array.isArray(skills) ? skills : undefined,
       manager,
       location,
-      
+
       // Logistics-specific fields
       driverLicense,
       vehicleAssignment,
       workShifts: Array.isArray(workShifts) ? workShifts : undefined,
       certifications: Array.isArray(certifications) ? certifications : undefined,
-      
+
       // Compensation & Benefits
       compensationHistory: Array.isArray(compensationHistory) ? compensationHistory : undefined,
       bonusRecords: Array.isArray(bonusRecords) ? bonusRecords : undefined,
@@ -459,35 +500,35 @@ export const updateEmployee = async (req: Request, res: Response): Promise<void>
       bankInfo,
       payrollIncluded: payrollIncluded !== undefined ? Boolean(payrollIncluded) : undefined,
       bonusEligible: bonusEligible !== undefined ? Boolean(bonusEligible) : undefined,
-      
+
       // Leave & Attendance
       leaveBalanceDetails,
       upcomingLeaves: Array.isArray(upcomingLeaves) ? upcomingLeaves : undefined,
       attendanceLog: Array.isArray(attendanceLog) ? attendanceLog : undefined,
       attendancePercentage: attendancePercentage ? Number(attendancePercentage) : undefined,
       absenceFrequency: absenceFrequency ? Number(absenceFrequency) : undefined,
-      
+
       // Performance & Development
       performance,
-      
+
       // Documents & Compliance
       documents: Array.isArray(documents) ? documents : undefined,
       compliance,
-      
+
       // Timeline & History
       timeline: Array.isArray(timeline) ? timeline : undefined,
       hrActions: Array.isArray(hrActions) ? hrActions : undefined,
-      
+
       // Recognition & Awards
       recognition: Array.isArray(recognition) ? recognition : undefined,
-      
+
       // Equipment & Assets
       equipment: Array.isArray(equipment) ? equipment : undefined,
-      
+
       // Private HR Notes
       privateNotes,
       hrNotes: Array.isArray(hrNotes) ? hrNotes : undefined,
-      
+
       // Organizational
       orgChart,
       skillTags: Array.isArray(skillTags) ? skillTags : undefined,
@@ -496,13 +537,13 @@ export const updateEmployee = async (req: Request, res: Response): Promise<void>
       officeLocation,
       workMode,
       emergencyContacts: Array.isArray(emergencyContacts) ? emergencyContacts : undefined,
-      
+
       // Readiness Tracker
       readinessTracker,
-      
+
       // Overtime & Hours
       overtime,
-      
+
       // Legacy fields for backward compatibility
       photo,
       supervisor,
@@ -560,7 +601,11 @@ export const updateEmployee = async (req: Request, res: Response): Promise<void>
       accessLevels,
       biometricId,
       accessCardId,
-      lastLogin
+      lastLogin,
+      employeeType: employeeType === 'Citizen' || employeeType === 'Foreigner' ? employeeType : undefined,
+      citizenType: employeeType === 'Citizen' ? citizenType : undefined,
+      residencyNumber: employeeType === 'Foreigner' ? residencyNumber : undefined,
+      nationality: employeeType === 'Foreigner' ? nationality : undefined,
     };
 
     // Remove undefined values
@@ -584,20 +629,20 @@ export const updateEmployee = async (req: Request, res: Response): Promise<void>
     res.json(employee);
   } catch (error: any) {
     console.error('Error updating employee:', error);
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      res.status(400).json({ 
-        message: 'Validation error', 
-        errors: validationErrors 
+      res.status(400).json({
+        message: 'Validation error',
+        errors: validationErrors
       });
       return;
     }
-    
-    res.status(500).json({ 
-      message: 'Server error', 
-      error: error.message 
+
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
     });
   }
 };
@@ -623,12 +668,12 @@ export const deactivateEmployee = async (req: Request, res: Response): Promise<v
       { active: false, status: 'resigned' },
       { new: true }
     );
-    
+
     if (!employee) {
       res.status(404).json({ message: 'Employee not found' });
       return;
     }
-    
+
     res.json({ message: 'Employee deactivated successfully', employee });
   } catch (error) {
     console.error('Error deactivating employee:', error);
@@ -640,19 +685,19 @@ export const deactivateEmployee = async (req: Request, res: Response): Promise<v
 export const bulkUpdateEmployees = async (req: Request, res: Response): Promise<void> => {
   try {
     const { employeeIds, updates } = req.body;
-    
+
     if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
       res.status(400).json({ message: 'Employee IDs array is required' });
       return;
     }
-    
+
     const result = await Employee.updateMany(
       { _id: { $in: employeeIds } },
       updates,
       { runValidators: true }
     );
-    
-    res.json({ 
+
+    res.json({
       message: `${result.modifiedCount} employees updated successfully`,
       modifiedCount: result.modifiedCount
     });
@@ -670,7 +715,7 @@ export const getEmployeeStats = async (req: Request, res: Response): Promise<voi
     const onLeave = await Employee.countDocuments({ status: 'on-leave' });
     const resigned = await Employee.countDocuments({ status: 'resigned' });
     const suspended = await Employee.countDocuments({ status: 'suspended' });
-    
+
     // Department statistics
     const departmentStats = await Employee.aggregate([
       {
@@ -680,7 +725,7 @@ export const getEmployeeStats = async (req: Request, res: Response): Promise<voi
         }
       }
     ]);
-    
+
     // Employment type statistics
     const employmentTypeStats = await Employee.aggregate([
       {
@@ -690,7 +735,7 @@ export const getEmployeeStats = async (req: Request, res: Response): Promise<voi
         }
       }
     ]);
-    
+
     res.json({
       total,
       active,
@@ -713,19 +758,19 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { checkInTime } = req.body;
-    
+
     const employee = await Employee.findById(id);
     if (!employee) {
       res.status(404).json({ message: 'Employee not found' });
       return;
     }
-    
+
     const today = new Date().toISOString().split('T')[0];
     const checkInDateTime = checkInTime || new Date().toISOString();
-    
+
     // Check if attendance record already exists for today
     const existingRecordIndex = employee.attendanceLog?.findIndex(record => record.date === today);
-    
+
     if (existingRecordIndex !== undefined && existingRecordIndex >= 0) {
       // Update existing record
       employee.attendanceLog![existingRecordIndex].checkIn = checkInDateTime;
@@ -739,18 +784,18 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
         hours: 0,
         status: 'present' as const
       };
-      
+
       if (!employee.attendanceLog) {
         employee.attendanceLog = [];
       }
       employee.attendanceLog.push(newRecord);
     }
-    
+
     // Recalculate attendance statistics
     await calculateAttendanceStats(employee);
-    
+
     await employee.save();
-    
+
     res.json({
       message: 'Check-in recorded successfully',
       attendance: employee.attendanceLog?.find(record => record.date === today),
@@ -770,45 +815,45 @@ export const checkOut = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { checkOutTime } = req.body;
-    
+
     const employee = await Employee.findById(id);
     if (!employee) {
       res.status(404).json({ message: 'Employee not found' });
       return;
     }
-    
+
     const today = new Date().toISOString().split('T')[0];
     const checkOutDateTime = checkOutTime || new Date().toISOString();
-    
+
     // Find today's attendance record
     const todayRecordIndex = employee.attendanceLog?.findIndex(record => record.date === today);
-    
+
     if (todayRecordIndex === undefined || todayRecordIndex < 0) {
       res.status(400).json({ message: 'No check-in record found for today' });
       return;
     }
-    
+
     const todayRecord = employee.attendanceLog![todayRecordIndex];
-    
+
     if (!todayRecord.checkIn) {
       res.status(400).json({ message: 'No check-in time recorded for today' });
       return;
     }
-    
+
     // Calculate hours worked
     const checkInTime = new Date(todayRecord.checkIn);
     const checkOutTimeDate = new Date(checkOutDateTime);
     const hoursWorked = (checkOutTimeDate.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
-    
+
     // Update attendance record
     todayRecord.checkOut = checkOutDateTime;
     todayRecord.hours = Math.round(hoursWorked * 100) / 100; // Round to 2 decimal places
-    
+
     // Recalculate attendance statistics
     await calculateAttendanceStats(employee);
-    
+
     await employee.save();
-    
+
     res.json({
       message: 'Check-out recorded successfully',
       attendance: todayRecord,
@@ -828,18 +873,18 @@ export const markLeave = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { leaveType = 'personal', reason } = req.body;
-    
+
     const employee = await Employee.findById(id);
     if (!employee) {
       res.status(404).json({ message: 'Employee not found' });
       return;
     }
-    
+
     const today = new Date().toISOString().split('T')[0];
-    
+
     // Check if attendance record already exists for today
     const existingRecordIndex = employee.attendanceLog?.findIndex(record => record.date === today);
-    
+
     if (existingRecordIndex !== undefined && existingRecordIndex >= 0) {
       // Update existing record
       employee.attendanceLog![existingRecordIndex].status = 'on-leave';
@@ -855,13 +900,13 @@ export const markLeave = async (req: Request, res: Response): Promise<void> => {
         hours: 0,
         status: 'on-leave' as const
       };
-      
+
       if (!employee.attendanceLog) {
         employee.attendanceLog = [];
       }
       employee.attendanceLog.push(newRecord);
     }
-    
+
     // Update leave balance if applicable
     if (employee.leaveBalanceDetails && leaveType in employee.leaveBalanceDetails) {
       const leaveTypeKey = leaveType as keyof typeof employee.leaveBalanceDetails;
@@ -869,12 +914,12 @@ export const markLeave = async (req: Request, res: Response): Promise<void> => {
         employee.leaveBalanceDetails[leaveTypeKey] -= 1;
       }
     }
-    
+
     // Recalculate attendance statistics
     await calculateAttendanceStats(employee);
-    
+
     await employee.save();
-    
+
     res.json({
       message: 'Leave marked successfully',
       attendance: employee.attendanceLog?.find(record => record.date === today),
@@ -895,26 +940,26 @@ export const getAttendanceHistory = async (req: Request, res: Response): Promise
   try {
     const { id } = req.params;
     const { startDate, endDate, limit = 30 } = req.query;
-    
+
     const employee = await Employee.findById(id);
     if (!employee) {
       res.status(404).json({ message: 'Employee not found' });
       return;
     }
-    
+
     let attendanceHistory = employee.attendanceLog || [];
-    
+
     // Filter by date range if provided
     if (startDate && endDate) {
-      attendanceHistory = attendanceHistory.filter((record: any) => 
+      attendanceHistory = attendanceHistory.filter((record: any) =>
         record.date >= startDate && record.date <= endDate
       );
     }
-    
+
     // Sort by date (newest first) and limit results
     attendanceHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     attendanceHistory = attendanceHistory.slice(0, Number(limit));
-    
+
     res.json({
       employeeId: id,
       employeeName: employee.name,
@@ -936,35 +981,35 @@ export const getAttendanceStats = async (req: Request, res: Response): Promise<v
   try {
     const { id } = req.params;
     const { month, year } = req.query;
-    
+
     const employee = await Employee.findById(id);
     if (!employee) {
       res.status(404).json({ message: 'Employee not found' });
       return;
     }
-    
+
     let attendanceRecords = employee.attendanceLog || [];
-    
+
     // Filter by month/year if provided
     if (month && year) {
       const targetMonth = `${year}-${String(month).padStart(2, '0')}`;
-      attendanceRecords = attendanceRecords.filter((record: any) => 
+      attendanceRecords = attendanceRecords.filter((record: any) =>
         record.date.startsWith(targetMonth)
       );
     }
-    
+
     // Calculate detailed statistics
     const totalDays = attendanceRecords.length;
     const presentDays = attendanceRecords.filter((record: any) => record.status === 'present').length;
     const absentDays = attendanceRecords.filter((record: any) => record.status === 'absent').length;
     const lateDays = attendanceRecords.filter((record: any) => record.status === 'late').length;
     const leaveDays = attendanceRecords.filter((record: any) => record.status === 'on-leave').length;
-    
+
     const totalHours = attendanceRecords.reduce((sum, record: any) => sum + (record.hours || 0), 0);
     const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
-    
+
     const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
-    
+
     res.json({
       employeeId: id,
       employeeName: employee.name,
@@ -993,34 +1038,34 @@ export const getAttendanceStats = async (req: Request, res: Response): Promise<v
 const calculateAttendanceStats = async (employee: any): Promise<void> => {
   try {
     const attendanceRecords = employee.attendanceLog || [];
-    
+
     if (attendanceRecords.length === 0) {
       employee.attendancePercentage = 0;
       employee.absenceFrequency = 0;
       return;
     }
-    
+
     // Calculate attendance percentage (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentRecords = attendanceRecords.filter((record: any) => 
+    const recentRecords = attendanceRecords.filter((record: any) =>
       new Date(record.date) >= thirtyDaysAgo
     );
-    
+
     const totalRecentDays = recentRecords.length;
     const presentDays = recentRecords.filter((record: any) => record.status === 'present').length;
-    
-    employee.attendancePercentage = totalRecentDays > 0 
-      ? Math.round((presentDays / totalRecentDays) * 100) 
+
+    employee.attendancePercentage = totalRecentDays > 0
+      ? Math.round((presentDays / totalRecentDays) * 100)
       : 0;
-    
+
     // Calculate absence frequency (last 30 days)
-    const absentDays = recentRecords.filter((record: any) => 
+    const absentDays = recentRecords.filter((record: any) =>
       record.status === 'absent' || record.status === 'late'
     ).length;
-    
+
     employee.absenceFrequency = absentDays;
-    
+
   } catch (error) {
     console.error('Error calculating attendance stats:', error);
   }
