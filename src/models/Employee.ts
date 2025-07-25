@@ -234,6 +234,7 @@ export interface IEmployee extends Document {
   // Add employeeType and citizenType
   employeeType: 'Citizen' | 'Foreigner';
   citizenType?: 'Kuwaiti' | 'Bedoun';
+  residencyNumber?: string;
   gender?: 'male' | 'female' | 'other';
   maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
   employmentType?: 'full-time' | 'part-time' | 'contractor' | 'daily';
@@ -482,6 +483,7 @@ const EmployeeSchema: Schema = new Schema({
   // Add employeeType and citizenType
   employeeType: { type: String, enum: ['Citizen', 'Foreigner'], required: true },
   citizenType: { type: String, enum: ['Kuwaiti', 'Bedoun'] },
+  residencyNumber: { type: String },
   gender: { type: String, enum: ['male', 'female', 'other'] },
   maritalStatus: { type: String, enum: ['single', 'married', 'divorced', 'widowed'] },
   employmentType: { type: String, enum: ['full-time', 'part-time', 'contractor', 'daily'], default: 'full-time' },
