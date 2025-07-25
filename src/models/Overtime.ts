@@ -47,7 +47,8 @@ export interface IOvertimeAttendance extends Document {
   site: string;
   coId: string;
   employeeName: string;
-  positionManager: string;
+  position: string;
+  manager: string;
   date: Date;
   day: string;
   dayType: 'Holiday Days' | 'Friday day' | 'Normal Day';
@@ -61,7 +62,8 @@ const OvertimeAttendanceSchema = new Schema<IOvertimeAttendance>({
   site: { type: String, required: true },
   coId: { type: String, required: true },
   employeeName: { type: String, required: true },
-  positionManager: { type: String, required: true },
+  position: { type: String, required: true },
+  manager: { type: String, required: true },
   date: { type: Date, required: true },
   day: { type: String, required: true },
   dayType: { type: String, enum: ['Holiday Days', 'Friday day', 'Normal Day'], required: true },
