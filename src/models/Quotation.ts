@@ -29,7 +29,7 @@ export interface IQuotation extends Document {
   paymentTerms: string;
   paymentMethods: string;
   penalty: string;
-  withOperator: string;
+  withOperator: 'no' | 'one' | 'two';
   fuelProvidedBy: string;
   insurance: string;
   maintenance: string;
@@ -43,6 +43,16 @@ export interface IQuotation extends Document {
   purchaseRequest?: mongoose.Types.ObjectId | string;
   vendors?: (mongoose.Types.ObjectId | string)[];
   selectedVendor?: mongoose.Types.ObjectId | string;
+  serialNumber: string;
+  clientPOBox?: string;
+  clientFax?: string;
+  clientEmail?: string;
+  contactPersonPhone?: string;
+  contactPersonEmail?: string;
+  contactPersonExtension?: string;
+  currency?: string;
+  terms?: string[];
+  additionalDetails?: string;
 }
 
 const QuotationSchema = new Schema<IQuotation>({
@@ -74,7 +84,7 @@ const QuotationSchema = new Schema<IQuotation>({
   paymentTerms: String,
   paymentMethods: String,
   penalty: String,
-  withOperator: String,
+  withOperator: { type: String, enum: ['no', 'one', 'two'], default: 'no' },
   fuelProvidedBy: String,
   insurance: String,
   maintenance: String,
@@ -88,6 +98,16 @@ const QuotationSchema = new Schema<IQuotation>({
   purchaseRequest: { type: Schema.Types.ObjectId, ref: 'PurchaseRequest' },
   vendors: [{ type: Schema.Types.ObjectId, ref: 'Vendor' }],
   selectedVendor: { type: Schema.Types.ObjectId, ref: 'Vendor' },
+  serialNumber: { type: String, required: true, unique: true },
+  clientPOBox: String,
+  clientFax: String,
+  clientEmail: String,
+  contactPersonPhone: String,
+  contactPersonEmail: String,
+  contactPersonExtension: String,
+  currency: String,
+  terms: [String],
+  additionalDetails: String,
 }, { timestamps: true });
 
 export default mongoose.model<IQuotation>('Quotation', QuotationSchema); 

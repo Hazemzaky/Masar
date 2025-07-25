@@ -1,10 +1,16 @@
 import { Request, Response } from 'express';
 import Quotation from '../models/Quotation';
+import { generateSerial } from '../utils/serialUtils';
 
 // Create a new quotation
 export const createQuotation = async (req: Request, res: Response) => {
   try {
-    const quotation = new Quotation(req.body);
+    // Generate serial number
+    const serialNumber = await generateSerial('QT', 'SA', Quotation);
+    const quotation = new Quotation({
+      ...req.body,
+      serialNumber,
+    });
     await quotation.save();
     res.status(201).json(quotation);
   } catch (error) {
