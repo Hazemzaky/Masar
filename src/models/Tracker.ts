@@ -16,8 +16,8 @@ export interface ITracker extends Document {
   VPN: string;
   trailerNumber: string;
   trailerType: string;
-  waterCardNo: string;
-  gallons: number;
+  waterCardNo?: string;
+  gallons?: number;
   EMP: mongoose.Types.ObjectId | string; // Reference to PayrollEmployee if possible
   name: string;
   nationality: string;
@@ -34,6 +34,7 @@ export interface ITracker extends Document {
   kmOnceReturned: number;
   totalKmPerTrip: number;
   tripAllowanceInKWD: number;
+  isWaterTrip: 'yes' | 'no';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,8 +55,8 @@ const TrackerSchema = new Schema<ITracker>({
   VPN: { type: String, required: true },
   trailerNumber: { type: String, required: true },
   trailerType: { type: String, required: true },
-  waterCardNo: { type: String, required: true },
-  gallons: { type: Number, required: true },
+  waterCardNo: { type: String },
+  gallons: { type: Number },
   EMP: { type: Schema.Types.ObjectId, ref: 'PayrollEmployee', required: true },
   name: { type: String, required: true },
   nationality: { type: String, required: true },
@@ -72,6 +73,7 @@ const TrackerSchema = new Schema<ITracker>({
   kmOnceReturned: { type: Number, required: true },
   totalKmPerTrip: { type: Number, required: true },
   tripAllowanceInKWD: { type: Number, required: true },
+  isWaterTrip: { type: String, enum: ['yes', 'no'], required: true },
 }, { timestamps: true });
 
 export default mongoose.model<ITracker>('Tracker', TrackerSchema); 
