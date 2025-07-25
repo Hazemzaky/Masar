@@ -5,13 +5,15 @@ import {
   getTrackers,
   getTrackerById,
   updateTracker,
-  deleteTracker
+  deleteTracker,
+  getWaterTrips
 } from '../controllers/trackerController';
 
 const router = Router();
 
 router.post('/', authenticate, createTracker);
 router.get('/', authenticate, getTrackers);
+router.get('/water-trips', authenticate, getWaterTrips);
 router.get('/:id', authenticate, getTrackerById);
 router.put('/:id', authenticate, updateTracker);
 router.delete('/:id', authenticate, deleteTracker);

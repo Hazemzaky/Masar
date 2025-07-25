@@ -83,4 +83,16 @@ export const deleteTracker = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
+};
+
+// Get all water trips (isWaterTrip === 'yes')
+export const getWaterTrips = async (req: Request, res: Response) => {
+  try {
+    const waterTrips = await Tracker.find({ isWaterTrip: 'yes' })
+      .select('waterCardNo gallons date TMR from to departmentRequester VPN trailerNumber name contact dateLoaded returnedDate')
+      .sort({ date: -1 });
+    res.json(waterTrips);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
 }; 
