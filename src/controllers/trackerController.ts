@@ -10,11 +10,17 @@ export const createTracker = async (req: Request, res: Response) => {
     // Validate required fields
     const requiredFields = [
       'month', 'year', 'SR', 'departureMonth', 'date', 'TMR', 'from', 'to', 'departmentRequester',
-      'invoicedDate', 'field', 'OTM_PO', 'VPN', 'trailerNumber', 'trailerType', 'waterCardNo',
-      'gallons', 'EMP', 'name', 'nationality', 'passport', 'residencyNumber', 'contact',
-      'dateLoaded', 'timeLoaded', 'returnedDate', 'returnedTime', 'durationTripTime',
-      'daysInMission', 'kmAtOrigin', 'kmOnceReturned', 'totalKmPerTrip', 'tripAllowanceInKWD'
+      'invoicedDate', 'field', 'OTM_PO', 'VPN', 'trailerNumber', 'trailerType', 'EMP', 'name', 
+      'nationality', 'passport', 'residencyNumber', 'contact', 'dateLoaded', 'timeLoaded', 
+      'returnedDate', 'returnedTime', 'durationTripTime', 'daysInMission', 'kmAtOrigin', 
+      'kmOnceReturned', 'totalKmPerTrip', 'tripAllowanceInKWD'
     ];
+    
+    // Add water-related fields to required fields only if it's a water trip
+    if (data.isWaterTrip === 'yes') {
+      requiredFields.push('waterCardNo', 'gallons');
+    }
+    
     for (const field of requiredFields) {
       if (data[field] === undefined || data[field] === null || data[field] === '') {
         return res.status(400).json({ message: `Missing required field: ${field}` });
