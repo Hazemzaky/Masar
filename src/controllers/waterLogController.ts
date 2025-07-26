@@ -166,10 +166,21 @@ export async function createPrepaidCard(req: Request, res: Response) {
       return res.status(400).json({ message: 'Card with this ID already exists' });
     }
     
-    // Create new card
+    // Find or create client
+    let clientDoc = await Client.findOne({ name: client });
+    if (!clientDoc) {
+      // Create new client if it doesn't exist
+      clientDoc = new Client({
+        name: client,
+        type: 'contract' // Default type
+      });
+      await clientDoc.save();
+    }
+    
+    // Create new card with client ObjectId
     const card = new PrepaidCard({
       cardId,
-      client,
+      client: clientDoc._id, // Use the client ObjectId
       balance: Number(balance),
       status: 'Active',
       lastUsed: new Date()
