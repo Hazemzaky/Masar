@@ -7,6 +7,8 @@ import PrepaidCard from '../models/PrepaidCard';
 export const createTracker = async (req: Request, res: Response) => {
   try {
     const data = req.body;
+    console.log('Creating tracker with data:', data);
+    
     // Validate required fields
     const requiredFields = [
       'month', 'year', 'SR', 'departureMonth', 'date', 'TMR', 'from', 'to', 'departmentRequester',
@@ -58,6 +60,7 @@ export const createTracker = async (req: Request, res: Response) => {
     }
     const tracker = new Tracker(data);
     await tracker.save();
+    console.log('Saved tracker:', tracker);
     res.status(201).json(tracker);
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -132,8 +135,20 @@ export const getWaterTrips = async (req: Request, res: Response) => {
 // Get all tracker trips eligible for trip allowance (totalKmPerTrip >= 40)
 export const getEligibleTripAllowanceTrips = async (req: Request, res: Response) => {
   try {
+    console.log('Fetching eligible trips...');
+    
+    // First, let's check all tracker entries to see what field names are being used
+    const allTrackers = await Tracker.find({});
+    console.log('All tracker entries:', allTrackers.map(t => ({
+      id: t._id,
+      totalKmPerTrip: t.totalKmPerTrip,
+      totalKMPerTrip: (t as any).totalKMPerTrip,
+      'TotalKMPerTrip': (t as any).TotalKMPerTrip
+    })));
+    
     const eligibleTrips = await Tracker.find({ totalKmPerTrip: { $gte: 40 } })
       .select('SR name nationality residencyNumber EMP totalKmPerTrip');
+    console.log('Eligible trips:', eligibleTrips);
     res.json(eligibleTrips);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
