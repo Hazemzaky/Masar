@@ -57,7 +57,7 @@ const TrackerSchema = new Schema<ITracker>({
   trailerType: { type: String, required: true },
   waterCardNo: { type: String },
   gallons: { type: Number },
-  EMP: { type: Schema.Types.ObjectId, ref: 'PayrollEmployee', required: true },
+  EMP: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
   name: { type: String, required: true },
   nationality: { type: String, required: true },
   passport: { type: String, required: true },

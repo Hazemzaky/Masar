@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Tracker from '../models/Tracker';
-import { PayrollEmployee } from '../models/Payroll';
+import Employee from '../models/Employee';
 import PrepaidCard from '../models/PrepaidCard';
 
 // Create a new tracker entry
@@ -26,10 +26,10 @@ export const createTracker = async (req: Request, res: Response) => {
         return res.status(400).json({ message: `Missing required field: ${field}` });
       }
     }
-    // Optionally validate EMP exists in PayrollEmployee
-    const emp = await PayrollEmployee.findById(data.EMP);
+    // Optionally validate EMP exists in Employee
+    const emp = await Employee.findById(data.EMP);
     if (!emp) {
-      return res.status(400).json({ message: 'EMP (Payroll Employee) not found' });
+      return res.status(400).json({ message: 'EMP (Employee) not found' });
     }
     // Water card balance management
     if (data.isWaterTrip === 'yes') {
@@ -71,7 +71,7 @@ export const getTrackers = async (req: Request, res: Response) => {
     const filter: any = {};
     if (month) filter.month = month;
     if (year) filter.year = Number(year);
-    const trackers = await Tracker.find(filter).populate('EMP', 'fullName employeeCode');
+    const trackers = await Tracker.find(filter).populate('EMP', 'name employeeId');
     res.json(trackers);
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -81,7 +81,7 @@ export const getTrackers = async (req: Request, res: Response) => {
 // Get a single tracker entry by ID
 export const getTrackerById = async (req: Request, res: Response) => {
   try {
-    const tracker = await Tracker.findById(req.params.id).populate('EMP', 'fullName employeeCode');
+    const tracker = await Tracker.findById(req.params.id).populate('EMP', 'name employeeId');
     if (!tracker) {
       return res.status(404).json({ message: 'Tracker entry not found' });
     }
