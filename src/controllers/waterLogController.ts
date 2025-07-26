@@ -150,6 +150,37 @@ export async function getPrepaidCards(req: Request, res: Response) {
     res.status(500).json({ message: 'Server error', error });
   }
 }
+
+export async function createPrepaidCard(req: Request, res: Response) {
+  try {
+    const { cardId, client, balance } = req.body;
+    
+    // Validate required fields
+    if (!cardId || !client || balance === undefined) {
+      return res.status(400).json({ message: 'Card ID, client, and balance are required' });
+    }
+    
+    // Check if card already exists
+    const existingCard = await PrepaidCard.findOne({ cardId });
+    if (existingCard) {
+      return res.status(400).json({ message: 'Card with this ID already exists' });
+    }
+    
+    // Create new card
+    const card = new PrepaidCard({
+      cardId,
+      client,
+      balance: Number(balance),
+      status: 'Active',
+      lastUsed: new Date()
+    });
+    
+    await card.save();
+    res.status(201).json(card);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
 export async function rechargePrepaidCard(req: Request, res: Response) {
   try {
     const { cardId, amount } = req.body;

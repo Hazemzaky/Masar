@@ -7,6 +7,7 @@ const router = Router();
 router.get('/', authenticate, waterLogController.getWaterLogs);
 router.get('/summary', authenticate, waterLogController.getWaterLogSummary);
 router.get('/prepaid-cards', authenticate, waterLogController.getPrepaidCards);
+router.post('/prepaid-cards', authenticate, waterLogController.createPrepaidCard);
 router.post('/prepaid-cards/recharge', authenticate, waterLogController.rechargePrepaidCard);
 router.post('/prepaid-cards/block-activate', authenticate, waterLogController.blockActivatePrepaidCard);
 router.get('/station-activity', authenticate, waterLogController.getStationActivity);
