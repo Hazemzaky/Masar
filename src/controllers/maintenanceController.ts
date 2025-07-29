@@ -122,7 +122,7 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
       return res.json(maintenance);
     }
     
-    const updateData = {
+    const updateData: any = {
       status,
       totalMaintenanceTime,
       completedBy: req.user?.userId
