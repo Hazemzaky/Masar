@@ -210,6 +210,7 @@ export const deleteMaintenance = async (req: Request, res: Response) => {
 
 export const completeMaintenance = async (req: AuthRequest, res: Response) => {
   try {
+    console.log('completeMaintenance called with:', req.body);
     const { status, completedDate, completedTime, totalMaintenanceTime, cancellationReason } = req.body;
     
     // If cancelling, update status and cancellationReason
@@ -232,7 +233,6 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
     
     const updateData: any = {
       status,
-      totalMaintenanceTime,
       completedBy: req.user?.userId
     };
     
@@ -244,6 +244,13 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
       updateData.completedTime = completedTime;
     }
     
+    // Only update totalMaintenanceTime if provided
+    if (totalMaintenanceTime !== undefined) {
+      updateData.totalMaintenanceTime = totalMaintenanceTime;
+    }
+    
+    console.log('Updating maintenance with data:', updateData);
+    
     const maintenance = await Maintenance.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -254,6 +261,8 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
       res.status(404).json({ message: 'Maintenance not found' });
       return;
     }
+    
+    console.log('Maintenance updated successfully:', maintenance._id);
 
     // Handle inventory deduction when maintenance is completed
     if (status === 'completed' && maintenance.parts && maintenance.parts.length > 0) {
