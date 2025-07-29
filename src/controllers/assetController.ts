@@ -22,11 +22,12 @@ export const createAsset = async (req: Request, res: Response) => {
     // Create asset with proper field mapping
     const assetData = {
       description: req.body.description,
-      mainCategory: req.body.mainCategory,
-      subCategory: req.body.subCategory,
-      subSubCategory: req.body.subSubCategory,
-      subSubSubCategory: req.body.subSubSubCategory,
-      subSubSubSubCategory: req.body.subSubSubSubCategory,
+      type: req.body.type, // First level
+      mainCategory: req.body.mainCategory, // Second level
+      subCategory: req.body.subCategory, // Third level
+      subSubCategory: req.body.subSubCategory, // Fourth level
+      subSubSubCategory: req.body.subSubSubCategory, // Fifth level
+      subSubSubSubCategory: req.body.subSubSubSubCategory, // Sixth level
       brand: req.body.brand,
       status: req.body.status || 'active',
       availability: req.body.availability || 'available',
@@ -80,8 +81,22 @@ export const createAsset = async (req: Request, res: Response) => {
 
 export const getAssets = async (req: Request, res: Response) => {
   try {
-    const assets = await Asset.find().populate('currentProject', 'customer description status').sort({ createdAt: -1 });
-    res.json(assets);
+    const assets = await Asset.find()
+      .populate('currentProject', 'customer description status')
+      .sort({ createdAt: -1 });
+    
+    // Ensure all assets have the proper category structure
+    const processedAssets = assets.map(asset => ({
+      ...asset.toObject(),
+      mainCategory: asset.mainCategory || '',
+      subCategory: asset.subCategory || '',
+      subSubCategory: asset.subSubCategory || '',
+      subSubSubCategory: asset.subSubSubCategory || '',
+      subSubSubSubCategory: asset.subSubSubSubCategory || '',
+      type: asset.type || asset.mainCategory || ''
+    }));
+    
+    res.json(processedAssets);
   } catch (error) {
     console.error('Error fetching assets:', error);
     res.status(500).json({ message: 'Server error', error });

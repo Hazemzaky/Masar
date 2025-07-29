@@ -2,12 +2,12 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAsset extends Document {
   description: string;
-  mainCategory: string; // e.g., 'Vehicle', 'Equipment', 'Building', 'IT'
-  subCategory: string; // e.g., 'Truck', 'Crane', 'Office', 'Computer'
-  subSubCategory?: string; // e.g., 'Heavy Truck', 'Mobile Crane', 'Furniture', 'Laptop'
-  subSubSubCategory?: string; // 4th level
-  subSubSubSubCategory?: string; // 5th level
-  type?: string;
+  type: string; // First level: Vehicle, Attachment, Equipment, Building, Furniture, IT, Other
+  mainCategory: string; // Second level: depends on type
+  subCategory: string; // Third level: depends on main category
+  subSubCategory?: string; // Fourth level: depends on sub category
+  subSubSubCategory?: string; // Fifth level: depends on sub-sub category
+  subSubSubSubCategory?: string; // Sixth level: manual entry
   brand?: string;
   status: 'active' | 'disposed' | 'accident/scraped' | 'other' | 'pending';
   availability: 'available' | 'assigned' | 'maintenance' | 'out_of_service';
@@ -27,12 +27,12 @@ export interface IAsset extends Document {
 
 const AssetSchema = new Schema<IAsset>({
   description: { type: String, required: true },
-  mainCategory: { type: String, required: true },
-  subCategory: { type: String, required: true },
-  subSubCategory: { type: String },
-  subSubSubCategory: { type: String },
-  subSubSubSubCategory: { type: String },
-  type: { type: String },
+  type: { type: String, required: true }, // First level
+  mainCategory: { type: String, required: true }, // Second level
+  subCategory: { type: String, required: true }, // Third level
+  subSubCategory: { type: String }, // Fourth level
+  subSubSubCategory: { type: String }, // Fifth level
+  subSubSubSubCategory: { type: String }, // Sixth level
   brand: { type: String },
   status: { 
     type: String, 
