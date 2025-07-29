@@ -15,6 +15,13 @@ export interface ILegalCase extends Document {
   paidStatus: 'Paid' | 'Not Paid'; // new
   legalRepType: 'Internal' | 'External'; // new
   coId?: string; // new, for Internal
+  paidAmortization?: string; // new
+  contractAmountAmortization?: string; // new
+  estimatedLegalRepCost?: number; // new
+  actualLegalRepCost?: number; // new
+  otherCosts?: number; // new
+  totalActualCost?: number; // new
+  totalCostAmortization?: string; // new
   legalRepresentative: {
     name: string;
     firm?: string; // required for External
@@ -83,6 +90,13 @@ const legalCaseSchema = new Schema<ILegalCase>({
   paidStatus: { type: String, enum: ['Paid', 'Not Paid'], required: true }, // new
   legalRepType: { type: String, enum: ['Internal', 'External'], required: true }, // new
   coId: { type: String }, // new
+  paidAmortization: { type: String }, // new
+  contractAmountAmortization: { type: String }, // new
+  estimatedLegalRepCost: { type: Number }, // new
+  actualLegalRepCost: { type: Number }, // new
+  otherCosts: { type: Number }, // new
+  totalActualCost: { type: Number }, // new
+  totalCostAmortization: { type: String }, // new
   legalRepresentative: {
     name: { type: String, required: true },
     firm: { type: String }, // required for External
