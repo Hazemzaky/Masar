@@ -6,8 +6,14 @@ import { AuthRequest } from '../middleware/auth';
 
 export const createMaintenance = async (req: AuthRequest, res: Response) => {
   try {
+    const { scheduledDate, scheduledTime, completedDate, completedTime, ...rest } = req.body;
+    
     const maintenanceData = {
-      ...req.body,
+      ...rest,
+      scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
+      scheduledTime: scheduledTime || '',
+      completedDate: completedDate ? new Date(completedDate) : undefined,
+      completedTime: completedTime || undefined,
       createdBy: req.user?.userId
     };
     
@@ -53,9 +59,19 @@ export const getMaintenance = async (req: Request, res: Response) => {
 
 export const updateMaintenance = async (req: AuthRequest, res: Response) => {
   try {
+    const { scheduledDate, scheduledTime, completedDate, completedTime, ...rest } = req.body;
+    
+    const updateData = {
+      ...rest,
+      scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
+      scheduledTime: scheduledTime || undefined,
+      completedDate: completedDate ? new Date(completedDate) : undefined,
+      completedTime: completedTime || undefined,
+    };
+    
     const maintenance = await Maintenance.findByIdAndUpdate(
       req.params.id, 
-      req.body, 
+      updateData, 
       { new: true }
     ).populate('asset');
     
@@ -106,15 +122,23 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
       return res.json(maintenance);
     }
     
+    const updateData = {
+      status,
+      totalMaintenanceTime,
+      completedBy: req.user?.userId
+    };
+    
+    // Only update completion date/time if provided
+    if (completedDate) {
+      updateData.completedDate = new Date(completedDate);
+    }
+    if (completedTime) {
+      updateData.completedTime = completedTime;
+    }
+    
     const maintenance = await Maintenance.findByIdAndUpdate(
       req.params.id,
-      {
-        status,
-        completedDate,
-        completedTime,
-        totalMaintenanceTime,
-        completedBy: req.user?.userId
-      },
+      updateData,
       { new: true }
     ).populate('asset');
     
