@@ -143,7 +143,14 @@ export const getEligibleTripAllowanceTrips = async (req: Request, res: Response)
     
     // Filter by departure month if provided
     if (month !== undefined) {
-      filter.departureMonth = Number(month);
+      // Convert month index to month name
+      const monthNames = [
+        'April', 'May', 'June', 'July', 'August', 'September', 
+        'October', 'November', 'December', 'January', 'February', 'March'
+      ];
+      const monthName = monthNames[Number(month)];
+      filter.departureMonth = monthName;
+      console.log('Filtering by departure month:', monthName);
     }
     
     // Filter by year if provided
