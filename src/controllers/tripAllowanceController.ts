@@ -17,9 +17,25 @@ export const getTripAllowances = async (req: Request, res: Response) => {
     if (req.query.month !== undefined) filter.month = Number(req.query.month);
     if (req.query.year !== undefined) filter.year = Number(req.query.year);
     if (req.query.employee) filter.employee = req.query.employee;
+    
+    console.log('Trip Allowance Query - Filter:', filter);
+    console.log('Trip Allowance Query - Month:', req.query.month, 'Year:', req.query.year);
+    
+    // Debug: Get all trip allowances to see what's in the database
+    const allTripAllowances = await TripAllowance.find({}).populate('employee');
+    console.log('All Trip Allowances in DB:', allTripAllowances.map(ta => ({ month: ta.month, year: ta.year, name: ta.name })));
+    
+    // Debug: Show unique month/year combinations
+    const uniqueMonths = [...new Set(allTripAllowances.map(ta => `${ta.month}/${ta.year}`))];
+    console.log('Unique month/year combinations in DB:', uniqueMonths);
+    
     const tripAllowances = await TripAllowance.find(filter).populate('employee');
+    console.log('Trip Allowance Results Count:', tripAllowances.length);
+    console.log('Filtered results:', tripAllowances.map(ta => ({ month: ta.month, year: ta.year, name: ta.name })));
+    
     res.json(tripAllowances);
   } catch (error) {
+    console.error('Error in getTripAllowances:', error);
     res.status(500).json({ message: 'Server error', error });
   }
 };
