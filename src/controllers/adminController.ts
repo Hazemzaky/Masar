@@ -515,12 +515,14 @@ export const createCompanyFacility = async (req: AuthRequest, res: Response): Pr
   try {
     const facility = new CompanyFacility({
       ...req.body,
-      // Support new fields
-      'rentAgreement.hasSecurityDeposit': req.body.rentAgreement?.hasSecurityDeposit,
-      'rentAgreement.securityDepositAmount': req.body.rentAgreement?.securityDepositAmount,
-      'rentAgreement.securityDepositAmortization': req.body.rentAgreement?.securityDepositAmortization,
-      'municipalityApproval.renewalPlace': req.body.municipalityApproval?.renewalPlace,
-      ministryApproval: req.body.ministryApproval,
+      // Support new security deposit fields
+      'rentAgreement.hasSecurityDeposit': req.body.hasSecurityDeposit,
+      'rentAgreement.securityDepositAmount': req.body.securityDepositAmount,
+      'rentAgreement.securityDepositPaymentType': req.body.securityDepositPaymentType,
+      'rentAgreement.securityDepositChequeType': req.body.securityDepositChequeType,
+      'rentAgreement.securityDepositAmortization': req.body.securityDepositAmortization,
+      'municipalityApproval.renewalPlace': req.body.municipalityApproval?.renewalProcess,
+      ministryApproval: req.body.mocApproval,
       facilityDocs: req.body.facilityDocs,
       'documents.ministriesDocuments': req.body.documents?.ministriesDocuments,
       createdBy: req.user?.userId,
@@ -548,12 +550,14 @@ export const updateCompanyFacility = async (req: Request, res: Response): Promis
       req.params.id,
       {
         ...req.body,
-        // Support new fields
-        'rentAgreement.hasSecurityDeposit': req.body.rentAgreement?.hasSecurityDeposit,
-        'rentAgreement.securityDepositAmount': req.body.rentAgreement?.securityDepositAmount,
-        'rentAgreement.securityDepositAmortization': req.body.rentAgreement?.securityDepositAmortization,
-        'municipalityApproval.renewalPlace': req.body.municipalityApproval?.renewalPlace,
-        ministryApproval: req.body.ministryApproval,
+        // Support new security deposit fields
+        'rentAgreement.hasSecurityDeposit': req.body.hasSecurityDeposit,
+        'rentAgreement.securityDepositAmount': req.body.securityDepositAmount,
+        'rentAgreement.securityDepositPaymentType': req.body.securityDepositPaymentType,
+        'rentAgreement.securityDepositChequeType': req.body.securityDepositChequeType,
+        'rentAgreement.securityDepositAmortization': req.body.securityDepositAmortization,
+        'municipalityApproval.renewalPlace': req.body.municipalityApproval?.renewalProcess,
+        ministryApproval: req.body.mocApproval,
         facilityDocs: req.body.facilityDocs,
         'documents.ministriesDocuments': req.body.documents?.ministriesDocuments,
         updatedAt: new Date()

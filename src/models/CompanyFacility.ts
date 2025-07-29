@@ -17,18 +17,17 @@ export interface ICompanyFacility extends Document {
     status: 'active' | 'expired' | 'pending_renewal' | 'terminated';
     hasSecurityDeposit?: 'Yes' | 'No';
     securityDepositAmount?: number;
+    securityDepositPaymentType?: 'Cash' | 'Cheque';
+    securityDepositChequeType?: 'Liquidated' | 'Guarantee';
     securityDepositAmortization?: string;
   };
   municipalityApproval: {
-    approvalNumber: string;
     approvalDate: Date;
     expiryDate: Date;
-    approvalType: string;
     status: 'active' | 'expired' | 'pending_renewal';
     renewalPlace?: string;
   };
   fireDepartmentApproval: {
-    approvalNumber: string;
     approvalDate: Date;
     expiryDate: Date;
     inspectionDate: Date;
@@ -37,10 +36,8 @@ export interface ICompanyFacility extends Document {
     correctiveActions: string[];
   };
   ministryApproval?: {
-    approvalNumber: string;
     approvalDate: Date;
     expiryDate: Date;
-    approvalType: string;
     status: 'active' | 'expired' | 'pending_renewal';
   };
   otherApprovals: {
@@ -106,13 +103,13 @@ const companyFacilitySchema = new Schema<ICompanyFacility>({
     },
     hasSecurityDeposit: { type: String, enum: ['Yes', 'No'] },
     securityDepositAmount: { type: Number },
+    securityDepositPaymentType: { type: String, enum: ['Cash', 'Cheque'] },
+    securityDepositChequeType: { type: String, enum: ['Liquidated', 'Guarantee'] },
     securityDepositAmortization: { type: String },
   },
   municipalityApproval: {
-    approvalNumber: { type: String, required: true },
     approvalDate: { type: Date, required: true },
     expiryDate: { type: Date, required: true },
-    approvalType: { type: String, required: true },
     status: {
       type: String,
       enum: ['active', 'expired', 'pending_renewal'],
@@ -121,7 +118,6 @@ const companyFacilitySchema = new Schema<ICompanyFacility>({
     renewalPlace: { type: String },
   },
   fireDepartmentApproval: {
-    approvalNumber: { type: String, required: true },
     approvalDate: { type: Date, required: true },
     expiryDate: { type: Date, required: true },
     inspectionDate: { type: Date, required: true },
@@ -134,10 +130,8 @@ const companyFacilitySchema = new Schema<ICompanyFacility>({
     correctiveActions: [{ type: String }]
   },
   ministryApproval: {
-    approvalNumber: { type: String },
     approvalDate: { type: Date },
     expiryDate: { type: Date },
-    approvalType: { type: String },
     status: {
       type: String,
       enum: ['active', 'expired', 'pending_renewal'],
