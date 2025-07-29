@@ -136,21 +136,39 @@ export const getWaterTrips = async (req: Request, res: Response) => {
 export const getEligibleTripAllowanceTrips = async (req: Request, res: Response) => {
   try {
     console.log('Fetching eligible trips...');
+    console.log('Query parameters:', req.query);
     
-    // First, let's check all tracker entries to see what field names are being used
-    const allTrackers = await Tracker.find({});
-    console.log('All tracker entries:', allTrackers.map(t => ({
-      id: t._id,
-      totalKmPerTrip: t.totalKmPerTrip,
-      totalKMPerTrip: (t as any).totalKMPerTrip,
-      'TotalKMPerTrip': (t as any).TotalKMPerTrip
+    const { month, year } = req.query;
+    const filter: any = { totalKmPerTrip: { $gte: 40 } };
+    
+    // Filter by departure month if provided
+    if (month !== undefined) {
+      filter.departureMonth = Number(month);
+    }
+    
+    // Filter by year if provided
+    if (year !== undefined) {
+      filter.year = Number(year);
+    }
+    
+    console.log('Filter for eligible trips:', filter);
+    
+    const eligibleTrips = await Tracker.find(filter)
+      .select('SR name nationality residencyNumber EMP totalKmPerTrip departureMonth year')
+      .populate('EMP', 'name employeeId');
+    
+    console.log('Eligible trips found:', eligibleTrips.length);
+    console.log('Eligible trips details:', eligibleTrips.map(t => ({
+      SR: t.SR,
+      name: t.name,
+      departureMonth: t.departureMonth,
+      year: t.year,
+      totalKmPerTrip: t.totalKmPerTrip
     })));
     
-    const eligibleTrips = await Tracker.find({ totalKmPerTrip: { $gte: 40 } })
-      .select('SR name nationality residencyNumber EMP totalKmPerTrip');
-    console.log('Eligible trips:', eligibleTrips);
     res.json(eligibleTrips);
   } catch (error) {
+    console.error('Error fetching eligible trips:', error);
     res.status(500).json({ message: 'Server error', error });
   }
 }; 
