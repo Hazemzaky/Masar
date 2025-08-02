@@ -19,12 +19,6 @@ export interface IQuotation extends Document {
   email: string;
   billingAddress: string;
   clientCategory: string;
-  equipmentType: string;
-  quantity: number;
-  rentalStart: Date;
-  rentalEnd: Date;
-  usageType: string;
-  projectLocation: string;
   rateType: string;
   rate: number;
   operatorCharges: number;
@@ -75,12 +69,6 @@ const QuotationSchema = new Schema<IQuotation>({
   email: String,
   billingAddress: String,
   clientCategory: String,
-  equipmentType: String,
-  quantity: Number,
-  rentalStart: Date,
-  rentalEnd: Date,
-  usageType: String,
-  projectLocation: String,
   rateType: String,
   rate: Number,
   operatorCharges: Number,
