@@ -26,7 +26,7 @@ export const createTraining = async (req: Request, res: Response): Promise<void>
     }
 
     // Generate serial number
-    const serialNumber = await generateSerial('TRAINING');
+    const serialNumber = await generateSerial('TRAINING', 'HSE', Training);
 
     const training = new Training({
       employee,
