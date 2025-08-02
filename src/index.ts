@@ -56,12 +56,16 @@ import businessTripRoutes from './routes/businessTripRoutes';
 import pnlRoutes from './routes/pnlRoutes';
 import reconciliationRoutes from './routes/reconciliationRoutes';
 import contractRoutes from './routes/contractRoutes';
+import accidentRoutes from './routes/accidentRoutes';
+import nearMissRoutes from './routes/nearMissRoutes';
 import './models/Contract';
 import './models/ProcurementInvoice';
 import './models/Vendor';
 import './models/PurchaseRequest';
 import './models/GoodsReceipt';
 import './models/PurchaseOrder';
+import './models/Accident';
+import './models/NearMiss';
 
 dotenv.config();
 
@@ -175,6 +179,8 @@ app.use('/api/business-trips', businessTripRoutes);
 app.use('/api/pnl', pnlRoutes);
 app.use('/api/reconciliation', reconciliationRoutes);
 app.use('/api/contracts', contractRoutes);
+app.use('/api/hse/accidents', accidentRoutes);
+app.use('/api/hse/near-misses', nearMissRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
