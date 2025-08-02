@@ -14,11 +14,13 @@ export interface IQuotation extends Document {
   validUntil: Date;
   status: string;
   clientName: string;
-  contactPerson: string;
-  phone: string;
+  attn?: string;
   email: string;
-  billingAddress: string;
-  clientCategory: string;
+  contactNo?: string;
+  subject?: string;
+  refCode?: string;
+  currency?: string;
+  project?: string;
   rateType: string;
   rate: number;
   operatorCharges: number;
@@ -53,7 +55,6 @@ export interface IQuotation extends Document {
   contactPersonPhone?: string;
   contactPersonEmail?: string;
   contactPersonExtension?: string;
-  currency?: string;
   terms?: string[];
   additionalDetails?: string;
   rentalItems?: IRentalItem[];
@@ -64,11 +65,13 @@ const QuotationSchema = new Schema<IQuotation>({
   validUntil: { type: Date, required: true },
   status: { type: String, default: 'Draft' },
   clientName: { type: String, required: true },
-  contactPerson: String,
-  phone: String,
+  attn: String,
   email: String,
-  billingAddress: String,
-  clientCategory: String,
+  contactNo: String,
+  subject: String,
+  refCode: String,
+  currency: String,
+  project: String,
   rateType: String,
   rate: Number,
   operatorCharges: Number,
@@ -103,7 +106,6 @@ const QuotationSchema = new Schema<IQuotation>({
   contactPersonPhone: String,
   contactPersonEmail: String,
   contactPersonExtension: String,
-  currency: String,
   terms: [String],
   additionalDetails: String,
   rentalItems: [{
