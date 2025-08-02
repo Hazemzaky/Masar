@@ -32,11 +32,12 @@ const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         // Create asset with proper field mapping
         const assetData = {
             description: req.body.description,
-            mainCategory: req.body.mainCategory,
-            subCategory: req.body.subCategory,
-            subSubCategory: req.body.subSubCategory,
-            subSubSubCategory: req.body.subSubSubCategory,
-            subSubSubSubCategory: req.body.subSubSubSubCategory,
+            type: req.body.type, // First level
+            mainCategory: req.body.mainCategory, // Second level
+            subCategory: req.body.subCategory, // Third level
+            subSubCategory: req.body.subSubCategory, // Fourth level
+            subSubSubCategory: req.body.subSubSubCategory, // Fifth level
+            subSubSubSubCategory: req.body.subSubSubSubCategory, // Sixth level
             brand: req.body.brand,
             status: req.body.status || 'active',
             availability: req.body.availability || 'available',
@@ -84,8 +85,12 @@ const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.createAsset = createAsset;
 const getAssets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const assets = yield Asset_1.default.find().populate('currentProject', 'customer description status').sort({ createdAt: -1 });
-        res.json(assets);
+        const assets = yield Asset_1.default.find()
+            .populate('currentProject', 'customer description status')
+            .sort({ createdAt: -1 });
+        // Ensure all assets have the proper category structure
+        const processedAssets = assets.map(asset => (Object.assign(Object.assign({}, asset.toObject()), { mainCategory: asset.mainCategory || '', subCategory: asset.subCategory || '', subSubCategory: asset.subSubCategory || '', subSubSubCategory: asset.subSubSubCategory || '', subSubSubSubCategory: asset.subSubSubSubCategory || '', type: asset.type || asset.mainCategory || '' })));
+        res.json(processedAssets);
     }
     catch (error) {
         console.error('Error fetching assets:', error);

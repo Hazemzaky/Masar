@@ -10,10 +10,10 @@ import { generateSerial } from '../utils/serialUtils';
 
 export const createProject = async (req: Request, res: Response) => {
   try {
-    const { assignedAssets, department, ...projectData } = req.body;
+    const { assignedAssets, ...projectData } = req.body;
     // Serial number generation
     const docCode = 'PJ';
-    const dept = department || 'PJ';
+    const dept = projectData.department || 'PJ';
     const serial = await generateSerial(docCode, dept, Project);
     // Create the project first
     const project = new Project({ ...projectData, serial });

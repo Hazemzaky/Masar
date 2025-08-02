@@ -48,5 +48,6 @@ const ExpenseSchema = new mongoose_1.Schema({
     proofUrl: { type: String },
     customType: { type: String },
     project: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
+    reconciled: { type: Boolean, default: false },
 });
 exports.default = mongoose_1.default.model('Expense', ExpenseSchema);

@@ -14,8 +14,27 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rejectLeave = exports.approveLeave = exports.updateLeave = exports.getLeave = exports.getLeaves = exports.createLeave = void 0;
 const Leave_1 = __importDefault(require("../models/Leave"));
+const Employee_1 = __importDefault(require("../models/Employee"));
 const Period_1 = require("../models/Period");
 const serialUtils_1 = require("../utils/serialUtils");
+// Helper: Check for overlapping leaves
+function hasOverlappingLeave(employeeId, startDate, endDate, excludeId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const filter = {
+            employee: employeeId,
+            status: { $ne: 'rejected' },
+            $or: [
+                { startDate: { $lte: endDate }, endDate: { $gte: startDate } },
+                { startDate: { $gte: startDate, $lte: endDate } },
+                { endDate: { $gte: startDate, $lte: endDate } }
+            ]
+        };
+        if (excludeId)
+            filter._id = { $ne: excludeId };
+        const overlap = yield Leave_1.default.findOne(filter);
+        return !!overlap;
+    });
+}
 const createLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { employee, type, startDate, endDate, days, cost, department } = req.body;
@@ -26,6 +45,17 @@ const createLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const period = startDate ? new Date(startDate).toISOString().slice(0, 7) : undefined;
         if (period && (yield (0, Period_1.isPeriodClosed)(period))) {
             res.status(403).json({ message: 'This period is locked and cannot be edited.' });
+            return;
+        }
+        // Check for overlapping leaves
+        if (yield hasOverlappingLeave(employee, new Date(startDate), new Date(endDate))) {
+            res.status(400).json({ message: 'Overlapping leave request exists for this employee.' });
+            return;
+        }
+        // Check leave balance
+        const emp = yield Employee_1.default.findById(employee);
+        if (emp && emp.leaveBalance < days) {
+            res.status(400).json({ message: 'Insufficient leave balance.' });
             return;
         }
         // Serial number generation
@@ -44,7 +74,16 @@ const createLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.createLeave = createLeave;
 const getLeaves = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const leaves = yield Leave_1.default.find().populate('employee');
+        // Filtering support
+        const { employee, status, department } = req.query;
+        const filter = {};
+        if (employee)
+            filter.employee = employee;
+        if (status)
+            filter.status = status;
+        if (department)
+            filter.department = department;
+        const leaves = yield Leave_1.default.find(filter).populate('employee');
         res.json(leaves);
     }
     catch (error) {
@@ -70,11 +109,16 @@ const getLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.getLeave = getLeave;
 const updateLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { startDate } = req.body;
-        if (startDate) {
+        const { startDate, employee, endDate } = req.body;
+        if (startDate && employee && endDate) {
             const period = new Date(startDate).toISOString().slice(0, 7);
             if (yield (0, Period_1.isPeriodClosed)(period)) {
                 res.status(403).json({ message: 'This period is locked and cannot be edited.' });
+                return;
+            }
+            // Check for overlapping leaves (exclude current leave)
+            if (yield hasOverlappingLeave(employee, new Date(startDate), new Date(endDate), req.params.id)) {
+                res.status(400).json({ message: 'Overlapping leave request exists for this employee.' });
                 return;
             }
         }
@@ -100,6 +144,12 @@ const approveLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         }
         leave.status = 'approved';
         yield leave.save();
+        // Decrement employee leave balance
+        const emp = yield Employee_1.default.findById(leave.employee);
+        if (emp) {
+            emp.leaveBalance = (emp.leaveBalance || 0) - leave.days;
+            yield emp.save();
+        }
         res.json(leave);
     }
     catch (error) {

@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -17,11 +28,54 @@ const Maintenance_1 = __importDefault(require("../models/Maintenance"));
 const InventoryItem_1 = __importDefault(require("../models/InventoryItem"));
 const InventoryTransaction_1 = __importDefault(require("../models/InventoryTransaction"));
 const createMaintenance = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
-        const maintenanceData = Object.assign(Object.assign({}, req.body), { createdBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId });
+        const _c = req.body, { scheduledDate, scheduledTime, completedDate, completedTime } = _c, rest = __rest(_c, ["scheduledDate", "scheduledTime", "completedDate", "completedTime"]);
+        const maintenanceData = Object.assign(Object.assign({}, rest), { scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(), scheduledTime: scheduledTime || '', completedDate: completedDate ? new Date(completedDate) : undefined, completedTime: completedTime || undefined, createdBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId });
         const maintenance = new Maintenance_1.default(maintenanceData);
         yield maintenance.save();
+        // Handle inventory deduction if maintenance is created as completed
+        if (maintenance.status === 'completed' && maintenance.parts && maintenance.parts.length > 0) {
+            console.log('Processing inventory deduction for newly created completed maintenance:', maintenance._id);
+            for (const part of maintenance.parts) {
+                try {
+                    const inventoryItem = yield InventoryItem_1.default.findById(part.item);
+                    if (!inventoryItem) {
+                        console.error(`Inventory item not found for part: ${part.item}`);
+                        continue;
+                    }
+                    // Check if sufficient stock is available
+                    if (inventoryItem.quantity < part.quantity) {
+                        console.error(`Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity}, Required: ${part.quantity}`);
+                        return res.status(400).json({
+                            message: `Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity} ${inventoryItem.uom}, Required: ${part.quantity} ${inventoryItem.uom}`
+                        });
+                    }
+                    // Deduct quantity from inventory
+                    inventoryItem.quantity -= part.quantity;
+                    yield inventoryItem.save();
+                    // Create inventory transaction record
+                    yield InventoryTransaction_1.default.create({
+                        item: part.item,
+                        type: 'outbound',
+                        quantity: part.quantity,
+                        date: new Date(),
+                        relatedMaintenance: maintenance._id,
+                        user: (_b = req.user) === null || _b === void 0 ? void 0 : _b.userId,
+                        notes: `Withdrawn for maintenance: ${maintenance.description}`
+                    });
+                    console.log(`Successfully deducted ${part.quantity} ${inventoryItem.uom} of ${inventoryItem.description}`);
+                }
+                catch (error) {
+                    console.error('Error processing inventory deduction for part:', part, error);
+                    return res.status(500).json({
+                        message: 'Error processing inventory deduction',
+                        error: error instanceof Error ? error.message : 'Unknown error'
+                    });
+                }
+            }
+            console.log('Inventory deduction completed successfully for newly created maintenance:', maintenance._id);
+        }
         res.status(201).json(maintenance);
     }
     catch (error) {
@@ -64,11 +118,65 @@ const getMaintenance = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.getMaintenance = getMaintenance;
 const updateMaintenance = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const maintenance = yield Maintenance_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('asset');
+        const _b = req.body, { scheduledDate, scheduledTime, completedDate, completedTime } = _b, rest = __rest(_b, ["scheduledDate", "scheduledTime", "completedDate", "completedTime"]);
+        // Get the current maintenance record to check if status is changing to 'completed'
+        const currentMaintenance = yield Maintenance_1.default.findById(req.params.id);
+        if (!currentMaintenance) {
+            res.status(404).json({ message: 'Maintenance not found' });
+            return;
+        }
+        const updateData = Object.assign(Object.assign({}, rest), { scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined, scheduledTime: scheduledTime || undefined, completedDate: completedDate ? new Date(completedDate) : undefined, completedTime: completedTime || undefined });
+        const maintenance = yield Maintenance_1.default.findByIdAndUpdate(req.params.id, updateData, { new: true }).populate('asset');
         if (!maintenance) {
             res.status(404).json({ message: 'Maintenance not found' });
             return;
+        }
+        // Handle inventory deduction if status is changed to 'completed'
+        if (maintenance.status === 'completed' &&
+            currentMaintenance.status !== 'completed' &&
+            maintenance.parts &&
+            maintenance.parts.length > 0) {
+            console.log('Processing inventory deduction for updated maintenance:', maintenance._id);
+            for (const part of maintenance.parts) {
+                try {
+                    const inventoryItem = yield InventoryItem_1.default.findById(part.item);
+                    if (!inventoryItem) {
+                        console.error(`Inventory item not found for part: ${part.item}`);
+                        continue;
+                    }
+                    // Check if sufficient stock is available
+                    if (inventoryItem.quantity < part.quantity) {
+                        console.error(`Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity}, Required: ${part.quantity}`);
+                        return res.status(400).json({
+                            message: `Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity} ${inventoryItem.uom}, Required: ${part.quantity} ${inventoryItem.uom}`
+                        });
+                    }
+                    // Deduct quantity from inventory
+                    inventoryItem.quantity -= part.quantity;
+                    yield inventoryItem.save();
+                    // Create inventory transaction record
+                    yield InventoryTransaction_1.default.create({
+                        item: part.item,
+                        type: 'outbound',
+                        quantity: part.quantity,
+                        date: new Date(),
+                        relatedMaintenance: maintenance._id,
+                        user: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId,
+                        notes: `Withdrawn for maintenance: ${maintenance.description}`
+                    });
+                    console.log(`Successfully deducted ${part.quantity} ${inventoryItem.uom} of ${inventoryItem.description}`);
+                }
+                catch (error) {
+                    console.error('Error processing inventory deduction for part:', part, error);
+                    return res.status(500).json({
+                        message: 'Error processing inventory deduction',
+                        error: error instanceof Error ? error.message : 'Unknown error'
+                    });
+                }
+            }
+            console.log('Inventory deduction completed successfully for updated maintenance:', maintenance._id);
         }
         res.json(maintenance);
     }
@@ -96,6 +204,7 @@ exports.deleteMaintenance = deleteMaintenance;
 const completeMaintenance = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
+        console.log('completeMaintenance called with:', req.body);
         const { status, completedDate, completedTime, totalMaintenanceTime, cancellationReason } = req.body;
         // If cancelling, update status and cancellationReason
         if (status === 'cancelled') {
@@ -109,17 +218,20 @@ const completeMaintenance = (req, res) => __awaiter(void 0, void 0, void 0, func
             }
             return res.json(maintenance);
         }
-        const maintenance = yield Maintenance_1.default.findByIdAndUpdate(req.params.id, {
+        const updateData = {
             status,
-            completedDate,
-            completedTime,
-            totalMaintenanceTime,
-            completedBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId
-        }, { new: true }).populate('asset');
+            completedBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId,
+            completedDate: completedDate ? new Date(completedDate) : undefined,
+            completedTime: completedTime || undefined,
+            totalMaintenanceTime: totalMaintenanceTime !== undefined ? totalMaintenanceTime : undefined
+        };
+        console.log('Updating maintenance with data:', updateData);
+        const maintenance = yield Maintenance_1.default.findByIdAndUpdate(req.params.id, updateData, { new: true }).populate('asset');
         if (!maintenance) {
             res.status(404).json({ message: 'Maintenance not found' });
             return;
         }
+        console.log('Maintenance updated successfully:', maintenance._id);
         // Handle inventory deduction when maintenance is completed
         if (status === 'completed' && maintenance.parts && maintenance.parts.length > 0) {
             console.log('Processing inventory deduction for completed maintenance:', maintenance._id);

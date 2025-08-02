@@ -240,6 +240,10 @@ const EmployeeSchema = new mongoose_1.Schema({
     nationality: { type: String },
     passportNumber: { type: String },
     civilId: { type: String },
+    // Add employeeType and citizenType
+    employeeType: { type: String, enum: ['Citizen', 'Foreigner'], required: true },
+    citizenType: { type: String, enum: ['Kuwaiti', 'Bedoun'] },
+    residencyNumber: { type: String },
     gender: { type: String, enum: ['male', 'female', 'other'] },
     maritalStatus: { type: String, enum: ['single', 'married', 'divorced', 'widowed'] },
     employmentType: { type: String, enum: ['full-time', 'part-time', 'contractor', 'daily'], default: 'full-time' },

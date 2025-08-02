@@ -55,6 +55,7 @@ import purchaseOrderRoutes from './routes/purchaseOrderRoutes';
 import businessTripRoutes from './routes/businessTripRoutes';
 import pnlRoutes from './routes/pnlRoutes';
 import reconciliationRoutes from './routes/reconciliationRoutes';
+import contractRoutes from './routes/contractRoutes';
 import './models/Contract';
 import './models/ProcurementInvoice';
 import './models/Vendor';
@@ -173,6 +174,7 @@ app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/business-trips', businessTripRoutes);
 app.use('/api/pnl', pnlRoutes);
 app.use('/api/reconciliation', reconciliationRoutes);
+app.use('/api/contracts', contractRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -55,11 +55,28 @@ const createEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
         // Overtime & Hours
         overtime, 
         // Legacy fields for backward compatibility
-        photo, supervisor, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule, employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory, gpsTrackingStatus, certifiedEquipment, currentShiftZone, pickRate, errorRate, directReports, currentProjects, departmentalKPIs, phoneNumber, emergencyContactName, emergencyContactNumber, emergencyContactRelationship, languageSkills, logisticsSoftwareKnowledge, equipmentCertifications, firstAidTraining, firstAidExpiryDate, customsComplianceCert, cvResume, employmentContract, idPassportCopy, workPermit, drivingLicense, healthClearance, certificates, attendanceRecord, disciplinaryActions, warningsIssued, lastEvaluationDate, nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances_old, bonuses, deductions, uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment, vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin } = req.body;
+        photo, supervisor, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule, employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory, gpsTrackingStatus, certifiedEquipment, currentShiftZone, pickRate, errorRate, directReports, currentProjects, departmentalKPIs, phoneNumber, emergencyContactName, emergencyContactNumber, emergencyContactRelationship, languageSkills, logisticsSoftwareKnowledge, equipmentCertifications, firstAidTraining, firstAidExpiryDate, customsComplianceCert, cvResume, employmentContract, idPassportCopy, workPermit, drivingLicense, healthClearance, certificates, attendanceRecord, disciplinaryActions, warningsIssued, lastEvaluationDate, nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances_old, bonuses, deductions, uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment, vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin, employeeType, citizenType, residencyNumber, } = req.body;
         // Validate required fields
         if (!name || !email || !position || !department || !salary) {
             res.status(400).json({ message: 'Missing required fields: name, email, position, department, salary' });
             return;
+        }
+        // Validate employeeType logic
+        if (!employeeType || (employeeType !== 'Citizen' && employeeType !== 'Foreigner')) {
+            res.status(400).json({ message: 'Employee Type must be Citizen or Foreigner' });
+            return;
+        }
+        if (employeeType === 'Citizen') {
+            if (!civilId || !citizenType) {
+                res.status(400).json({ message: 'Citizen must have Civil ID and Citizen Type' });
+                return;
+            }
+        }
+        if (employeeType === 'Foreigner') {
+            if (!residencyNumber || !nationality) {
+                res.status(400).json({ message: 'Foreigner must have Residency No. and Nationality' });
+                return;
+            }
         }
         // Validate benefits
         const validBenefits = Array.isArray(benefits)
@@ -79,7 +96,6 @@ const createEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
             employeeId,
             personalEmail,
             dateOfBirth,
-            nationality,
             passportNumber,
             civilId,
             gender,
@@ -199,7 +215,11 @@ const createEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
             accessLevels,
             biometricId,
             accessCardId,
-            lastLogin
+            lastLogin,
+            employeeType: employeeType === 'Citizen' || employeeType === 'Foreigner' ? employeeType : undefined,
+            citizenType: employeeType === 'Citizen' ? citizenType : undefined,
+            residencyNumber: employeeType === 'Foreigner' ? residencyNumber : undefined,
+            nationality: employeeType === 'Foreigner' ? nationality : undefined,
         };
         const employee = new Employee_1.default(employeeData);
         yield employee.save();
@@ -349,7 +369,26 @@ const updateEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
         // Overtime & Hours
         overtime, 
         // Legacy fields for backward compatibility
-        photo, supervisor, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule, employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory, gpsTrackingStatus, certifiedEquipment, currentShiftZone, pickRate, errorRate, directReports, currentProjects, departmentalKPIs, phoneNumber, emergencyContactName, emergencyContactNumber, emergencyContactRelationship, languageSkills, logisticsSoftwareKnowledge, equipmentCertifications, firstAidTraining, firstAidExpiryDate, customsComplianceCert, cvResume, employmentContract, idPassportCopy, workPermit, drivingLicense, healthClearance, certificates, attendanceRecord, disciplinaryActions, warningsIssued, lastEvaluationDate, nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances_old, bonuses, deductions, uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment, vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin } = _a, rest = __rest(_a, ["benefits", "employeeId", "personalEmail", "dateOfBirth", "nationality", "passportNumber", "civilId", "gender", "maritalStatus", "employmentType", "jobLevel", "hourlyRate", "site", "status", "phone", "address", "emergencyContact", "performanceRating", "lastReviewDate", "skills", "manager", "location", "driverLicense", "vehicleAssignment", "workShifts", "certifications", "compensationHistory", "bonusRecords", "allowances", "bankInfo", "payrollIncluded", "bonusEligible", "leaveBalanceDetails", "upcomingLeaves", "attendanceLog", "attendancePercentage", "absenceFrequency", "performance", "documents", "compliance", "timeline", "hrActions", "recognition", "equipment", "privateNotes", "hrNotes", "orgChart", "skillTags", "customTags", "attritionRisk", "officeLocation", "workMode", "emergencyContacts", "readinessTracker", "overtime", "photo", "supervisor", "dateOfHire", "contractExpiryDate", "shiftSchedule", "workSchedule", "employeeGrade", "licenseType", "licenseExpiryDate", "assignedVehicle", "routeHistory", "gpsTrackingStatus", "certifiedEquipment", "currentShiftZone", "pickRate", "errorRate", "directReports", "currentProjects", "departmentalKPIs", "phoneNumber", "emergencyContactName", "emergencyContactNumber", "emergencyContactRelationship", "languageSkills", "logisticsSoftwareKnowledge", "equipmentCertifications", "firstAidTraining", "firstAidExpiryDate", "customsComplianceCert", "cvResume", "employmentContract", "idPassportCopy", "workPermit", "drivingLicense", "healthClearance", "certificates", "attendanceRecord", "disciplinaryActions", "warningsIssued", "lastEvaluationDate", "nextEvaluationDate", "goalsKPIs", "salaryBand", "bankAccount", "allowances_old", "bonuses", "deductions", "uniformIssued", "uniformSize", "uniformIssueDate", "ppeIssued", "ppeDetails", "itEquipment", "vehicleAssigned", "systemAccounts", "accessLevels", "biometricId", "accessCardId", "lastLogin"]);
+        photo, supervisor, dateOfHire, contractExpiryDate, shiftSchedule, workSchedule, employeeGrade, licenseType, licenseExpiryDate, assignedVehicle, routeHistory, gpsTrackingStatus, certifiedEquipment, currentShiftZone, pickRate, errorRate, directReports, currentProjects, departmentalKPIs, phoneNumber, emergencyContactName, emergencyContactNumber, emergencyContactRelationship, languageSkills, logisticsSoftwareKnowledge, equipmentCertifications, firstAidTraining, firstAidExpiryDate, customsComplianceCert, cvResume, employmentContract, idPassportCopy, workPermit, drivingLicense, healthClearance, certificates, attendanceRecord, disciplinaryActions, warningsIssued, lastEvaluationDate, nextEvaluationDate, goalsKPIs, salaryBand, bankAccount, allowances_old, bonuses, deductions, uniformIssued, uniformSize, uniformIssueDate, ppeIssued, ppeDetails, itEquipment, vehicleAssigned, systemAccounts, accessLevels, biometricId, accessCardId, lastLogin, employeeType, citizenType, residencyNumber } = _a, rest = __rest(_a, ["benefits", "employeeId", "personalEmail", "dateOfBirth", "nationality", "passportNumber", "civilId", "gender", "maritalStatus", "employmentType", "jobLevel", "hourlyRate", "site", "status", "phone", "address", "emergencyContact", "performanceRating", "lastReviewDate", "skills", "manager", "location", "driverLicense", "vehicleAssignment", "workShifts", "certifications", "compensationHistory", "bonusRecords", "allowances", "bankInfo", "payrollIncluded", "bonusEligible", "leaveBalanceDetails", "upcomingLeaves", "attendanceLog", "attendancePercentage", "absenceFrequency", "performance", "documents", "compliance", "timeline", "hrActions", "recognition", "equipment", "privateNotes", "hrNotes", "orgChart", "skillTags", "customTags", "attritionRisk", "officeLocation", "workMode", "emergencyContacts", "readinessTracker", "overtime", "photo", "supervisor", "dateOfHire", "contractExpiryDate", "shiftSchedule", "workSchedule", "employeeGrade", "licenseType", "licenseExpiryDate", "assignedVehicle", "routeHistory", "gpsTrackingStatus", "certifiedEquipment", "currentShiftZone", "pickRate", "errorRate", "directReports", "currentProjects", "departmentalKPIs", "phoneNumber", "emergencyContactName", "emergencyContactNumber", "emergencyContactRelationship", "languageSkills", "logisticsSoftwareKnowledge", "equipmentCertifications", "firstAidTraining", "firstAidExpiryDate", "customsComplianceCert", "cvResume", "employmentContract", "idPassportCopy", "workPermit", "drivingLicense", "healthClearance", "certificates", "attendanceRecord", "disciplinaryActions", "warningsIssued", "lastEvaluationDate", "nextEvaluationDate", "goalsKPIs", "salaryBand", "bankAccount", "allowances_old", "bonuses", "deductions", "uniformIssued", "uniformSize", "uniformIssueDate", "ppeIssued", "ppeDetails", "itEquipment", "vehicleAssigned", "systemAccounts", "accessLevels", "biometricId", "accessCardId", "lastLogin", "employeeType", "citizenType", "residencyNumber"]);
+        // Validate employeeType logic
+        if (employeeType) {
+            if (employeeType !== 'Citizen' && employeeType !== 'Foreigner') {
+                res.status(400).json({ message: 'Employee Type must be Citizen or Foreigner' });
+                return;
+            }
+            if (employeeType === 'Citizen') {
+                if (!civilId || !citizenType) {
+                    res.status(400).json({ message: 'Citizen must have Civil ID and Citizen Type' });
+                    return;
+                }
+            }
+            if (employeeType === 'Foreigner') {
+                if (!residencyNumber || !nationality) {
+                    res.status(400).json({ message: 'Foreigner must have Residency No. and Nationality' });
+                    return;
+                }
+            }
+        }
         const validBenefits = Array.isArray(benefits)
             ? benefits.filter((b) => b && typeof b.type === 'string' && typeof b.value === 'number')
             : undefined;
@@ -359,7 +398,6 @@ const updateEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
             employeeId,
             personalEmail,
             dateOfBirth,
-            nationality,
             passportNumber,
             civilId,
             gender,
@@ -447,7 +485,7 @@ const updateEmployee = (req, res) => __awaiter(void 0, void 0, void 0, function*
             accessLevels,
             biometricId,
             accessCardId,
-            lastLogin });
+            lastLogin, employeeType: employeeType === 'Citizen' || employeeType === 'Foreigner' ? employeeType : undefined, citizenType: employeeType === 'Citizen' ? citizenType : undefined, residencyNumber: employeeType === 'Foreigner' ? residencyNumber : undefined, nationality: employeeType === 'Foreigner' ? nationality : undefined });
         // Remove undefined values
         Object.keys(updateData).forEach(key => {
             if (updateData[key] === undefined) {
@@ -747,7 +785,7 @@ const getAttendanceHistory = (req, res) => __awaiter(void 0, void 0, void 0, fun
         let attendanceHistory = employee.attendanceLog || [];
         // Filter by date range if provided
         if (startDate && endDate) {
-            attendanceHistory = attendanceHistory.filter(record => record.date >= startDate && record.date <= endDate);
+            attendanceHistory = attendanceHistory.filter((record) => record.date >= startDate && record.date <= endDate);
         }
         // Sort by date (newest first) and limit results
         attendanceHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -783,14 +821,14 @@ const getAttendanceStats = (req, res) => __awaiter(void 0, void 0, void 0, funct
         // Filter by month/year if provided
         if (month && year) {
             const targetMonth = `${year}-${String(month).padStart(2, '0')}`;
-            attendanceRecords = attendanceRecords.filter(record => record.date.startsWith(targetMonth));
+            attendanceRecords = attendanceRecords.filter((record) => record.date.startsWith(targetMonth));
         }
         // Calculate detailed statistics
         const totalDays = attendanceRecords.length;
-        const presentDays = attendanceRecords.filter(record => record.status === 'present').length;
-        const absentDays = attendanceRecords.filter(record => record.status === 'absent').length;
-        const lateDays = attendanceRecords.filter(record => record.status === 'late').length;
-        const leaveDays = attendanceRecords.filter(record => record.status === 'on-leave').length;
+        const presentDays = attendanceRecords.filter((record) => record.status === 'present').length;
+        const absentDays = attendanceRecords.filter((record) => record.status === 'absent').length;
+        const lateDays = attendanceRecords.filter((record) => record.status === 'late').length;
+        const leaveDays = attendanceRecords.filter((record) => record.status === 'on-leave').length;
         const totalHours = attendanceRecords.reduce((sum, record) => sum + (record.hours || 0), 0);
         const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
         const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
@@ -831,14 +869,14 @@ const calculateAttendanceStats = (employee) => __awaiter(void 0, void 0, void 0,
         // Calculate attendance percentage (last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const recentRecords = attendanceRecords.filter(record => new Date(record.date) >= thirtyDaysAgo);
+        const recentRecords = attendanceRecords.filter((record) => new Date(record.date) >= thirtyDaysAgo);
         const totalRecentDays = recentRecords.length;
-        const presentDays = recentRecords.filter(record => record.status === 'present').length;
+        const presentDays = recentRecords.filter((record) => record.status === 'present').length;
         employee.attendancePercentage = totalRecentDays > 0
             ? Math.round((presentDays / totalRecentDays) * 100)
             : 0;
         // Calculate absence frequency (last 30 days)
-        const absentDays = recentRecords.filter(record => record.status === 'absent' || record.status === 'late').length;
+        const absentDays = recentRecords.filter((record) => record.status === 'absent' || record.status === 'late').length;
         employee.absenceFrequency = absentDays;
     }
     catch (error) {

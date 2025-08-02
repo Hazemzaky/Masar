@@ -89,6 +89,9 @@ const vendorRoutes_1 = __importDefault(require("./routes/vendorRoutes"));
 const purchaseRequestRoutes_1 = __importDefault(require("./routes/purchaseRequestRoutes"));
 const goodsReceiptRoutes_1 = __importDefault(require("./routes/goodsReceiptRoutes"));
 const purchaseOrderRoutes_1 = __importDefault(require("./routes/purchaseOrderRoutes"));
+const businessTripRoutes_1 = __importDefault(require("./routes/businessTripRoutes"));
+const pnlRoutes_1 = __importDefault(require("./routes/pnlRoutes"));
+const reconciliationRoutes_1 = __importDefault(require("./routes/reconciliationRoutes"));
 require("./models/Contract");
 require("./models/ProcurementInvoice");
 require("./models/Vendor");
@@ -110,7 +113,7 @@ mongoose_1.default.connect(MONGO_URI)
 app.use((0, cors_1.default)({
     origin: true, // Allow all origins
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express_1.default.json());
@@ -195,6 +198,9 @@ app.use('/api/vendors', vendorRoutes_1.default);
 app.use('/api/purchase-requests', purchaseRequestRoutes_1.default);
 app.use('/api/goods-receipts', goodsReceiptRoutes_1.default);
 app.use('/api/purchase-orders', purchaseOrderRoutes_1.default);
+app.use('/api/business-trips', businessTripRoutes_1.default);
+app.use('/api/pnl', pnlRoutes_1.default);
+app.use('/api/reconciliation', reconciliationRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

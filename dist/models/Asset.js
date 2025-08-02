@@ -36,12 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const AssetSchema = new mongoose_1.Schema({
     description: { type: String, required: true },
-    mainCategory: { type: String, required: true },
-    subCategory: { type: String, required: true },
-    subSubCategory: { type: String },
-    subSubSubCategory: { type: String },
-    subSubSubSubCategory: { type: String },
-    type: { type: String },
+    type: { type: String, required: true }, // First level
+    mainCategory: { type: String, required: true }, // Second level
+    subCategory: { type: String, required: true }, // Third level
+    subSubCategory: { type: String }, // Fourth level
+    subSubSubCategory: { type: String }, // Fifth level
+    subSubSubSubCategory: { type: String }, // Sixth level
     brand: { type: String },
     status: {
         type: String,
