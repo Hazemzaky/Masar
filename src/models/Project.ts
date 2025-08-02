@@ -3,10 +3,15 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IProject extends Document {
   customer: string;
   equipmentDescription: string;
-  rentTime: string;
+  totalBasicHours: number;
+  totalOvertimeHours: number;
+  overallHours: number;
+  overtimeHoursCost: number;
+  overtimeHours: number;
+  overtimePrice: number;
   rentType: 'monthly' | 'call_out';
-  timing: '8_hours' | '12_hours' | '24_hours';
-  operatorDriver: '1' | '2';
+  department: string;
+  priceListDescription: string;
   startTime?: Date;
   endTime?: Date;
   status?: 'active' | 'completed' | 'cancelled';
@@ -20,10 +25,15 @@ export interface IProject extends Document {
 const ProjectSchema = new Schema<IProject>({
   customer: { type: String, required: true },
   equipmentDescription: { type: String, required: true },
-  rentTime: { type: String, required: true },
+  totalBasicHours: { type: Number, required: true, default: 0 },
+  totalOvertimeHours: { type: Number, required: true, default: 0 },
+  overallHours: { type: Number, required: true, default: 0 },
+  overtimeHoursCost: { type: Number, required: true, default: 0 },
+  overtimeHours: { type: Number, required: true, default: 0 },
+  overtimePrice: { type: Number, required: true, default: 0 },
   rentType: { type: String, enum: ['monthly', 'call_out'], required: true },
-  timing: { type: String, enum: ['8_hours', '12_hours', '24_hours'], required: true },
-  operatorDriver: { type: String, enum: ['1', '2'], required: true },
+  department: { type: String, required: true },
+  priceListDescription: { type: String, required: true },
   startTime: { type: Date },
   endTime: { type: Date },
   status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
