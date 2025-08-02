@@ -37,7 +37,7 @@ export interface IQuotation extends Document {
   contactPersonPhone?: string;
   contactPersonEmail?: string;
   contactPersonExtension?: string;
-  terms?: string[];
+  termsAndConditions?: string;
   additionalDetails?: string;
   rentalItems?: IRentalItem[];
 }
@@ -70,7 +70,7 @@ const QuotationSchema = new Schema<IQuotation>({
   contactPersonPhone: String,
   contactPersonEmail: String,
   contactPersonExtension: String,
-  terms: [String],
+  termsAndConditions: String,
   additionalDetails: String,
   rentalItems: [{
     description: { type: String, required: true },
