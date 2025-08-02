@@ -66,6 +66,14 @@ import './models/GoodsReceipt';
 import './models/PurchaseOrder';
 import './models/Accident';
 import './models/NearMiss';
+import './models/SafetyInspection';
+import './models/Incident';
+import './models/RiskAssessment';
+import './models/PPE';
+import './models/Training';
+import './models/Environmental';
+import './models/EmergencyContact';
+import './models/EmergencyPlan';
 
 dotenv.config();
 
