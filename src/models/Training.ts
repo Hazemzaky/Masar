@@ -30,7 +30,8 @@ export interface ITraining extends Document {
     present: boolean;
     notes?: string;
   }[];
-  amortisation: number; // in months
+  cost: number;
+  amortization: number; // in months
   notes?: string;
   attachments: string[];
   serial?: string; // Document serial number
@@ -85,7 +86,8 @@ const trainingSchema = new Schema<ITraining>({
   },
   certificates: [certificationSchema],
   attendance: [attendanceSchema],
-  amortisation: { type: Number, required: true },
+  cost: { type: Number, required: true },
+  amortization: { type: Number, required: true },
   notes: { type: String },
   attachments: [{ type: String }],
   serial: { type: String, unique: true, sparse: true }

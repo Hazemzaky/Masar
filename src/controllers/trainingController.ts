@@ -15,12 +15,13 @@ export const createTraining = async (req: Request, res: Response): Promise<void>
       provider,
       location,
       status,
-      amortisation,
+      cost,
+      amortization,
       notes,
     } = req.body;
 
     // Validate required fields
-    if (!employee || !trainingType || !title || !description || !startDate || !endDate || !duration || !provider || !location || !amortisation) {
+    if (!employee || !trainingType || !title || !description || !startDate || !endDate || !duration || !provider || !location || !cost || !amortization) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -39,7 +40,8 @@ export const createTraining = async (req: Request, res: Response): Promise<void>
       provider,
       location,
       status: status || 'scheduled',
-      amortisation: Number(amortisation),
+      cost: Number(cost),
+      amortization: Number(amortization),
       notes,
       serial: serialNumber,
     });
@@ -117,7 +119,8 @@ export const updateTraining = async (req: Request, res: Response): Promise<void>
       provider,
       location,
       status,
-      amortisation,
+      cost,
+      amortization,
       notes,
     } = req.body;
 
@@ -132,7 +135,8 @@ export const updateTraining = async (req: Request, res: Response): Promise<void>
       provider,
       location,
       status,
-      amortisation: amortisation ? Number(amortisation) : undefined,
+      cost: cost ? Number(cost) : undefined,
+      amortization: amortization ? Number(amortization) : undefined,
       notes,
     };
 
