@@ -1,5 +1,14 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+// Rental Item interface
+export interface IRentalItem {
+  description: string;
+  rentType: 'Callout' | 'Monthly' | 'Trip';
+  workingHours: '8' | '12' | '16' | '24';
+  unitPrice: number;
+  remarks?: string;
+}
+
 export interface IQuotation extends Document {
   quotationDate: Date;
   validUntil: Date;
@@ -53,6 +62,7 @@ export interface IQuotation extends Document {
   currency?: string;
   terms?: string[];
   additionalDetails?: string;
+  rentalItems?: IRentalItem[];
 }
 
 const QuotationSchema = new Schema<IQuotation>({
@@ -108,6 +118,13 @@ const QuotationSchema = new Schema<IQuotation>({
   currency: String,
   terms: [String],
   additionalDetails: String,
+  rentalItems: [{
+    description: { type: String, required: true },
+    rentType: { type: String, enum: ['Callout', 'Monthly', 'Trip'], required: true },
+    workingHours: { type: String, enum: ['8', '12', '16', '24'], required: true },
+    unitPrice: { type: Number, required: true },
+    remarks: String,
+  }],
 }, { timestamps: true });
 
 export default mongoose.model<IQuotation>('Quotation', QuotationSchema); 
