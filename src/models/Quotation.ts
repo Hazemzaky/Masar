@@ -23,24 +23,6 @@ export interface IQuotation extends Document {
   project?: string;
   rateType: string;
   rate: number;
-  operatorCharges: number;
-  fuelCharges: number;
-  mobilizationFee: number;
-  standbyCharges: number;
-  securityDeposit: number;
-  discounts: number;
-  taxes: number;
-  addOns: string;
-  paymentTerms: string;
-  paymentMethods: string;
-  penalty: string;
-  withOperator: 'no' | 'one' | 'two';
-  fuelProvidedBy: string;
-  insurance: string;
-  maintenance: string;
-  availability: string;
-  breakdownPolicy: string;
-  standbyConditions: string;
   grandTotal: number;
   responses?: any[];
   justification?: string;
@@ -74,24 +56,6 @@ const QuotationSchema = new Schema<IQuotation>({
   project: String,
   rateType: String,
   rate: Number,
-  operatorCharges: Number,
-  fuelCharges: Number,
-  mobilizationFee: Number,
-  standbyCharges: Number,
-  securityDeposit: Number,
-  discounts: Number,
-  taxes: Number,
-  addOns: String,
-  paymentTerms: String,
-  paymentMethods: String,
-  penalty: String,
-  withOperator: { type: String, enum: ['no', 'one', 'two'], default: 'no' },
-  fuelProvidedBy: String,
-  insurance: String,
-  maintenance: String,
-  availability: String,
-  breakdownPolicy: String,
-  standbyConditions: String,
   grandTotal: Number,
   responses: { type: Array, default: [] },
   justification: { type: String },
