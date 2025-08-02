@@ -58,6 +58,7 @@ import reconciliationRoutes from './routes/reconciliationRoutes';
 import contractRoutes from './routes/contractRoutes';
 import accidentRoutes from './routes/accidentRoutes';
 import nearMissRoutes from './routes/nearMissRoutes';
+import trainingRoutes from './routes/trainingRoutes';
 import './models/Contract';
 import './models/ProcurementInvoice';
 import './models/Vendor';
@@ -189,6 +190,7 @@ app.use('/api/reconciliation', reconciliationRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/hse/accidents', accidentRoutes);
 app.use('/api/hse/near-misses', nearMissRoutes);
+app.use('/api/hse/training', trainingRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -21,7 +21,6 @@ export interface ITraining extends Document {
   duration: number; // in hours
   provider: string;
   location: string;
-  instructor: string;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   score?: number;
   result: 'pass' | 'fail' | 'not_applicable';
@@ -31,7 +30,7 @@ export interface ITraining extends Document {
     present: boolean;
     notes?: string;
   }[];
-  cost: number;
+  amortisation: number; // in months
   notes?: string;
   attachments: string[];
   serial?: string; // Document serial number
@@ -71,7 +70,6 @@ const trainingSchema = new Schema<ITraining>({
   duration: { type: Number, required: true },
   provider: { type: String, required: true },
   location: { type: String, required: true },
-  instructor: { type: String, required: true },
   status: { 
     type: String, 
     required: true, 
@@ -87,7 +85,7 @@ const trainingSchema = new Schema<ITraining>({
   },
   certificates: [certificationSchema],
   attendance: [attendanceSchema],
-  cost: { type: Number, required: true },
+  amortisation: { type: Number, required: true },
   notes: { type: String },
   attachments: [{ type: String }],
   serial: { type: String, unique: true, sparse: true }
