@@ -233,21 +233,11 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
     
     const updateData: any = {
       status,
-      completedBy: req.user?.userId
+      completedBy: req.user?.userId,
+      completedDate: completedDate ? new Date(completedDate) : undefined,
+      completedTime: completedTime || undefined,
+      totalMaintenanceTime: totalMaintenanceTime !== undefined ? totalMaintenanceTime : undefined
     };
-    
-    // Only update completion date/time if provided
-    if (completedDate) {
-      updateData.completedDate = new Date(completedDate);
-    }
-    if (completedTime) {
-      updateData.completedTime = completedTime;
-    }
-    
-    // Only update totalMaintenanceTime if provided
-    if (totalMaintenanceTime !== undefined) {
-      updateData.totalMaintenanceTime = totalMaintenanceTime;
-    }
     
     console.log('Updating maintenance with data:', updateData);
     
