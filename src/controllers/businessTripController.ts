@@ -25,6 +25,12 @@ export const createBusinessTrip = async (req: Request, res: Response) => {
       postTripSummary: getFile(req, 'postTripSummary'),
       boardingPass: getFile(req, 'boardingPass'),
       signedClaimForm: getFile(req, 'signedClaimForm'),
+      // Handle amortization fields
+      costAmortization: req.body.costAmortization === 'true',
+      totalTripCost: req.body.totalTripCost ? Number(req.body.totalTripCost) : undefined,
+      customPeriod: req.body.customPeriod ? Number(req.body.customPeriod) : undefined,
+      amortizationStartDate: req.body.amortizationStartDate ? new Date(req.body.amortizationStartDate) : undefined,
+      amortizationEndDate: req.body.amortizationEndDate ? new Date(req.body.amortizationEndDate) : undefined,
     });
     await trip.save();
     res.status(201).json(trip);
@@ -69,6 +75,24 @@ export const updateBusinessTrip = async (req: Request, res: Response) => {
       if (getFile(req, 'boardingPass')) update.boardingPass = getFile(req, 'boardingPass');
       if (getFile(req, 'signedClaimForm')) update.signedClaimForm = getFile(req, 'signedClaimForm');
     }
+    
+    // Handle amortization fields
+    if (req.body.costAmortization !== undefined) {
+      update.costAmortization = req.body.costAmortization === 'true';
+    }
+    if (req.body.totalTripCost) {
+      update.totalTripCost = Number(req.body.totalTripCost);
+    }
+    if (req.body.customPeriod) {
+      update.customPeriod = Number(req.body.customPeriod);
+    }
+    if (req.body.amortizationStartDate) {
+      update.amortizationStartDate = new Date(req.body.amortizationStartDate);
+    }
+    if (req.body.amortizationEndDate) {
+      update.amortizationEndDate = new Date(req.body.amortizationEndDate);
+    }
+    
     const trip = await BusinessTrip.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!trip) return res.status(404).json({ error: 'Not found' });
     res.json(trip);

@@ -11,8 +11,6 @@ export interface IBusinessTrip extends Document {
   seminarFile?: string;
   perDiem: number;
   flightClass: string;
-  overrideFlightClass?: boolean;
-  overrideFlightClassValue?: string;
   hotelQuotes?: string[];
   flightQuotes?: string[];
   travelArrangedBy?: string;
@@ -22,6 +20,13 @@ export interface IBusinessTrip extends Document {
   claimSheet?: string;
   financeApproval?: 'approved' | 'rejected' | 'pending';
   financeComments?: string;
+  // Add amortization fields
+  costAmortization?: boolean;
+  amortizationPeriod?: string;
+  amortizationStartDate?: Date;
+  amortizationEndDate?: Date;
+  totalTripCost?: number;
+  customPeriod?: number;
   approvalChain: Array<{
     role: string;
     name: string;
@@ -54,8 +59,6 @@ const BusinessTripSchema = new Schema<IBusinessTrip>({
   seminarFile: { type: String },
   perDiem: { type: Number, required: true },
   flightClass: { type: String, required: true },
-  overrideFlightClass: { type: Boolean },
-  overrideFlightClassValue: { type: String },
   hotelQuotes: [{ type: String }],
   flightQuotes: [{ type: String }],
   travelArrangedBy: { type: String },
@@ -65,6 +68,13 @@ const BusinessTripSchema = new Schema<IBusinessTrip>({
   claimSheet: { type: String },
   financeApproval: { type: String, enum: ['approved', 'rejected', 'pending'], default: 'pending' },
   financeComments: { type: String },
+  // Add amortization fields
+  costAmortization: { type: Boolean },
+  amortizationPeriod: { type: String },
+  amortizationStartDate: { type: Date },
+  amortizationEndDate: { type: Date },
+  totalTripCost: { type: Number },
+  customPeriod: { type: Number },
   approvalChain: [
     {
       role: String,

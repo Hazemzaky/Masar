@@ -77,6 +77,10 @@ import './models/EmergencyContact';
 import './models/EmergencyPlan';
 import './models/HSEDocumentFolder';
 import './models/HSEDocument';
+// Import P&L related models
+import './models/PnLStatement';
+import './models/Expense';
+import './models/Invoice';
 
 dotenv.config();
 
@@ -123,6 +127,7 @@ app.get('/health', (req: Request, res: Response) => {
     routes: [
       '/api/auth',
       '/api/expenses',
+      '/api/invoices',
       '/api/dashboard',
       '/api/budgets',
       '/api/accounts',
@@ -132,7 +137,8 @@ app.get('/health', (req: Request, res: Response) => {
       '/api/inventory',
       '/api/payroll',
       '/api/leave',
-      '/api/reimbursements'
+      '/api/reimbursements',
+      '/api/pnl'
     ]
   });
 });
