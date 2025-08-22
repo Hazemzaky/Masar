@@ -748,14 +748,31 @@ export const deleteEnvironmental = async (req: Request, res: Response): Promise<
 // HSE Document Library - Folder Management
 export const createHSEDocumentFolder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const folder = new HSEDocumentFolder({
+    console.log('Creating folder with data:', req.body);
+    console.log('User from request:', req.user);
+    console.log('User ID:', req.user?.userId);
+    
+    if (!req.user?.userId) {
+      res.status(401).json({ message: 'User not authenticated or user ID missing' });
+      return;
+    }
+    
+    const folderData = {
       ...req.body,
-      createdBy: req.user?.userId
-    });
+      createdBy: req.user.userId
+    };
+    
+    console.log('Final folder data:', folderData);
+    
+    const folder = new HSEDocumentFolder(folderData);
     await folder.save();
     res.status(201).json(folder);
   } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    console.error('Error creating folder:', error);
+    res.status(400).json({ 
+      message: error.message,
+      details: error.errors || 'Unknown validation error'
+    });
   }
 };
 
