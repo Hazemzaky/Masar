@@ -7,6 +7,8 @@ import Training from '../models/Training';
 import Environmental from '../models/Environmental';
 import EmergencyContact from '../models/EmergencyContact';
 import EmergencyPlan from '../models/EmergencyPlan';
+import HSEDocumentFolder from '../models/HSEDocumentFolder';
+import HSEDocument from '../models/HSEDocument';
 
 import User from '../models/User';
 import Employee from '../models/Employee';
@@ -738,6 +740,298 @@ export const deleteEnvironmental = async (req: Request, res: Response): Promise<
       return;
     }
     res.json({ message: 'Environmental record deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}; 
+
+// HSE Document Library - Folder Management
+export const createHSEDocumentFolder = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const folder = new HSEDocumentFolder({
+      ...req.body,
+      createdBy: req.user?.userId
+    });
+    await folder.save();
+    res.status(201).json(folder);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getHSEDocumentFolders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const folders = await HSEDocumentFolder.find()
+      .populate('parentFolder', 'name path')
+      .populate('createdBy', 'email')
+      .sort({ path: 1 });
+    res.json(folders);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateHSEDocumentFolder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const folder = await HSEDocumentFolder.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    ).populate('parentFolder', 'name path')
+     .populate('createdBy', 'email');
+    
+    if (!folder) {
+      res.status(404).json({ message: 'Folder not found' });
+      return;
+    }
+    res.json(folder);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteHSEDocumentFolder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Check if folder has subfolders or documents
+    const hasSubfolders = await HSEDocumentFolder.exists({ parentFolder: req.params.id });
+    const hasDocuments = await HSEDocument.exists({ folder: req.params.id });
+    
+    if (hasSubfolders || hasDocuments) {
+      res.status(400).json({ 
+        message: 'Cannot delete folder. It contains subfolders or documents. Please move or delete them first.' 
+      });
+      return;
+    }
+    
+    const folder = await HSEDocumentFolder.findByIdAndDelete(req.params.id);
+    if (!folder) {
+      res.status(404).json({ message: 'Folder not found' });
+      return;
+    }
+    res.json({ message: 'Folder deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// HSE Document Library - Document Management
+export const createHSEDocument = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    let fileUrl = '';
+    let fileSize = 0;
+    let mimeType = '';
+    
+    if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
+      fileSize = req.file.size;
+      mimeType = req.file.mimetype;
+    }
+    
+    const document = new HSEDocument({
+      ...req.body,
+      fileName: req.file ? req.file.originalname : req.body.fileName,
+      fileUrl,
+      fileSize,
+      mimeType,
+      uploadedBy: req.user?.userId,
+      cost: Number(req.body.cost),
+      amortization: Number(req.body.amortization),
+      startDate: new Date(req.body.startDate),
+      endDate: new Date(req.body.endDate)
+    });
+    
+    await document.save();
+    
+    const populatedDocument = await document.populate([
+      { path: 'folder', select: 'name path' },
+      { path: 'uploadedBy', select: 'email' },
+      { path: 'approvedBy', select: 'email' }
+    ]);
+    
+    res.status(201).json(populatedDocument);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getHSEDocuments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { folder, status, documentType, search } = req.query;
+    
+    let query: any = {};
+    
+    if (folder) {
+      query.folder = folder;
+    }
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (documentType) {
+      query.documentType = documentType;
+    }
+    
+    if (search && typeof search === 'string') {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
+    }
+    
+    const documents = await HSEDocument.find(query)
+      .populate('folder', 'name path')
+      .populate('uploadedBy', 'email')
+      .populate('approvedBy', 'email')
+      .sort({ createdAt: -1 });
+    
+    res.json(documents);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getHSEDocumentById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const document = await HSEDocument.findById(req.params.id)
+      .populate('folder', 'name path')
+      .populate('uploadedBy', 'email')
+      .populate('approvedBy', 'email');
+    
+    if (!document) {
+      res.status(404).json({ message: 'Document not found' });
+      return;
+    }
+    
+    res.json(document);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateHSEDocument = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    let updateData: any = { ...req.body };
+    
+    if (req.file) {
+      updateData.fileUrl = `/uploads/${req.file.filename}`;
+      updateData.fileSize = req.file.size;
+      updateData.mimeType = req.file.mimetype;
+      updateData.fileName = req.file.originalname;
+    }
+    
+    // Convert numeric fields
+    if (req.body.cost) updateData.cost = Number(req.body.cost);
+    if (req.body.amortization) updateData.amortization = Number(req.body.amortization);
+    if (req.body.startDate) updateData.startDate = new Date(req.body.startDate);
+    if (req.body.endDate) updateData.endDate = new Date(req.body.endDate);
+    
+    const document = await HSEDocument.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate([
+      { path: 'folder', select: 'name path' },
+      { path: 'uploadedBy', select: 'email' },
+      { path: 'approvedBy', select: 'email' }
+    ]);
+    
+    if (!document) {
+      res.status(404).json({ message: 'Document not found' });
+      return;
+    }
+    
+    res.json(document);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteHSEDocument = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const document = await HSEDocument.findByIdAndDelete(req.params.id);
+    if (!document) {
+      res.status(404).json({ message: 'Document not found' });
+      return;
+    }
+    res.json({ message: 'Document deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// HSE Document Library - Approval Management
+export const approveHSEDocument = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const document = await HSEDocument.findByIdAndUpdate(
+      req.params.id,
+      {
+        status: 'active',
+        approvedBy: req.user?.userId,
+        approvedAt: new Date()
+      },
+      { new: true }
+    ).populate([
+      { path: 'folder', select: 'name path' },
+      { path: 'uploadedBy', select: 'email' },
+      { path: 'approvedBy', select: 'email' }
+    ]);
+    
+    if (!document) {
+      res.status(404).json({ message: 'Document not found' });
+      return;
+    }
+    
+    res.json(document);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// HSE Document Library - Statistics
+export const getHSEDocumentStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const [
+      totalDocuments,
+      totalFolders,
+      activeDocuments,
+      expiredDocuments,
+      totalCost,
+      totalAmortization,
+      documentsByType,
+      documentsByStatus
+    ] = await Promise.all([
+      HSEDocument.countDocuments(),
+      HSEDocumentFolder.countDocuments(),
+      HSEDocument.countDocuments({ status: 'active' }),
+      HSEDocument.countDocuments({ status: 'expired' }),
+      HSEDocument.aggregate([
+        { $group: { _id: null, total: { $sum: '$cost' } } }
+      ]),
+      HSEDocument.aggregate([
+        { $group: { _id: null, total: { $sum: '$amortization' } } }
+      ]),
+      HSEDocument.aggregate([
+        { $group: { _id: '$documentType', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      HSEDocument.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ])
+    ]);
+    
+    res.json({
+      totalDocuments,
+      totalFolders,
+      activeDocuments,
+      expiredDocuments,
+      totalCost: totalCost[0]?.total || 0,
+      totalAmortization: totalAmortization[0]?.total || 0,
+      documentsByType,
+      documentsByStatus
+    });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

@@ -75,6 +75,8 @@ import './models/Training';
 import './models/Environmental';
 import './models/EmergencyContact';
 import './models/EmergencyPlan';
+import './models/HSEDocumentFolder';
+import './models/HSEDocument';
 
 dotenv.config();
 

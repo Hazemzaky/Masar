@@ -50,6 +50,19 @@ import {
   updateEmergencyPlan,
   deleteEmergencyPlan,
   
+  // HSE Document Library Management
+  createHSEDocumentFolder,
+  getHSEDocumentFolders,
+  updateHSEDocumentFolder,
+  deleteHSEDocumentFolder,
+  createHSEDocument,
+  getHSEDocuments,
+  getHSEDocumentById,
+  updateHSEDocument,
+  deleteHSEDocument,
+  approveHSEDocument,
+  getHSEDocumentStats,
+  
   // Dashboard
   getHSEDashboard
 } from '../controllers/hseController';
@@ -110,5 +123,24 @@ router.post('/environmental', createEnvironmental);
 router.get('/environmental', getEnvironmental);
 router.put('/environmental/:id', updateEnvironmental);
 router.delete('/environmental/:id', deleteEnvironmental);
+
+// HSE Document Library - Folder Management Routes
+router.post('/document-folders', createHSEDocumentFolder);
+router.get('/document-folders', getHSEDocumentFolders);
+router.put('/document-folders/:id', updateHSEDocumentFolder);
+router.delete('/document-folders/:id', deleteHSEDocumentFolder);
+
+// HSE Document Library - Document Management Routes
+router.post('/documents', upload.single('file'), createHSEDocument);
+router.get('/documents', getHSEDocuments);
+router.get('/documents/:id', getHSEDocumentById);
+router.put('/documents/:id', upload.single('file'), updateHSEDocument);
+router.delete('/documents/:id', deleteHSEDocument);
+
+// HSE Document Library - Approval Routes
+router.post('/documents/:id/approve', approveHSEDocument);
+
+// HSE Document Library - Statistics Routes
+router.get('/document-stats', getHSEDocumentStats);
 
 export default router; 
