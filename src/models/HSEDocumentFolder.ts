@@ -44,19 +44,50 @@ HSEDocumentFolderSchema.index({ parentFolder: 1, name: 1 }, { unique: true });
 
 // Pre-save middleware to generate path
 HSEDocumentFolderSchema.pre('save', async function(next) {
-  if (this.isNew || this.isModified('name') || this.isModified('parentFolder')) {
-    if (this.parentFolder) {
-      const parent = await mongoose.model('HSEDocumentFolder').findById(this.parentFolder);
-      if (parent) {
-        this.path = `${parent.path}/${this.name}`;
+  try {
+    console.log('HSEDocumentFolder pre-save middleware executing...');
+    console.log('Document data:', {
+      name: this.name,
+      parentFolder: this.parentFolder,
+      isNew: this.isNew,
+      modifiedFields: this.modifiedPaths()
+    });
+    
+    if (this.isNew || this.isModified('name') || this.isModified('parentFolder')) {
+      if (this.parentFolder) {
+        console.log('Parent folder exists, looking up parent...');
+        const parent = await mongoose.model('HSEDocumentFolder').findById(this.parentFolder);
+        if (parent) {
+          this.path = `${parent.path}/${this.name}`;
+          console.log('Set path to:', this.path);
+        } else {
+          console.log('Parent not found, setting path to name only');
+          this.path = this.name;
+        }
       } else {
+        console.log('No parent folder, setting path to name only');
         this.path = this.name;
       }
     } else {
+      console.log('No relevant fields modified, keeping existing path');
+    }
+    
+    // Fallback: ensure path is always set
+    if (!this.path) {
+      console.log('Path is still undefined, setting fallback path');
       this.path = this.name;
     }
+    
+    console.log('Final path value:', this.path);
+    next();
+  } catch (error) {
+    console.error('Error in HSEDocumentFolder pre-save middleware:', error);
+    // Fallback: set path to name if middleware fails
+    if (!this.path) {
+      this.path = this.name;
+    }
+    next();
   }
-  next();
 });
 
 export default mongoose.model<IHSEDocumentFolder>('HSEDocumentFolder', HSEDocumentFolderSchema); 
