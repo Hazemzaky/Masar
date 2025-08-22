@@ -27,7 +27,6 @@ const HSEDocumentFolderSchema = new Schema<IHSEDocumentFolder>({
   },
   path: {
     type: String,
-    required: true,
     unique: true
   },
   createdBy: {
@@ -53,6 +52,7 @@ HSEDocumentFolderSchema.pre('save', async function(next) {
       modifiedFields: this.modifiedPaths()
     });
     
+    // Always generate path for new documents or when name/parentFolder changes
     if (this.isNew || this.isModified('name') || this.isModified('parentFolder')) {
       if (this.parentFolder) {
         console.log('Parent folder exists, looking up parent...');
