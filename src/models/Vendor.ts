@@ -13,6 +13,10 @@ export interface IVendor extends Document {
   email: string;
   address: string;
   tradeLicense?: string;
+  creditForm?: string;
+  categorizations: string[];
+  creditLimit?: number;
+  paymentTerms?: string;
   status: 'active' | 'inactive' | 'blacklisted';
   registrationStatus: 'pending' | 'approved' | 'rejected';
   approvalHistory: IApprovalHistory[];
@@ -33,6 +37,10 @@ const VendorSchema = new Schema<IVendor>({
   email: { type: String, required: true },
   address: { type: String, required: true },
   tradeLicense: { type: String },
+  creditForm: { type: String },
+  categorizations: [{ type: String, required: true }],
+  creditLimit: { type: Number },
+  paymentTerms: { type: String },
   status: { type: String, enum: ['active', 'inactive', 'blacklisted'], default: 'inactive' },
   registrationStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   approvalHistory: { type: [ApprovalHistorySchema], default: [] },

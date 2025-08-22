@@ -5,6 +5,7 @@ import {
   getPurchaseRequests,
   getPurchaseRequestById,
   updatePurchaseRequest,
+  setPurchaseRequestInProgress,
   deletePurchaseRequest,
   createVendor,
   getVendors,
@@ -43,6 +44,7 @@ router.post('/purchase-requests', authenticate, createPurchaseRequest);
 router.get('/purchase-requests', authenticate, getPurchaseRequests);
 router.get('/purchase-requests/:id', authenticate, getPurchaseRequestById);
 router.put('/purchase-requests/:id', authenticate, updatePurchaseRequest);
+router.put('/purchase-requests/:id/in-progress', authenticate, setPurchaseRequestInProgress);
 router.delete('/purchase-requests/:id', authenticate, deletePurchaseRequest);
 
 // Vendor Routes

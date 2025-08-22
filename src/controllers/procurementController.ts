@@ -19,7 +19,7 @@ interface AuthRequest extends Request {
 // Create a new Purchase Request
 export const createPurchaseRequest = async (req: AuthRequest, res: Response) => {
   try {
-    const { itemDescription, quantity, priority, department, attachments } = req.body;
+    const { itemDescription, quantity, priority, department, attachments, itemStatus, procurementNotes, estimatedCost } = req.body;
     const requester = req.user?.userId || req.body.requester; // support both direct and middleware
     if (!itemDescription || !quantity || !priority || !department || !requester) {
       res.status(400).json({ message: 'Missing required fields' });
@@ -36,6 +36,9 @@ export const createPurchaseRequest = async (req: AuthRequest, res: Response) => 
       department,
       requester,
       attachments: attachments || [],
+      itemStatus: itemStatus || 'available',
+      procurementNotes,
+      estimatedCost: estimatedCost ? Number(estimatedCost) : undefined,
       status: 'pending',
       approvalHistory: [{ approver: requester, action: 'pending', date: new Date() }],
       serial
@@ -77,7 +80,7 @@ export const getPurchaseRequestById = async (req: AuthRequest, res: Response) =>
 // Update a Purchase Request (fields or status)
 export const updatePurchaseRequest = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, approvalAction, comment } = req.body;
+    const { status, approvalAction, comment, itemStatus, procurementNotes, estimatedCost } = req.body;
     const pr = await PurchaseRequest.findById(req.params.id);
     if (!pr) {
       res.status(404).json({ message: 'Purchase Request not found' });
@@ -91,8 +94,8 @@ export const updatePurchaseRequest = async (req: AuthRequest, res: Response) => 
         return;
       }
     }
-    // Only allow status/approval changes via this endpoint
-    if (status && ['approved', 'sent_to_procurement', 'rejected'].includes(status)) {
+    // Allow status changes including in_progress
+    if (status && ['approved', 'sent_to_procurement', 'rejected', 'in_progress'].includes(status)) {
       pr.status = status;
       pr.approvalHistory.push({
         approver: req.user?.userId || req.body.approver,
@@ -101,7 +104,43 @@ export const updatePurchaseRequest = async (req: AuthRequest, res: Response) => 
         comment,
       });
     }
+    
+    // Update other fields
+    if (itemStatus) pr.itemStatus = itemStatus;
+    if (procurementNotes !== undefined) pr.procurementNotes = procurementNotes;
+    if (estimatedCost !== undefined) pr.estimatedCost = Number(estimatedCost);
+    
     Object.assign(pr, req.body);
+    await pr.save();
+    res.json(pr);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+// Set Purchase Request to In Progress
+export const setPurchaseRequestInProgress = async (req: AuthRequest, res: Response) => {
+  try {
+    const { procurementNotes, estimatedCost, itemStatus } = req.body;
+    const pr = await PurchaseRequest.findById(req.params.id);
+    if (!pr) {
+      res.status(404).json({ message: 'Purchase Request not found' });
+      return;
+    }
+    
+    pr.status = 'in_progress';
+    if (procurementNotes) pr.procurementNotes = procurementNotes;
+    if (estimatedCost) pr.estimatedCost = Number(estimatedCost);
+    if (itemStatus) pr.itemStatus = itemStatus;
+    
+    pr.approvalHistory.push({
+      approver: req.user?.userId || req.body.approver,
+      action: 'in_progress',
+      date: new Date(),
+      comment: 'Procurement process started',
+    });
+    
     await pr.save();
     res.json(pr);
   } catch (error) {
@@ -128,8 +167,8 @@ export const deletePurchaseRequest = async (req: AuthRequest, res: Response) => 
 // --- Vendor Endpoints ---
 export const createVendor = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, contactInfo, registrationStatus, rating, documents, status } = req.body;
-    if (!name || !contactInfo) {
+    const { name, phone, email, address, tradeLicense, creditForm, categorizations, creditLimit, paymentTerms, status } = req.body;
+    if (!name || !phone || !email || !address) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -139,11 +178,16 @@ export const createVendor = async (req: AuthRequest, res: Response): Promise<voi
     }
     const vendor = new Vendor({
       name,
-      contactInfo,
-      registrationStatus: registrationStatus || 'pending',
-      rating,
-      documents: documents || {},
-      status: status || 'active',
+      phone,
+      email,
+      address,
+      tradeLicense,
+      creditForm,
+      categorizations: categorizations || [],
+      creditLimit: creditLimit ? Number(creditLimit) : undefined,
+      paymentTerms,
+      status: status || 'inactive',
+      registrationStatus: 'pending',
       approvalHistory: [{ approver: new mongoose.Types.ObjectId(req.user.userId), action: 'pending', date: new Date() }],
     });
     await vendor.save();

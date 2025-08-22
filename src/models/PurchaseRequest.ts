@@ -10,12 +10,15 @@ export interface IApprovalHistory {
 export interface IPurchaseRequest extends Document {
   itemDescription: string;
   quantity: number;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   department: string;
-  status: 'pending' | 'approved' | 'rejected' | 'sent_to_procurement';
+  status: 'pending' | 'approved' | 'rejected' | 'sent_to_procurement' | 'in_progress';
+  itemStatus: 'available' | 'out_of_stock' | 'discontinued' | 'backorder';
   requester: mongoose.Types.ObjectId | string;
   attachments?: string[];
   approvalHistory: IApprovalHistory[];
+  procurementNotes?: string;
+  estimatedCost?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,12 +33,15 @@ const ApprovalHistorySchema = new Schema<IApprovalHistory>({
 const PurchaseRequestSchema = new Schema<IPurchaseRequest>({
   itemDescription: { type: String, required: true },
   quantity: { type: Number, required: true },
-  priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+  priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
   department: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected', 'sent_to_procurement'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'sent_to_procurement', 'in_progress'], default: 'pending' },
+  itemStatus: { type: String, enum: ['available', 'out_of_stock', 'discontinued', 'backorder'], default: 'available' },
   requester: { type: Schema.Types.ObjectId, ref: 'User', required: false },
   attachments: [{ type: String }],
   approvalHistory: { type: [ApprovalHistorySchema], default: [] },
+  procurementNotes: { type: String },
+  estimatedCost: { type: Number }
 }, { timestamps: true });
 
 export default mongoose.model<IPurchaseRequest>('PurchaseRequest', PurchaseRequestSchema); 
