@@ -114,6 +114,10 @@ require("./models/EmergencyContact");
 require("./models/EmergencyPlan");
 require("./models/HSEDocumentFolder");
 require("./models/HSEDocument");
+// Import P&L related models
+require("./models/PnLStatement");
+require("./models/Expense");
+require("./models/Invoice");
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -152,6 +156,7 @@ app.get('/health', (req, res) => {
         routes: [
             '/api/auth',
             '/api/expenses',
+            '/api/invoices',
             '/api/dashboard',
             '/api/budgets',
             '/api/accounts',
@@ -161,7 +166,8 @@ app.get('/health', (req, res) => {
             '/api/inventory',
             '/api/payroll',
             '/api/leave',
-            '/api/reimbursements'
+            '/api/reimbursements',
+            '/api/pnl'
         ]
     });
 });

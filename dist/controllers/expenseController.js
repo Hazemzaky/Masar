@@ -63,8 +63,8 @@ const createExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.createExpense = createExpense;
 const getExpenses = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        let expenses = yield Expense_1.default.find().populate('user').populate('invoice');
-        expenses = expenses.filter(e => e.user);
+        let expenses = yield Expense_1.default.find().populate('submittedBy').populate('vendor');
+        expenses = expenses.filter(e => e.submittedBy);
         res.json(expenses);
     }
     catch (error) {
@@ -75,7 +75,7 @@ const getExpenses = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.getExpenses = getExpenses;
 const getExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const expense = yield Expense_1.default.findById(req.params.id).populate('user').populate('invoice');
+        const expense = yield Expense_1.default.findById(req.params.id).populate('submittedBy').populate('vendor');
         if (!expense) {
             res.status(404).json({ message: 'Expense not found' });
             return;
@@ -102,7 +102,7 @@ const updateExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             res.status(403).json({ message: 'This period is locked and cannot be edited.' });
             return;
         }
-        const updateData = Object.assign(Object.assign({}, req.body), { user: userId });
+        const updateData = Object.assign(Object.assign({}, req.body), { updatedBy: userId });
         const expense = yield Expense_1.default.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!expense) {
             res.status(404).json({ message: 'Expense not found' });
@@ -150,7 +150,9 @@ const createIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             date,
             currency,
             managementDepartment,
-            user: userId,
+            submittedBy: userId,
+            createdBy: userId,
+            updatedBy: userId,
             serial,
         });
         yield income.save();
@@ -164,7 +166,7 @@ const createIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 exports.createIncome = createIncome;
 const getIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const income = yield Income_1.default.find().populate('user');
+        const income = yield Income_1.default.find().populate('submittedBy');
         res.json(income);
     }
     catch (error) {

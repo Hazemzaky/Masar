@@ -59,8 +59,10 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
       lineItems,
       totalAmount,
       status: 'draft',
-      history: [{ status: 'draft', date: new Date() }],
       serial,
+      submittedBy: userId,
+      createdBy: userId,
+      updatedBy: userId,
     });
     await invoice.save();
     res.status(201).json(invoice);
@@ -81,7 +83,6 @@ export const updateInvoiceStatus = async (req: Request, res: Response): Promise<
       return;
     }
     invoice.status = status;
-    invoice.history.push({ status, date: new Date() });
     await invoice.save();
     res.json(invoice);
   } catch (error) {

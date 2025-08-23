@@ -75,8 +75,10 @@ const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             lineItems,
             totalAmount,
             status: 'draft',
-            history: [{ status: 'draft', date: new Date() }],
             serial,
+            submittedBy: userId,
+            createdBy: userId,
+            updatedBy: userId,
         });
         yield invoice.save();
         res.status(201).json(invoice);
@@ -98,7 +100,6 @@ const updateInvoiceStatus = (req, res) => __awaiter(void 0, void 0, void 0, func
             return;
         }
         invoice.status = status;
-        invoice.history.push({ status, date: new Date() });
         yield invoice.save();
         res.json(invoice);
     }

@@ -51,8 +51,8 @@ export const createExpense = async (
 
 export const getExpenses = async (req: Request, res: Response): Promise<void> => {
   try {
-    let expenses = await Expense.find().populate('user').populate('invoice');
-    expenses = expenses.filter(e => e.user);
+    let expenses = await Expense.find().populate('submittedBy').populate('vendor');
+    expenses = expenses.filter(e => e.submittedBy);
     res.json(expenses);
   } catch (error) {
     console.error('Error in getExpenses:', error);
@@ -62,7 +62,7 @@ export const getExpenses = async (req: Request, res: Response): Promise<void> =>
 
 export const getExpense = async (req: Request, res: Response): Promise<void> => {
   try {
-    const expense = await Expense.findById(req.params.id).populate('user').populate('invoice');
+    const expense = await Expense.findById(req.params.id).populate('submittedBy').populate('vendor');
     if (!expense) {
       res.status(404).json({ message: 'Expense not found' });
       return;
@@ -87,7 +87,7 @@ export const updateExpense = async (req: Request, res: Response): Promise<void> 
       res.status(403).json({ message: 'This period is locked and cannot be edited.' });
       return;
     }
-    const updateData = { ...req.body, user: userId };
+    const updateData = { ...req.body, updatedBy: userId };
     const expense = await Expense.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!expense) {
       res.status(404).json({ message: 'Expense not found' });
@@ -132,7 +132,9 @@ export const createIncome = async (req: Request, res: Response): Promise<void> =
       date,
       currency,
       managementDepartment,
-      user: userId,
+      submittedBy: userId,
+      createdBy: userId,
+      updatedBy: userId,
       serial,
     });
     await income.save();
@@ -145,7 +147,7 @@ export const createIncome = async (req: Request, res: Response): Promise<void> =
 
 export const getIncome = async (req: Request, res: Response): Promise<void> => {
   try {
-    const income = await Income.find().populate('user');
+    const income = await Income.find().populate('submittedBy');
     res.json(income);
   } catch (error) {
     console.error('Error in getIncome:', error);
