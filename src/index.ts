@@ -56,6 +56,8 @@ import businessTripRoutes from './routes/businessTripRoutes';
 import pnlRoutes from './routes/pnlRoutes';
 import reconciliationRoutes from './routes/reconciliationRoutes';
 import contractRoutes from './routes/contractRoutes';
+import glRoutes from './routes/glRoutes';
+import chartOfAccountsRoutes from './routes/chartOfAccountsRoutes';
 import accidentRoutes from './routes/accidentRoutes';
 import nearMissRoutes from './routes/nearMissRoutes';
 import trainingRoutes from './routes/trainingRoutes';
@@ -82,6 +84,8 @@ import './models/PnLStatement';
 import './models/Expense';
 import './models/Invoice';
 import './models/AccountMapping';
+import './models/ChartOfAccounts';
+import './models/GeneralLedgerEntry';
 
 dotenv.config();
 
@@ -139,7 +143,9 @@ app.get('/health', (req: Request, res: Response) => {
       '/api/payroll',
       '/api/leave',
       '/api/reimbursements',
-      '/api/pnl'
+      '/api/pnl',
+      '/api/gl',
+      '/api/chart-of-accounts'
     ]
   });
 });
@@ -197,6 +203,8 @@ app.use('/api/business-trips', businessTripRoutes);
 app.use('/api/pnl', pnlRoutes);
 app.use('/api/reconciliation', reconciliationRoutes);
 app.use('/api/contracts', contractRoutes);
+app.use('/api/gl', glRoutes);
+app.use('/api/chart-of-accounts', chartOfAccountsRoutes);
 app.use('/api/hse/accidents', accidentRoutes);
 app.use('/api/hse/near-misses', nearMissRoutes);
 app.use('/api/hse/training', trainingRoutes);
