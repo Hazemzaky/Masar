@@ -2,7 +2,257 @@ import { Request, Response } from 'express';
 import Expense from '../models/Expense';
 import Invoice from '../models/Invoice';
 import User from '../models/User';
+import Employee from '../models/Employee';
+import Asset from '../models/Asset';
+import Maintenance from '../models/Maintenance';
+import PurchaseRequest from '../models/PurchaseRequest';
+import PurchaseOrder from '../models/PurchaseOrder';
+import ProcurementInvoice from '../models/ProcurementInvoice';
+import Client from '../models/Client';
+import BusinessTrip from '../models/BusinessTrip';
+import Incident from '../models/Incident';
+import Training from '../models/Training';
+import Payroll from '../models/Payroll';
+import FuelLog from '../models/FuelLog';
+import GeneralLedgerEntry from '../models/GeneralLedgerEntry';
+import ChartOfAccounts from '../models/ChartOfAccounts';
+import Contract from '../models/Contract';
 
+// Helper to get date range from query or default to current financial year
+function getDateRange(req: Request) {
+  let { start, end } = req.query;
+  let startDate: Date, endDate: Date;
+  if (start && end) {
+    startDate = new Date(start as string);
+    endDate = new Date(end as string);
+  } else {
+    // Default: current financial year (Apr 1 - Mar 31)
+    const now = new Date();
+    const year = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    startDate = new Date(`${year}-04-01T00:00:00.000Z`);
+    endDate = new Date(`${year + 1}-03-31T23:59:59.999Z`);
+  }
+  return { startDate, endDate };
+}
+
+// Enhanced Dashboard Summary with all module KPIs
+export const getDashboardSummary = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = getDateRange(req);
+    
+    // Financial KPIs
+    const [revenue, expenses, grossProfit, netProfit] = await Promise.all([
+      Expense.aggregate([
+        { $match: { category: 'income', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Expense.aggregate([
+        { $match: { category: 'expenses', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Expense.aggregate([
+        { $match: { category: { $in: ['income', 'expenses'] }, date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$category', total: { $sum: '$amount' } } }
+      ]),
+      Expense.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: { $cond: [{ $eq: ['$category', 'income'] }, '$amount', { $multiply: ['$amount', -1] }] } } } }
+      ])
+    ]);
+
+    // HR KPIs
+    const [headcount, payroll, attrition] = await Promise.all([
+      Employee.countDocuments({ status: 'active' }),
+      Payroll.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      ]),
+      Employee.countDocuments({ status: 'terminated' })
+    ]);
+
+    // Assets KPIs
+    const [bookValue, utilization, depreciation, renewals] = await Promise.all([
+      Asset.aggregate([
+        { $group: { _id: null, total: { $sum: '$bookValue' } } }
+      ]),
+      Asset.aggregate([
+        { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
+      ]),
+      Asset.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$depreciationAmount' } } }
+      ]),
+      Asset.countDocuments({ status: 'renewal_required' })
+    ]);
+
+    // Operations KPIs
+    const [deliveries, onTimePercentage, deliveryCost, fleetUtilization] = await Promise.all([
+      BusinessTrip.countDocuments({ status: 'Completed', date: { $gte: startDate, $lte: endDate } }),
+      BusinessTrip.aggregate([
+        { $match: { status: 'Completed', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, onTime: { $sum: { $cond: [{ $lte: ['$actualReturnDate', '$returnDate'] }, 1, 0] } }, total: { $sum: 1 } } }
+      ]),
+      FuelLog.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$cost' } } }
+      ]),
+      Asset.aggregate([
+        { $match: { type: 'vehicle' } },
+        { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
+      ])
+    ]);
+
+    // Maintenance KPIs
+    const [maintenanceCost, preventiveVsCorrective, downtime] = await Promise.all([
+      Maintenance.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$cost' } } }
+      ]),
+      Maintenance.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+      ]),
+      Maintenance.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$downtimeHours' } } }
+      ])
+    ]);
+
+    // Procurement KPIs
+    const [totalSpend, topVendors, openPOs, cycleTime] = await Promise.all([
+      ProcurementInvoice.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      ProcurementInvoice.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$vendor', total: { $sum: '$amount' } } },
+        { $sort: { total: -1 } },
+        { $limit: 5 }
+      ]),
+      PurchaseOrder.countDocuments({ status: 'open' }),
+      PurchaseRequest.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, avgCycleTime: { $avg: { $subtract: ['$approvedDate', '$date'] } } } }
+      ])
+    ]);
+
+    // Sales KPIs
+    const [totalSales, pipeline, topCustomers, salesMargin] = await Promise.all([
+      Invoice.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Invoice.countDocuments({ status: 'pending' }),
+      Invoice.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$client', total: { $sum: '$amount' } } },
+        { $sort: { total: -1 } },
+        { $limit: 5 }
+      ]),
+      Invoice.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, avgMargin: { $avg: '$margin' } } }
+      ])
+    ]);
+
+    // Admin KPIs
+    const [adminCosts, overheadPercentage, pendingApprovals] = await Promise.all([
+      Expense.aggregate([
+        { $match: { category: 'admin', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Expense.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      PurchaseRequest.countDocuments({ status: 'pending' })
+    ]);
+
+    // HSE KPIs
+    const [incidents, trainingCompliance, openActions] = await Promise.all([
+      Incident.countDocuments({ date: { $gte: startDate, $lte: endDate } }),
+      Training.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, compliance: { $avg: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } } } }
+      ]),
+      Incident.countDocuments({ status: 'open' })
+    ]);
+
+    // Action Center Alerts
+    const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts] = await Promise.all([
+      Invoice.countDocuments({ dueDate: { $lt: new Date() }, status: 'pending' }),
+      PurchaseOrder.countDocuments({ status: 'pending_approval' }),
+      GeneralLedgerEntry.countDocuments({ status: 'pending_reconciliation' }),
+      Contract.countDocuments({ expiryDate: { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } })
+    ]);
+
+    res.json({
+      financial: {
+        revenue: revenue[0]?.total || 0,
+        expenses: expenses[0]?.total || 0,
+        grossProfit: grossProfit[0]?.total || 0,
+        netProfit: netProfit[0]?.total || 0,
+        margin: revenue[0]?.total ? ((netProfit[0]?.total || 0) / revenue[0]?.total * 100) : 0
+      },
+      hr: {
+        headcount: headcount || 0,
+        payroll: payroll[0]?.total || 0,
+        attrition: attrition || 0,
+        attritionRate: headcount ? (attrition / headcount * 100) : 0
+      },
+      assets: {
+        bookValue: bookValue[0]?.total || 0,
+        utilization: utilization[0]?.avgUtilization || 0,
+        depreciation: depreciation[0]?.total || 0,
+        renewals: renewals || 0
+      },
+      operations: {
+        deliveries: deliveries || 0,
+        onTimePercentage: onTimePercentage[0]?.total ? (onTimePercentage[0].onTime / onTimePercentage[0].total * 100) : 0,
+        deliveryCost: deliveryCost[0]?.total || 0,
+        fleetUtilization: fleetUtilization[0]?.avgUtilization || 0
+      },
+      maintenance: {
+        cost: maintenanceCost[0]?.total || 0,
+        preventiveVsCorrective: preventiveVsCorrective || [],
+        downtime: downtime[0]?.total || 0
+      },
+      procurement: {
+        totalSpend: totalSpend[0]?.total || 0,
+        topVendors: topVendors || [],
+        openPOs: openPOs || 0,
+        cycleTime: cycleTime[0]?.avgCycleTime || 0
+      },
+      sales: {
+        totalSales: totalSales[0]?.total || 0,
+        pipeline: pipeline || 0,
+        topCustomers: topCustomers || [],
+        salesMargin: salesMargin[0]?.avgMargin || 0
+      },
+      admin: {
+        costs: adminCosts[0]?.total || 0,
+        overheadPercentage: adminCosts[0]?.total && expenses[0]?.total ? (adminCosts[0].total / expenses[0].total * 100) : 0,
+        pendingApprovals: pendingApprovals || 0
+      },
+      hse: {
+        incidents: incidents || 0,
+        trainingCompliance: trainingCompliance[0]?.compliance || 0,
+        openActions: openActions || 0
+      },
+      alerts: {
+        overdueInvoices: overdueInvoices || 0,
+        unapprovedPOs: unapprovedPOs || 0,
+        pendingReconciliations: pendingReconciliations || 0,
+        expiringContracts: expiringContracts || 0
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Legacy functions for backward compatibility
 export const getSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const totalExpenses = await Expense.aggregate([
@@ -25,27 +275,10 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
         ...recentInvoices.map((i: any) => `Invoice uploaded: ${i.fileUrl}`)
       ]
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
-// Helper to get date range from query or default to current financial year
-function getDateRange(req: Request) {
-  let { start, end } = req.query;
-  let startDate: Date, endDate: Date;
-  if (start && end) {
-    startDate = new Date(start as string);
-    endDate = new Date(end as string);
-  } else {
-    // Default: current financial year (Apr 1 - Mar 31)
-    const now = new Date();
-    const year = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-    startDate = new Date(`${year}-04-01T00:00:00.000Z`);
-    endDate = new Date(`${year + 1}-03-31T23:59:59.999Z`);
-  }
-  return { startDate, endDate };
-}
 
 export const getKPIs = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -89,8 +322,8 @@ export const getKPIs = async (req: Request, res: Response): Promise<void> => {
       grossProfit,
       netProfit
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -125,19 +358,58 @@ export const getIncomeStatement = async (req: Request, res: Response): Promise<v
       depreciation,
       netProfit
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
 export const getBalanceSheet = async (req: Request, res: Response): Promise<void> => {
-  // Mock data, as you don't have assets/liabilities models
-  res.json({
-    assets: 0,
-    liabilities: 0,
-    equity: 0,
-    note: 'Balance sheet data not available. Add Asset/Liability models for real data.'
-  });
+  try {
+    // Get assets from Asset model
+    const assets = await Asset.aggregate([
+      { $group: { _id: null, total: { $sum: '$bookValue' } } }
+    ]);
+    
+    // Get cash from GL entries
+    const cash = await GeneralLedgerEntry.aggregate([
+      { $match: { accountCode: { $regex: /^1000/ } } }, // Cash accounts
+      { $group: { _id: null, total: { $sum: { $subtract: ['$debit', '$credit'] } } } }
+    ]);
+    
+    // Get receivables from GL entries
+    const receivables = await GeneralLedgerEntry.aggregate([
+      { $match: { accountCode: { $regex: /^1100/ } } }, // Receivable accounts
+      { $group: { _id: null, total: { $sum: { $subtract: ['$debit', '$credit'] } } } }
+    ]);
+    
+    // Get payables from GL entries
+    const payables = await GeneralLedgerEntry.aggregate([
+      { $match: { accountCode: { $regex: /^2000/ } } }, // Payable accounts
+      { $group: { _id: null, total: { $sum: { $subtract: ['$credit', '$debit'] } } } }
+    ]);
+    
+    const totalAssets = assets[0]?.total || 0;
+    const totalLiabilities = payables[0]?.total || 0;
+    const workingCapital = (cash[0]?.total || 0) + (receivables[0]?.total || 0) - (payables[0]?.total || 0);
+    const equity = totalAssets - totalLiabilities;
+    
+    res.json({
+      assets: {
+        total: totalAssets,
+        cash: cash[0]?.total || 0,
+        receivables: receivables[0]?.total || 0,
+        fixedAssets: totalAssets - (cash[0]?.total || 0) - (receivables[0]?.total || 0)
+      },
+      liabilities: {
+        total: totalLiabilities,
+        payables: payables[0]?.total || 0
+      },
+      equity: equity,
+      workingCapital: workingCapital
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 export const getCashFlowStatement = async (req: Request, res: Response): Promise<void> => {
@@ -156,12 +428,25 @@ export const getCashFlowStatement = async (req: Request, res: Response): Promise
     ]);
     const outflows = outflowAgg[0]?.total || 0;
     const netCashFlow = inflows - outflows;
+    
+    // Get opening balance from previous period
+    const previousPeriodEnd = new Date(startDate);
+    previousPeriodEnd.setDate(previousPeriodEnd.getDate() - 1);
+    const openingBalance = await GeneralLedgerEntry.aggregate([
+      { $match: { transactionDate: { $lte: previousPeriodEnd } } },
+      { $group: { _id: null, total: { $sum: { $subtract: ['$debit', '$credit'] } } } }
+    ]);
+    
+    const closingBalance = (openingBalance[0]?.total || 0) + netCashFlow;
+    
     res.json({
+      openingBalance: openingBalance[0]?.total || 0,
       inflows,
       outflows,
-      netCashFlow
+      netCashFlow,
+      closingBalance
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };   
