@@ -7,409 +7,354 @@ dotenv.config();
 
 // Default Chart of Accounts structure following IFRS standards
 const DEFAULT_ACCOUNTS = [
-  // Assets
-  {
-    accountCode: '1000',
-    accountName: 'Current Assets',
-    accountType: 'asset',
-    category: 'Assets',
-    ifrsCategory: 'current_assets',
-    level: 0,
-    sortOrder: 1,
-    isSystem: true
-  },
+  // Assets - Current
   {
     accountCode: '1100',
     accountName: 'Cash and Cash Equivalents',
     accountType: 'asset',
-    category: 'Assets',
-    subcategory: 'Current Assets',
-    ifrsCategory: 'current_assets',
-    ifrsSubcategory: 'cash_equivalents',
+    category: 'current',
+    subcategory: 'cash',
+    ifrsCategory: 'assets',
+    ifrsSubcategory: 'current_assets',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '1200',
     accountName: 'Accounts Receivable',
     accountType: 'asset',
-    category: 'Assets',
-    subcategory: 'Current Assets',
-    ifrsCategory: 'current_assets',
-    ifrsSubcategory: 'trade_receivables',
+    category: 'current',
+    subcategory: 'receivables',
+    ifrsCategory: 'assets',
+    ifrsSubcategory: 'current_assets',
     level: 1,
     sortOrder: 2,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '1300',
     accountName: 'Inventory',
     accountType: 'asset',
-    category: 'Assets',
-    subcategory: 'Current Assets',
-    ifrsCategory: 'current_assets',
-    ifrsSubcategory: 'inventory',
+    category: 'current',
+    subcategory: 'inventory',
+    ifrsCategory: 'assets',
+    ifrsSubcategory: 'current_assets',
     level: 1,
     sortOrder: 3,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '1400',
     accountName: 'Prepaid Expenses',
     accountType: 'asset',
-    category: 'Assets',
-    subcategory: 'Current Assets',
-    ifrsCategory: 'current_assets',
-    ifrsSubcategory: 'prepayments',
+    category: 'current',
+    subcategory: 'prepaid',
+    ifrsCategory: 'assets',
+    ifrsSubcategory: 'current_assets',
     level: 1,
     sortOrder: 4,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
-  {
-    accountCode: '2000',
-    accountName: 'Non-Current Assets',
-    accountType: 'asset',
-    category: 'Assets',
-    ifrsCategory: 'non_current_assets',
-    level: 0,
-    sortOrder: 2,
-    isSystem: true
-  },
+
+  // Assets - Non-Current
   {
     accountCode: '2100',
     accountName: 'Property, Plant and Equipment',
     accountType: 'asset',
-    category: 'Assets',
-    subcategory: 'Non-Current Assets',
-    ifrsCategory: 'property_plant_equipment',
+    category: 'non_current',
+    subcategory: 'property_plant_equipment',
+    ifrsCategory: 'assets',
+    ifrsSubcategory: 'property_plant_equipment',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '2200',
     accountName: 'Accumulated Depreciation',
     accountType: 'asset',
-    category: 'Assets',
-    subcategory: 'Non-Current Assets',
-    ifrsCategory: 'property_plant_equipment',
-    ifrsSubcategory: 'accumulated_depreciation',
+    category: 'non_current',
+    subcategory: 'accumulated_depreciation',
+    ifrsCategory: 'assets',
+    ifrsSubcategory: 'property_plant_equipment',
     level: 1,
     sortOrder: 2,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '2300',
     accountName: 'Intangible Assets',
     accountType: 'asset',
-    category: 'Assets',
-    subcategory: 'Non-Current Assets',
-    ifrsCategory: 'intangible_assets',
+    category: 'non_current',
+    subcategory: 'intangible_assets',
+    ifrsCategory: 'assets',
+    ifrsSubcategory: 'intangible_assets',
     level: 1,
     sortOrder: 3,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
 
-  // Liabilities
-  {
-    accountCode: '3000',
-    accountName: 'Current Liabilities',
-    accountType: 'liability',
-    category: 'Liabilities',
-    ifrsCategory: 'current_liabilities',
-    level: 0,
-    sortOrder: 3,
-    isSystem: true
-  },
+  // Liabilities - Current
   {
     accountCode: '3100',
     accountName: 'Accounts Payable',
     accountType: 'liability',
-    category: 'Liabilities',
-    subcategory: 'Current Liabilities',
-    ifrsCategory: 'current_liabilities',
-    ifrsSubcategory: 'trade_payables',
+    category: 'current',
+    subcategory: 'trade_payables',
+    ifrsCategory: 'liabilities',
+    ifrsSubcategory: 'current_liabilities',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '3200',
     accountName: 'Accrued Expenses',
     accountType: 'liability',
-    category: 'Liabilities',
-    subcategory: 'Current Liabilities',
-    ifrsCategory: 'current_liabilities',
-    ifrsSubcategory: 'accruals',
+    category: 'current',
+    subcategory: 'accruals',
+    ifrsCategory: 'liabilities',
+    ifrsSubcategory: 'current_liabilities',
     level: 1,
     sortOrder: 2,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '3300',
     accountName: 'Short-term Loans',
     accountType: 'liability',
-    category: 'Liabilities',
-    subcategory: 'Current Liabilities',
-    ifrsCategory: 'current_liabilities',
-    ifrsSubcategory: 'borrowings',
+    category: 'current',
+    subcategory: 'borrowings',
+    ifrsCategory: 'liabilities',
+    ifrsSubcategory: 'current_liabilities',
     level: 1,
     sortOrder: 3,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
-  {
-    accountCode: '4000',
-    accountName: 'Non-Current Liabilities',
-    accountType: 'liability',
-    category: 'Liabilities',
-    ifrsCategory: 'non_current_liabilities',
-    level: 0,
-    sortOrder: 4,
-    isSystem: true
-  },
+
+  // Liabilities - Non-Current
   {
     accountCode: '4100',
     accountName: 'Long-term Loans',
     accountType: 'liability',
-    category: 'Liabilities',
-    subcategory: 'Non-Current Liabilities',
-    ifrsCategory: 'non_current_liabilities',
-    ifrsSubcategory: 'borrowings',
+    category: 'non_current',
+    subcategory: 'borrowings',
+    ifrsCategory: 'liabilities',
+    ifrsSubcategory: 'non_current_liabilities',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
 
   // Equity
   {
-    accountCode: '5000',
-    accountName: 'Equity',
-    accountType: 'equity',
-    category: 'Equity',
-    ifrsCategory: 'share_capital',
-    level: 0,
-    sortOrder: 5,
-    isSystem: true
-  },
-  {
     accountCode: '5100',
     accountName: 'Share Capital',
     accountType: 'equity',
-    category: 'Equity',
-    subcategory: 'Share Capital',
-    ifrsCategory: 'share_capital',
+    category: 'equity',
+    subcategory: 'share_capital',
+    ifrsCategory: 'equity',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '5200',
     accountName: 'Retained Earnings',
     accountType: 'equity',
-    category: 'Equity',
-    subcategory: 'Retained Earnings',
-    ifrsCategory: 'retained_earnings',
+    category: 'equity',
+    subcategory: 'retained_earnings',
+    ifrsCategory: 'equity',
     level: 1,
     sortOrder: 2,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
 
   // Revenue
   {
-    accountCode: '6000',
-    accountName: 'Revenue',
-    accountType: 'revenue',
-    category: 'Revenue',
-    ifrsCategory: 'revenue',
-    level: 0,
-    sortOrder: 6,
-    isSystem: true
-  },
-  {
     accountCode: '6100',
     accountName: 'Sales Revenue',
     accountType: 'revenue',
-    category: 'Revenue',
-    subcategory: 'Sales',
+    category: 'revenue',
+    subcategory: 'sales',
     ifrsCategory: 'revenue',
-    ifrsSubcategory: 'sales',
+    ifrsSubcategory: 'revenue',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '6200',
     accountName: 'Service Revenue',
     accountType: 'revenue',
-    category: 'Revenue',
-    subcategory: 'Services',
+    category: 'revenue',
+    subcategory: 'services',
     ifrsCategory: 'revenue',
-    ifrsSubcategory: 'services',
+    ifrsSubcategory: 'revenue',
     level: 1,
     sortOrder: 2,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '6300',
     accountName: 'Other Income',
     accountType: 'revenue',
-    category: 'Revenue',
-    subcategory: 'Other',
-    ifrsCategory: 'other_income',
+    category: 'revenue',
+    subcategory: 'other_income',
+    ifrsCategory: 'revenue',
     level: 1,
     sortOrder: 3,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
 
   // Expenses
   {
-    accountCode: '7000',
-    accountName: 'Cost of Sales',
-    accountType: 'expense',
-    category: 'Expenses',
-    ifrsCategory: 'cost_of_sales',
-    level: 0,
-    sortOrder: 7,
-    isSystem: true
-  },
-  {
     accountCode: '7100',
     accountName: 'Direct Materials',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Cost of Sales',
+    category: 'cost_of_sales',
+    subcategory: 'materials',
     ifrsCategory: 'cost_of_sales',
-    ifrsSubcategory: 'materials',
+    ifrsSubcategory: 'cost_of_sales',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '7200',
     accountName: 'Direct Labor',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Cost of Sales',
+    category: 'cost_of_sales',
+    subcategory: 'labor',
     ifrsCategory: 'cost_of_sales',
-    ifrsSubcategory: 'labor',
+    ifrsSubcategory: 'cost_of_sales',
     level: 1,
     sortOrder: 2,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '7300',
     accountName: 'Depreciation - Operations',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Cost of Sales',
+    category: 'cost_of_sales',
+    subcategory: 'depreciation',
     ifrsCategory: 'cost_of_sales',
-    ifrsSubcategory: 'depreciation',
+    ifrsSubcategory: 'cost_of_sales',
     level: 1,
     sortOrder: 3,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
-  {
-    accountCode: '8000',
-    accountName: 'Operating Expenses',
-    accountType: 'expense',
-    category: 'Expenses',
-    ifrsCategory: 'operating_expenses',
-    level: 0,
-    sortOrder: 8,
-    isSystem: true
-  },
+
+  // Expenses - Operating
   {
     accountCode: '8100',
     accountName: 'Staff Costs',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Operating Expenses',
+    category: 'operating_expenses',
+    subcategory: 'staff_costs',
     ifrsCategory: 'operating_expenses',
-    ifrsSubcategory: 'staff_costs',
+    ifrsSubcategory: 'operating_expenses',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '8200',
     accountName: 'Administrative Expenses',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Operating Expenses',
+    category: 'operating_expenses',
+    subcategory: 'administrative',
     ifrsCategory: 'operating_expenses',
-    ifrsSubcategory: 'administrative',
+    ifrsSubcategory: 'operating_expenses',
     level: 1,
     sortOrder: 2,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '8300',
     accountName: 'Maintenance Expenses',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Operating Expenses',
+    category: 'operating_expenses',
+    subcategory: 'maintenance',
     ifrsCategory: 'operating_expenses',
-    ifrsSubcategory: 'maintenance',
+    ifrsSubcategory: 'operating_expenses',
     level: 1,
     sortOrder: 3,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '8400',
     accountName: 'HSE Expenses',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Operating Expenses',
+    category: 'operating_expenses',
+    subcategory: 'hse',
     ifrsCategory: 'operating_expenses',
-    ifrsSubcategory: 'hse',
+    ifrsSubcategory: 'operating_expenses',
     level: 1,
     sortOrder: 4,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '8500',
     accountName: 'Depreciation - Admin',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Operating Expenses',
+    category: 'operating_expenses',
+    subcategory: 'depreciation',
     ifrsCategory: 'operating_expenses',
-    ifrsSubcategory: 'depreciation',
+    ifrsSubcategory: 'operating_expenses',
     level: 1,
     sortOrder: 5,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
-  {
-    accountCode: '9000',
-    accountName: 'Finance Costs',
-    accountType: 'expense',
-    category: 'Expenses',
-    ifrsCategory: 'finance_costs',
-    level: 0,
-    sortOrder: 9,
-    isSystem: true
-  },
+
+  // Expenses - Finance
   {
     accountCode: '9100',
     accountName: 'Interest Expense',
     accountType: 'expense',
-    category: 'Expenses',
-    subcategory: 'Finance Costs',
+    category: 'finance_costs',
+    subcategory: 'interest',
     ifrsCategory: 'finance_costs',
-    ifrsSubcategory: 'interest',
+    ifrsSubcategory: 'finance_costs',
     level: 1,
     sortOrder: 1,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   },
   {
     accountCode: '10000',
     accountName: 'Income Tax Expense',
     accountType: 'expense',
-    category: 'Expenses',
-    ifrsCategory: 'income_tax_expense',
+    category: 'income_tax_expense',
     level: 0,
     sortOrder: 10,
-    isSystem: true
+    isSystem: true,
+    parentAccount: null
   }
 ];
 

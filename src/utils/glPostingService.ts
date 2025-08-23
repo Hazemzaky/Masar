@@ -149,9 +149,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting HR payroll transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -193,9 +193,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting asset depreciation transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -238,9 +238,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting procurement transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -285,9 +285,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting sales transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -329,9 +329,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting fuel transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -373,9 +373,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting maintenance transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -417,9 +417,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting admin expense transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -461,9 +461,9 @@ export class GLPostingService {
       );
 
       return { success: true, transactionId: transaction.transactionId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting HSE transaction:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Unknown error' };
     }
   }
 
@@ -506,7 +506,7 @@ export class GLPostingService {
       transactionDate,
       moduleSource: this.getModuleFromTransactionType(transactionType),
       referenceType,
-      referenceId,
+      referenceId: referenceId as any, // Type assertion for ObjectId compatibility
       accountCode: entry.accountCode,
       debit: entry.debit,
       credit: entry.credit,
@@ -515,8 +515,8 @@ export class GLPostingService {
       period,
       fiscalYear,
       approvalStatus: 'pending',
-      createdBy: userId,
-      updatedBy: userId
+      createdBy: userId as any, // Type assertion for ObjectId compatibility
+      updatedBy: userId as any // Type assertion for ObjectId compatibility
     }));
 
     // Save all entries in a transaction

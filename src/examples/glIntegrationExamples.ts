@@ -7,6 +7,7 @@
 
 import { GLPostingService } from '../services/glPostingService';
 import mongoose from 'mongoose';
+import { Request, Response } from 'express'; // Added for batch processing example
 
 // Example 1: HR Payroll Transaction
 export const exampleHRPayrollIntegration = async (userId: string) => {
@@ -356,6 +357,43 @@ export const exampleIntercompanyIntegration = async (userId: string) => {
   } catch (error) {
     console.error('❌ Intercompany transaction GL posting failed:', error);
     throw error;
+  }
+};
+
+// Example: Batch Processing
+export const processBatchPayroll = async (req: Request, res: Response) => {
+  try {
+    const { payrollEntries } = req.body;
+    const userId = req.user.id;
+    const results = [];
+
+    for (const entry of payrollEntries) {
+      const glResult = await GLPostingService.postPayrollTransaction(
+        entry.employeeId,
+        entry.salaryAmount,
+        entry.transactionDate,
+        userId,
+        entry.description
+      );
+
+      results.push({
+        employeeId: entry.employeeId,
+        success: glResult.success,
+        transactionId: glResult.transactionId,
+        error: glResult.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      results
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 

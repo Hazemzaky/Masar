@@ -171,34 +171,33 @@ export const deleteAccount = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
-// Get account hierarchy
+/**
+ * Get hierarchical structure of accounts
+ */
 export const getAccountHierarchy = async (req: Request, res: Response): Promise<void> => {
   try {
     const accounts = await ChartOfAccounts.find({ isActive: true })
-      .populate('parentAccount', 'accountCode accountName')
-      .sort({ level: 1, sortOrder: 1, accountCode: 1 });
+      .populate('parentAccount')
+      .sort({ sortOrder: 1, accountCode: 1 });
 
-    // Build hierarchy
-    const buildHierarchy = (parentId: string | null = null) => {
+    const buildHierarchy = (parentId: string | null = null): any[] => {
       return accounts
-        .filter(account => 
-          (parentId === null && !account.parentAccount) || 
-          (account.parentAccount && account.parentAccount.toString() === parentId)
-        )
-        .map(account => ({
+        .filter((account: any) => {
+          if (parentId === null) {
+            return !account.parentAccount;
+          }
+          return account.parentAccount && account.parentAccount._id.toString() === parentId;
+        })
+        .map((account: any) => ({
           ...account.toObject(),
           children: buildHierarchy(account._id.toString())
         }));
     };
 
     const hierarchy = buildHierarchy();
-
-    res.json({
-      hierarchy,
-      totalAccounts: accounts.length
-    });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.json(hierarchy);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to get account hierarchy', error: error.message });
   }
 };
 

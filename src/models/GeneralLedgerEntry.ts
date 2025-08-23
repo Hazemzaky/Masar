@@ -206,8 +206,8 @@ GeneralLedgerEntrySchema.pre('save', function(next) {
 // Static method to validate double-entry balance
 GeneralLedgerEntrySchema.statics.validateDoubleEntry = async function(transactionId: string) {
   const entries = await this.find({ transactionId });
-  const totalDebits = entries.reduce((sum, entry) => sum + entry.debit, 0);
-  const totalCredits = entries.reduce((sum, entry) => sum + entry.credit, 0);
+  const totalDebits = entries.reduce((sum: number, entry: any) => sum + entry.debit, 0);
+  const totalCredits = entries.reduce((sum: number, entry: any) => sum + entry.credit, 0);
   
   return {
     isValid: Math.abs(totalDebits - totalCredits) < 0.01, // Allow for rounding differences

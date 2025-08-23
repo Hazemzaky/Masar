@@ -253,84 +253,65 @@ export const getGLSummary = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// Get trial balance
+/**
+ * Get trial balance
+ */
 export const getTrialBalance = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { asOfDate, fiscalYear } = req.query;
-
-    const query: any = {};
-    if (asOfDate) {
-      query.transactionDate = { $lte: new Date(asOfDate as string) };
-    }
-    if (fiscalYear) {
-      query.fiscalYear = Number(fiscalYear);
-    }
+    const { period, fiscalYear } = req.query;
+    
+    const matchStage: any = {};
+    if (period) matchStage.period = period;
+    if (fiscalYear) matchStage.fiscalYear = Number(fiscalYear);
 
     const trialBalance = await GeneralLedgerEntry.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: '$accountCode',
-          accountId: { $first: '$account' },
-          totalDebits: { $sum: '$debit' },
-          totalCredits: { $sum: '$credit' }
-        }
-      },
+      { $match: matchStage },
       {
         $lookup: {
           from: 'chartofaccounts',
-          localField: 'accountId',
-          foreignField: '_id',
-          as: 'accountDetails'
+          localField: 'accountCode',
+          foreignField: 'accountCode',
+          as: 'account'
+        }
+      },
+      { $unwind: '$account' },
+      {
+        $group: {
+          _id: {
+            accountCode: '$accountCode',
+            accountName: '$account.accountName',
+            accountType: '$account.accountType',
+            category: '$account.category'
+          },
+          totalDebits: { $sum: '$debit' },
+          totalCredits: { $sum: '$credit' },
+          netAmount: { $sum: { $subtract: ['$debit', '$credit'] } }
         }
       },
       {
-        $unwind: '$accountDetails'
-      },
-      {
-        $project: {
-          accountCode: '$accountDetails.accountCode',
-          accountName: '$accountDetails.accountName',
-          accountType: '$accountDetails.accountType',
-          category: '$accountDetails.category',
-          totalDebits: 1,
-          totalCredits: 1,
-          balance: { $subtract: ['$totalDebits', '$totalCredits'] }
+        $group: {
+          _id: '$_id.accountType',
+          accounts: {
+            $push: {
+              accountCode: '$_id.accountCode',
+              accountName: '$_id.accountName',
+              category: '$_id.category',
+              totalDebits: '$totalDebits',
+              totalCredits: '$totalCredits',
+              netAmount: '$netAmount'
+            }
+          },
+          totalDebits: { $sum: '$totalDebits' },
+          totalCredits: { $sum: '$totalCredits' },
+          netAmount: { $sum: '$netAmount' }
         }
       },
-      { $sort: { 'accountDetails.accountType': 1, 'accountDetails.accountCode': 1 } }
+      { $sort: { '_id': 1 } }
     ]);
 
-    // Group by account type
-    const groupedBalance = trialBalance.reduce((acc, account) => {
-      const type = account.accountType;
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(account);
-      return acc;
-    }, {} as any);
-
-    // Calculate totals
-    const totals = trialBalance.reduce((acc, account) => {
-      if (['asset', 'expense'].includes(account.accountType)) {
-        acc.totalDebits += account.totalDebits;
-        acc.totalCredits += account.totalCredits;
-      } else {
-        acc.totalCredits += account.totalCredits;
-        acc.totalDebits += account.totalDebits;
-      }
-      return acc;
-    }, { totalDebits: 0, totalCredits: 0 });
-
-    res.json({
-      trialBalance: groupedBalance,
-      totals,
-      validation: {
-        balance: totals.totalDebits - totals.totalCredits,
-        isBalanced: Math.abs(totals.totalDebits - totals.totalCredits) < 0.01
-      }
-    });
+    res.json(trialBalance);
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Failed to get trial balance', error: error.message });
   }
 };
 
