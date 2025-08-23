@@ -81,6 +81,7 @@ import './models/HSEDocument';
 import './models/PnLStatement';
 import './models/Expense';
 import './models/Invoice';
+import './models/AccountMapping';
 
 dotenv.config();
 

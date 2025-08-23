@@ -118,6 +118,7 @@ require("./models/HSEDocument");
 require("./models/PnLStatement");
 require("./models/Expense");
 require("./models/Invoice");
+require("./models/AccountMapping");
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
