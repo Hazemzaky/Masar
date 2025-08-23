@@ -180,11 +180,12 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     ]);
 
     // Action Center Alerts
-    const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts] = await Promise.all([
+    const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = await Promise.all([
       Invoice.countDocuments({ dueDate: { $lt: new Date() }, status: 'pending' }),
       PurchaseOrder.countDocuments({ status: 'pending_approval' }),
       GeneralLedgerEntry.countDocuments({ status: 'pending_reconciliation' }),
-      Contract.countDocuments({ expiryDate: { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } })
+      Contract.countDocuments({ expiryDate: { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }),
+      PurchaseRequest.countDocuments({ status: 'pending' })
     ]);
 
     res.json({
@@ -244,7 +245,8 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         overdueInvoices: overdueInvoices || 0,
         unapprovedPOs: unapprovedPOs || 0,
         pendingReconciliations: pendingReconciliations || 0,
-        expiringContracts: expiringContracts || 0
+        expiringContracts: expiringContracts || 0,
+        pendingRequests: pendingRequests || 0
       }
     });
   } catch (error: any) {
