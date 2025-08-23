@@ -449,8 +449,9 @@ export const getGLEntriesByAccount = async (req: Request, res: Response): Promis
 
     // Calculate running balance
     let runningBalance = 0;
-    const entriesWithBalance = entries.map(entry => {
-      if (entry.accountType === 'asset' || entry.accountType === 'expense') {
+    const entriesWithBalance = entries.map((entry: any) => {
+      const accountType = entry.account?.accountType || 'unknown';
+      if (accountType === 'asset' || accountType === 'expense') {
         runningBalance += entry.debit - entry.credit;
       } else {
         runningBalance += entry.credit - entry.debit;

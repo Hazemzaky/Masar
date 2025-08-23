@@ -196,7 +196,7 @@ export const getAccountHierarchy = async (req: Request, res: Response): Promise<
 
     const hierarchy = buildHierarchy();
     res.json(hierarchy);
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ message: 'Failed to get account hierarchy', error: error.message });
   }
 };
@@ -221,7 +221,7 @@ export const getAccountsByIFRSCategory = async (req: Request, res: Response): Pr
       count: accounts.length
     });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message || 'Unknown error' });
   }
 };
 

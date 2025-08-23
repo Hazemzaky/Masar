@@ -93,6 +93,8 @@ const businessTripRoutes_1 = __importDefault(require("./routes/businessTripRoute
 const pnlRoutes_1 = __importDefault(require("./routes/pnlRoutes"));
 const reconciliationRoutes_1 = __importDefault(require("./routes/reconciliationRoutes"));
 const contractRoutes_1 = __importDefault(require("./routes/contractRoutes"));
+const glRoutes_1 = __importDefault(require("./routes/glRoutes"));
+const chartOfAccountsRoutes_1 = __importDefault(require("./routes/chartOfAccountsRoutes"));
 const accidentRoutes_1 = __importDefault(require("./routes/accidentRoutes"));
 const nearMissRoutes_1 = __importDefault(require("./routes/nearMissRoutes"));
 const trainingRoutes_1 = __importDefault(require("./routes/trainingRoutes"));
@@ -119,6 +121,8 @@ require("./models/PnLStatement");
 require("./models/Expense");
 require("./models/Invoice");
 require("./models/AccountMapping");
+require("./models/ChartOfAccounts");
+require("./models/GeneralLedgerEntry");
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -168,7 +172,9 @@ app.get('/health', (req, res) => {
             '/api/payroll',
             '/api/leave',
             '/api/reimbursements',
-            '/api/pnl'
+            '/api/pnl',
+            '/api/gl',
+            '/api/chart-of-accounts'
         ]
     });
 });
@@ -225,6 +231,8 @@ app.use('/api/business-trips', businessTripRoutes_1.default);
 app.use('/api/pnl', pnlRoutes_1.default);
 app.use('/api/reconciliation', reconciliationRoutes_1.default);
 app.use('/api/contracts', contractRoutes_1.default);
+app.use('/api/gl', glRoutes_1.default);
+app.use('/api/chart-of-accounts', chartOfAccountsRoutes_1.default);
 app.use('/api/hse/accidents', accidentRoutes_1.default);
 app.use('/api/hse/near-misses', nearMissRoutes_1.default);
 app.use('/api/hse/training', trainingRoutes_1.default);

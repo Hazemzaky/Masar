@@ -150,7 +150,7 @@ export const exampleComplexTransaction = async (userId: string) => {
     
     console.log('✅ Complex transaction posted to GL:', complexTransaction);
     console.log('📊 GL Entry Details:');
-    complexTransaction.entries.forEach((entry, index) => {
+    complexTransaction.entries.forEach((entry: any, index: number) => {
       console.log(`   Entry ${index + 1}: ${entry.accountCode} - ${entry.description}`);
       if (entry.debit > 0) {
         console.log(`     Debit: ${entry.debit}`);
@@ -364,16 +364,15 @@ export const exampleIntercompanyIntegration = async (userId: string) => {
 export const processBatchPayroll = async (req: Request, res: Response) => {
   try {
     const { payrollEntries } = req.body;
-    const userId = req.user.id;
+    const userId = (req as any).user?.id; // Type assertion for user property
     const results = [];
 
     for (const entry of payrollEntries) {
       const glResult = await GLPostingService.postPayrollTransaction(
         entry.employeeId,
         entry.salaryAmount,
-        entry.transactionDate,
-        userId,
-        entry.description
+        new Date(entry.transactionDate),
+        userId
       );
 
       results.push({
@@ -389,10 +388,10 @@ export const processBatchPayroll = async (req: Request, res: Response) => {
       results
     });
 
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message || 'Unknown error'
     });
   }
 };
@@ -444,7 +443,7 @@ export const runAllGLExamples = async (userId: string) => {
     console.log('   • Intangible asset amortization');
     console.log('   • Intercompany transactions');
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('💥 Some examples failed:', error);
   }
 };
