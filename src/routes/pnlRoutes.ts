@@ -4,7 +4,9 @@ import {
   getPnLSummary,
   getPnLTable,
   getPnLCharts,
-  getPnLAnalysis
+  getPnLAnalysis,
+  updateManualPnLEntry,
+  getManualPnLEntries
 } from '../controllers/pnlController';
 
 const router = express.Router();
@@ -23,6 +25,10 @@ router.get('/charts', getPnLCharts);
 
 // P&L Analysis - Trend analysis and insights
 router.get('/analysis', getPnLAnalysis);
+
+// Manual PnL Entry Management
+router.get('/manual-entries', getManualPnLEntries);
+router.put('/manual-entries/:itemId', updateManualPnLEntry);
 
 // Export routes (to be implemented)
 router.get('/export/pdf', (req, res) => {
@@ -49,7 +55,8 @@ router.get('/health', (req, res) => {
       'Revenue recognition tracking',
       'Cost categorization',
       'Margin analysis',
-      'Trend analysis'
+      'Trend analysis',
+      'Manual entry management'
     ]
   });
 });

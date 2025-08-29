@@ -12,18 +12,61 @@ import BusinessTrip from '../models/BusinessTrip';
 import Training from '../models/Training';
 import HSE from '../models/Environmental';
 
-// IFRS P&L Structure as per IAS 1
+// IFRS P&L Structure as per IAS 1 - Updated for vertical table format
 const PNL_STRUCTURE = {
   REVENUE: 'revenue',
-  COST_OF_SALES: 'cost_of_sales',
-  GROSS_PROFIT: 'gross_profit',
-  OPERATING_EXPENSES: 'operating_expenses',
-  OPERATING_PROFIT: 'operating_profit',
-  FINANCE_COSTS: 'finance_costs',
-  OTHER_INCOME_EXPENSES: 'other_income_expenses',
-  PROFIT_BEFORE_TAX: 'profit_before_tax',
-  INCOME_TAX_EXPENSE: 'income_tax_expense',
-  PROFIT_FOR_PERIOD: 'profit_for_period'
+  EXPENSES: 'expenses',
+  INCOME_EXPENSES_OTHER: 'income_expenses_other',
+  EBITIDA: 'ebitida'
+};
+
+// New P&L structure with detailed categories
+const VERTICAL_PNL_STRUCTURE = {
+  REVENUE: {
+    id: 'revenue',
+    category: 'Revenue',
+    items: [
+      { id: 'operating_revenues', description: 'Operating Revenues', type: 'revenue', module: 'sales' },
+      { id: 'rebate', description: 'Rebate', type: 'revenue', module: 'sales' },
+      { id: 'net_operating_revenue', description: 'Net Operating Revenue', type: 'summary', module: 'sales' },
+      { id: 'rental_equipment_revenue', description: 'Revenue from Rental Equipment', type: 'revenue', module: 'assets' },
+      { id: 'ds_revenue', description: 'Revenue from DS', type: 'revenue', module: 'sales' },
+      { id: 'sub_companies_revenue', description: 'Revenue from Sub Companies', type: 'revenue', module: 'sales' },
+      { id: 'other_revenue', description: 'Other Revenue', type: 'revenue', module: 'sales' },
+      { id: 'provision_end_service', description: 'Provision for End of Service Indemnity No Longer Required', type: 'revenue', module: 'hr' },
+      { id: 'provision_impairment', description: 'Provision for Impairment Loss No Longer Required', type: 'revenue', module: 'assets' },
+      { id: 'total_revenue', description: 'Total Revenue', type: 'summary', module: 'sales' }
+    ]
+  },
+  EXPENSES: {
+    id: 'expenses',
+    category: 'Expenses',
+    items: [
+      { id: 'operation_cost', description: 'Operation Cost', type: 'expense', module: 'operations' },
+      { id: 'rental_equipment_cost', description: 'Cost of Rental Equipment', type: 'expense', module: 'assets' },
+      { id: 'ds_cost', description: 'Cost of DS', type: 'expense', module: 'operations' },
+      { id: 'general_admin_expenses', description: 'General and Administrative Expenses', type: 'expense', module: 'admin' },
+      { id: 'staff_costs', description: 'Staff Costs', type: 'expense', module: 'hr' },
+      { id: 'provision_credit_loss', description: 'Provision for Expected Credit Loss (Manual Entry)', type: 'expense', module: 'finance' },
+      { id: 'service_agreement_cost', description: 'Cost of Service Agreement', type: 'expense', module: 'operations' },
+      { id: 'total_expenses', description: 'Total Expenses', type: 'summary', module: 'operations' }
+    ]
+  },
+  INCOME_EXPENSES_OTHER: {
+    id: 'income_expenses_other',
+    category: 'Income, Expenses and Other Items',
+    items: [
+      { id: 'gain_selling_products', description: 'Gain from Selling Other Products (Manual Entry)', type: 'revenue', module: 'sales' }
+    ]
+  },
+  EBITIDA: {
+    id: 'ebitida',
+    category: 'EBITIDA',
+    items: [
+      { id: 'finance_costs', description: 'Finance Costs (Manual Entry)', type: 'expense', module: 'finance' },
+      { id: 'depreciation', description: 'Depreciation', type: 'expense', module: 'assets' }
+    ]
+  }
 };
 
 // Period calculation functions
@@ -172,7 +215,99 @@ function calculatePeriodBreakdown(startDate: Date, endDate: Date, period: string
   return periods;
 }
 
-// Main P&L Summary endpoint
+// Manual PnL Entry Model Interface
+interface ManualPnLEntry {
+  id: string;
+  category: string;
+  itemId: string;
+  description: string;
+  amount: number;
+  period: string;
+  startDate: Date;
+  endDate: Date;
+  notes?: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Manual entry values - these would come from a database in production
+const MANUAL_ENTRIES: { [key: string]: number } = {
+  rebate: 0,
+  subCompaniesRevenue: 0,
+  otherRevenue: 0,
+  provisionEndService: 0,
+  provisionImpairment: 0,
+  dsRevenue: 0,
+  rentalEquipmentCost: 0,
+  dsCost: 0,
+  generalAdminExpenses: 0,
+  provisionCreditLoss: 0,
+  serviceAgreementCost: 0,
+  gainSellingProducts: 0,
+  financeCosts: 0
+};
+
+// Function to get manual entry value
+function getManualEntryValue(itemId: string, period: string, startDate: Date, endDate: Date): number {
+  // In production, this would query a database for manual entries
+  // For now, return the default value
+  return MANUAL_ENTRIES[itemId] || 0;
+}
+
+// Function to update manual entry value
+function updateManualEntryValue(itemId: string, amount: number): void {
+  if (MANUAL_ENTRIES.hasOwnProperty(itemId)) {
+    MANUAL_ENTRIES[itemId] = amount;
+  }
+}
+
+// Endpoint to update manual PnL entries
+export const updateManualPnLEntry = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { itemId, amount, period, startDate, endDate, notes } = req.body;
+    
+    if (!itemId || typeof amount !== 'number') {
+      res.status(400).json({ error: 'Invalid itemId or amount' });
+      return;
+    }
+
+    // Update the manual entry value
+    updateManualEntryValue(itemId, amount);
+    
+    res.json({ 
+      success: true, 
+      message: 'Manual PnL entry updated successfully',
+      itemId,
+      amount,
+      period,
+      startDate,
+      endDate,
+      notes
+    });
+  } catch (error) {
+    console.error('Error updating manual PnL entry:', error);
+    res.status(500).json({ error: 'Failed to update manual PnL entry' });
+  }
+};
+
+// Endpoint to get all manual PnL entries
+export const getManualPnLEntries = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const entries = Object.entries(MANUAL_ENTRIES).map(([itemId, amount]) => ({
+      itemId,
+      amount,
+      description: VERTICAL_PNL_STRUCTURE[itemId as keyof typeof VERTICAL_PNL_STRUCTURE]?.items?.find(item => item.id === itemId)?.description || itemId
+    }));
+    
+    res.json(entries);
+  } catch (error) {
+    console.error('Error getting manual PnL entries:', error);
+    res.status(500).json({ error: 'Failed to get manual PnL entries' });
+  }
+};
+
+// Main P&L Summary endpoint - Updated for vertical structure
 export const getPnLSummary = async (req: Request, res: Response) => {
   try {
     const filters = getFilters(req);
@@ -181,93 +316,172 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     // Get account mappings for categorization
     const accountMappings = await AccountMapping.find({ isActive: true });
 
-    // 1. REVENUE - From Sales/Invoice module
-    const revenueData = await Invoice.aggregate([
-      {
-        $match: {
-          invoiceDate: { $gte: startDate, $lte: endDate },
-          status: { $in: ['approved', 'sent', 'paid'] }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$amount' },
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    const totalRevenue = revenueData[0]?.totalRevenue || 0;
-
-    // 2. COST OF SALES - Direct costs from Operations, Procurement, Assets
-    const costOfSalesData = await Promise.all([
-      // Fuel costs (Operations)
-      FuelLog.aggregate([
+    // 1. REVENUE SECTION
+    const revenueData = await Promise.all([
+      // Operating Revenues - from Invoice module
+      Invoice.aggregate([
         {
           $match: {
-            date: { $gte: startDate, $lte: endDate }
+            invoiceDate: { $gte: startDate, $lte: endDate },
+            status: { $in: ['approved', 'sent', 'paid'] }
           }
         },
         {
           $group: {
             _id: null,
-            totalFuelCost: { $sum: '$totalCost' }
+            operatingRevenues: { $sum: '$amount' },
+            count: { $sum: 1 }
           }
         }
       ]),
-      // Procurement costs
-      ProcurementInvoice.aggregate([
-        {
-          $match: {
-            createdAt: { $gte: startDate, $lte: endDate },
-            status: { $in: ['approved', 'paid'] }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            totalProcurementCost: { $sum: '$amount' }
-          }
-        }
-      ]),
-      // Asset depreciation tied to operations
+      // Rental Equipment Revenue - from Asset module
       Asset.aggregate([
         {
           $match: {
-            purchaseDate: { $lte: endDate },
-            isOperational: true
+            isRental: true,
+            rentalStartDate: { $lte: endDate },
+            rentalEndDate: { $gte: startDate }
           }
         },
         {
           $project: {
-            monthlyDepreciation: { $divide: ['$purchasePrice', { $multiply: ['$usefulLife', 12] }] },
-            monthsInPeriod: {
-              $cond: {
-                if: { $gte: ['$purchaseDate', startDate] },
-                then: { $divide: [{ $subtract: [endDate, '$purchaseDate'] }, 1000 * 60 * 60 * 24 * 30] },
-                else: { $divide: [{ $subtract: [endDate, startDate] }, 1000 * 60 * 60 * 24 * 30] }
-              }
+            rentalRevenue: {
+              $multiply: [
+                '$monthlyRentalRate',
+                {
+                  $divide: [
+                    { $subtract: [
+                      { $min: [endDate, '$rentalEndDate'] },
+                      { $max: [startDate, '$rentalStartDate'] }
+                    ]},
+                    1000 * 60 * 60 * 24 * 30
+                  ]
+                }
+              ]
             }
           }
         },
         {
           $group: {
             _id: null,
-            totalDepreciation: { $sum: { $multiply: ['$monthlyDepreciation', '$monthsInPeriod'] } }
+            rentalEquipmentRevenue: { $sum: '$rentalRevenue' }
+          }
+        }
+      ]),
+      // DS Revenue - from operations
+      FuelLog.aggregate([
+        {
+          $match: {
+            date: { $gte: startDate, $lte: endDate },
+            operationType: 'ds'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            dsRevenue: { $sum: '$revenue' }
           }
         }
       ])
     ]);
 
-    const totalFuelCost = costOfSalesData[0][0]?.totalFuelCost || 0;
-    const totalProcurementCost = costOfSalesData[1][0]?.totalProcurementCost || 0;
-    const totalDepreciation = costOfSalesData[2][0]?.totalDepreciation || 0;
-    const totalCostOfSales = totalFuelCost + totalProcurementCost + totalDepreciation;
+    const operatingRevenues = revenueData[0][0]?.operatingRevenues || 0;
+    const rentalEquipmentRevenue = revenueData[1][0]?.rentalEquipmentRevenue || 0;
+    const dsRevenue = revenueData[2][0]?.dsRevenue || 0;
+    
+    // Manual entries (these would come from a manual entry system)
+    const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
+    const subCompaniesRevenue = getManualEntryValue('subCompaniesRevenue', filters.period, startDate, endDate);
+    const otherRevenue = getManualEntryValue('otherRevenue', filters.period, startDate, endDate);
+    const provisionEndService = getManualEntryValue('provisionEndService', filters.period, startDate, endDate);
+    const provisionImpairment = getManualEntryValue('provisionImpairment', filters.period, startDate, endDate);
+    
+    // Calculate net operating revenue and total revenue
+    const netOperatingRevenue = operatingRevenues + rebate;
+    const totalRevenue = netOperatingRevenue + rentalEquipmentRevenue + dsRevenue + subCompaniesRevenue + 
+                        otherRevenue + provisionEndService + provisionImpairment;
 
-    // 3. OPERATING EXPENSES - HR, Admin, Maintenance, HSE
-    const operatingExpensesData = await Promise.all([
-      // Staff costs (HR)
+    // 2. EXPENSES SECTION
+    const expensesData = await Promise.all([
+      // Operation Cost - from FuelLog, Maintenance, etc.
+      Promise.all([
+        FuelLog.aggregate([
+          {
+            $match: {
+              date: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              fuelCost: { $sum: '$totalCost' }
+            }
+          }
+        ]),
+        Maintenance.aggregate([
+          {
+            $match: {
+              date: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              maintenanceCost: { $sum: '$cost' }
+            }
+          }
+        ])
+      ]),
+      // Rental Equipment Cost - from Asset module
+      Asset.aggregate([
+        {
+          $match: {
+            isRental: true,
+            rentalStartDate: { $lte: endDate },
+            rentalEndDate: { $gte: startDate }
+          }
+        },
+        {
+          $project: {
+            rentalCost: {
+              $multiply: [
+                '$monthlyMaintenanceCost',
+                {
+                  $divide: [
+                    { $subtract: [
+                      { $min: [endDate, '$rentalEndDate'] },
+                      { $max: [startDate, '$rentalStartDate'] }
+                    ]},
+                    1000 * 60 * 60 * 24 * 30
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            rentalEquipmentCost: { $sum: '$rentalCost' }
+          }
+        }
+      ]),
+      // DS Cost - from operations
+      FuelLog.aggregate([
+        {
+          $match: {
+            date: { $gte: startDate, $lte: endDate },
+            operationType: 'ds'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            dsCost: { $sum: '$totalCost' }
+          }
+        }
+      ]),
+      // Staff Costs - from Employee module
       Employee.aggregate([
         {
           $match: {
@@ -289,117 +503,128 @@ export const getPnLSummary = async (req: Request, res: Response) => {
         {
           $group: {
             _id: null,
-            totalStaffCost: { $sum: { $multiply: ['$monthlySalary', '$monthsInPeriod'] } }
+            staffCost: { $sum: { $multiply: ['$monthlySalary', '$monthsInPeriod'] } }
           }
         }
       ]),
-      // Maintenance costs
-      Maintenance.aggregate([
+      // Procurement costs
+      ProcurementInvoice.aggregate([
         {
           $match: {
-            date: { $gte: startDate, $lte: endDate },
-            status: 'completed'
+            createdAt: { $gte: startDate, $lte: endDate },
+            status: { $in: ['approved', 'paid'] }
           }
         },
         {
           $group: {
             _id: null,
-            totalMaintenanceCost: { $sum: '$cost' }
-          }
-        }
-      ]),
-      // HSE costs
-      HSE.aggregate([
-        {
-          $match: {
-            date: { $gte: startDate, $lte: endDate }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            totalHSECost: { $sum: '$cost' }
-          }
-        }
-      ]),
-      // Training costs
-      Training.aggregate([
-        {
-          $match: {
-            startDate: { $lte: endDate },
-            endDate: { $gte: startDate }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            totalTrainingCost: { $sum: '$cost' }
+            procurementCost: { $sum: '$amount' }
           }
         }
       ])
     ]);
 
-    const totalStaffCost = operatingExpensesData[0][0]?.totalStaffCost || 0;
-    const totalMaintenanceCost = operatingExpensesData[1][0]?.totalMaintenanceCost || 0;
-    const totalHSECost = operatingExpensesData[2][0]?.totalHSECost || 0;
-    const totalTrainingCost = operatingExpensesData[3][0]?.totalTrainingCost || 0;
-    const totalOperatingExpenses = totalStaffCost + totalMaintenanceCost + totalHSECost + totalTrainingCost;
+    const fuelCost = (expensesData[0] as any[])[0]?.fuelCost || 0;
+    const maintenanceCost = (expensesData[0] as any[])[1]?.maintenanceCost || 0;
+    const operationCost = fuelCost + maintenanceCost;
+    const rentalEquipmentCost = expensesData[1][0]?.rentalEquipmentCost || 0;
+    const dsCost = expensesData[2][0]?.dsCost || 0;
+    const staffCost = expensesData[3][0]?.staffCost || 0;
+    const procurementCost = expensesData[4][0]?.procurementCost || 0;
+    
+    // Manual entries
+    const generalAdminExpenses = getManualEntryValue('generalAdminExpenses', filters.period, startDate, endDate);
+    const provisionCreditLoss = getManualEntryValue('provisionCreditLoss', filters.period, startDate, endDate);
+    const serviceAgreementCost = getManualEntryValue('serviceAgreementCost', filters.period, startDate, endDate);
+    
+    // Calculate total expenses
+    const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
+                         staffCost + provisionCreditLoss + serviceAgreementCost;
 
-    // 4. Calculate key metrics
-    const grossProfit = totalRevenue - totalCostOfSales;
-    const operatingProfit = grossProfit - totalOperatingExpenses;
-    const profitBeforeTax = operatingProfit; // No finance costs or other items for now
-    const incomeTaxExpense = profitBeforeTax * 0.15; // 15% corporate tax rate (placeholder)
-    const profitForPeriod = profitBeforeTax - incomeTaxExpense;
+    // 3. INCOME, EXPENSES AND OTHER ITEMS
+    const gainSellingProducts = getManualEntryValue('gainSellingProducts', filters.period, startDate, endDate);
 
-    // 5. Calculate margins
-    const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
-    const operatingMargin = totalRevenue > 0 ? (operatingProfit / totalRevenue) * 100 : 0;
-    const netMargin = totalRevenue > 0 ? (profitForPeriod / totalRevenue) * 100 : 0;
-
-    // 6. Period breakdown for charts
-    const periods = calculatePeriodBreakdown(startDate, endDate, period);
-
-    res.json({
-      summary: {
-        revenue: totalRevenue,
-        costOfSales: totalCostOfSales,
-        grossProfit,
-        operatingExpenses: totalOperatingExpenses,
-        operatingProfit,
-        financeCosts: 0,
-        otherIncomeExpenses: 0,
-        profitBeforeTax,
-        incomeTaxExpense,
-        profitForPeriod,
-        grossMargin: `${grossMargin.toFixed(1)}%`,
-        operatingMargin: `${operatingMargin.toFixed(1)}%`,
-        netMargin: `${netMargin.toFixed(1)}%`
-      },
-      breakdown: {
-        costOfSales: {
-          fuel: totalFuelCost,
-          procurement: totalProcurementCost,
-          depreciation: totalDepreciation
-        },
-        operatingExpenses: {
-          staff: totalStaffCost,
-          maintenance: totalMaintenanceCost,
-          hse: totalHSECost,
-          training: totalTrainingCost
+    // 4. EBITIDA
+    const financeCosts = getManualEntryValue('financeCosts', filters.period, startDate, endDate);
+    
+    // Calculate depreciation with amortization
+    const depreciationData = await Asset.aggregate([
+      {
+        $match: {
+          purchaseDate: { $lte: endDate }
         }
       },
-      periods,
-      filters
-    });
+      {
+        $project: {
+          monthlyDepreciation: { $divide: ['$purchasePrice', { $multiply: ['$usefulLife', 12] }] },
+          monthsInPeriod: {
+            $cond: {
+              if: { $gte: ['$purchaseDate', startDate] },
+              then: { $divide: [{ $subtract: [endDate, '$purchaseDate'] }, 1000 * 60 * 60 * 24 * 30] },
+              else: { $divide: [{ $subtract: [endDate, startDate] }, 1000 * 60 * 60 * 24 * 30] }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          depreciation: { $sum: { $multiply: ['$monthlyDepreciation', '$monthsInPeriod'] } }
+        }
+      }
+    ]);
 
-  } catch (error: any) {
+    const depreciation = depreciationData[0]?.depreciation || 0;
+
+    // Calculate EBITIDA
+    const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
+
+    // Build response with new structure
+    const pnlSummary = {
+      period: filters.period,
+      startDate: startDate,
+      endDate: endDate,
+      revenue: {
+        operatingRevenues,
+        rebate,
+        netOperatingRevenue: netOperatingRevenue,
+        rentalEquipmentRevenue,
+        dsRevenue,
+        subCompaniesRevenue,
+        otherRevenue,
+        provisionEndService,
+        provisionImpairment,
+        total: totalRevenue
+      },
+      expenses: {
+        operationCost,
+        rentalEquipmentCost,
+        dsCost,
+        generalAdminExpenses,
+        staffCost,
+        provisionCreditLoss,
+        serviceAgreementCost,
+        total: totalExpenses
+      },
+      incomeExpensesOther: {
+        gainSellingProducts
+      },
+      ebitida: {
+        financeCosts,
+        depreciation,
+        total: ebitida
+      },
+      netProfit: ebitida
+    };
+
+    res.json(pnlSummary);
+  } catch (error) {
     console.error('Error in getPnLSummary:', error);
-    res.status(500).json({ message: 'Failed to generate P&L summary', error: error.message });
+    res.status(500).json({ error: 'Failed to generate P&L summary' });
   }
 };
 
-// P&L Table with detailed line items
+// P&L Table with detailed line items - Updated for vertical structure
 export const getPnLTable = async (req: Request, res: Response) => {
   try {
     const filters = getFilters(req);
@@ -408,228 +633,290 @@ export const getPnLTable = async (req: Request, res: Response) => {
     // Get account mappings
     const accountMappings = await AccountMapping.find({ isActive: true });
 
-    // Build P&L table structure
-    const pnlTable = [
-      // Revenue Section
-      {
-        id: 'revenue',
-        category: 'Revenue',
-        items: [
+    // Get actual data for calculations
+    const [revenueData, expensesData, depreciationData] = await Promise.all([
+      // Revenue data
+      Promise.all([
+        Invoice.aggregate([
           {
-            id: 'sales_revenue',
-            description: 'Sales Revenue',
-            amount: 0,
-            module: 'sales',
-            trend: 'up',
-            expandable: false
+            $match: {
+              invoiceDate: { $gte: startDate, $lte: endDate },
+              status: { $in: ['approved', 'sent', 'paid'] }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              operatingRevenues: { $sum: '$amount' }
+            }
           }
-        ],
-        subtotal: 0,
-        type: 'revenue'
-      },
-      // Cost of Sales Section
-      {
-        id: 'cost_of_sales',
-        category: 'Cost of Sales',
-        items: [
+        ]),
+        Asset.aggregate([
           {
-            id: 'fuel_costs',
-            description: 'Fuel & Vehicle Costs',
-            amount: 0,
-            module: 'operations',
-            trend: 'down',
-            expandable: true
+            $match: {
+              isRental: true,
+              rentalStartDate: { $lte: endDate },
+              rentalEndDate: { $gte: startDate }
+            }
           },
           {
-            id: 'procurement_costs',
-            description: 'Materials & Supplies',
-            amount: 0,
-            module: 'procurement',
-            trend: 'down',
-            expandable: true
+            $project: {
+              rentalRevenue: {
+                $multiply: [
+                  '$monthlyRentalRate',
+                  {
+                    $divide: [
+                      { $subtract: [
+                        { $min: [endDate, '$rentalEndDate'] },
+                        { $max: [startDate, '$rentalStartDate'] }
+                      ]},
+                      1000 * 60 * 60 * 24 * 30
+                    ]
+                  }
+                ]
+              }
+            }
           },
           {
-            id: 'operational_depreciation',
-            description: 'Operational Asset Depreciation',
-            amount: 0,
-            module: 'assets',
-            trend: 'down',
-            expandable: true
+            $group: {
+              _id: null,
+              rentalEquipmentRevenue: { $sum: '$rentalRevenue' }
+            }
           }
-        ],
-        subtotal: 0,
-        type: 'expense'
-      },
-      // Operating Expenses Section
-      {
-        id: 'operating_expenses',
-        category: 'Operating Expenses',
-        items: [
+        ])
+      ]),
+      // Expenses data
+      Promise.all([
+        FuelLog.aggregate([
           {
-            id: 'staff_costs',
-            description: 'Staff Salaries & Benefits',
-            amount: 0,
-            module: 'hr',
-            trend: 'down',
-            expandable: true
+            $match: {
+              date: { $gte: startDate, $lte: endDate }
+            }
           },
           {
-            id: 'maintenance_costs',
-            description: 'Maintenance & Repairs',
-            amount: 0,
-            module: 'maintenance',
-            trend: 'down',
-            expandable: true
-          },
-          {
-            id: 'hse_costs',
-            description: 'Health, Safety & Environment',
-            amount: 0,
-            module: 'hse',
-            trend: 'down',
-            expandable: true
-          },
-          {
-            id: 'admin_costs',
-            description: 'Administrative Expenses',
-            amount: 0,
-            module: 'admin',
-            trend: 'down',
-            expandable: true
-          },
-          {
-            id: 'training_costs',
-            description: 'Training & Development',
-            amount: 0,
-            module: 'hr',
-            trend: 'down',
-            expandable: true
+            $group: {
+              _id: null,
+              operationCost: { $sum: '$totalCost' }
+            }
           }
-        ],
-        subtotal: 0,
-        type: 'expense'
-      }
-    ];
-
-    // Populate with actual data
-    const [revenueData, fuelData, procurementData, depreciationData, staffData, maintenanceData, hseData, trainingData] = await Promise.all([
-      Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: startDate, $lte: endDate }, status: { $in: ['approved', 'sent', 'paid'] } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]),
+        Employee.aggregate([
+          {
+            $match: {
+              hireDate: { $lte: endDate }
+            }
+          },
+          {
+            $project: {
+              monthlySalary: { $divide: ['$salary', 12] },
+              monthsInPeriod: {
+                $cond: {
+                  if: { $gte: ['$hireDate', startDate] },
+                  then: { $divide: [{ $subtract: [endDate, '$hireDate'] }, 1000 * 60 * 60 * 24 * 30] },
+                  else: { $divide: [{ $subtract: [endDate, startDate] }, 1000 * 60 * 60 * 24 * 30] }
+                }
+              }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              staffCost: { $sum: { $multiply: ['$monthlySalary', '$monthsInPeriod'] } }
+            }
+          }
+        ])
       ]),
-      FuelLog.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$totalCost' } } }
-      ]),
-      ProcurementInvoice.aggregate([
-        { $match: { createdAt: { $gte: startDate, $lte: endDate }, status: { $in: ['approved', 'paid'] } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
+      // Depreciation data
       Asset.aggregate([
-        { $match: { purchaseDate: { $lte: endDate }, isOperational: true } },
-        { $project: { monthlyDepreciation: { $divide: ['$purchasePrice', { $multiply: ['$usefulLife', 12] }] } } },
-        { $group: { _id: null, total: { $sum: '$monthlyDepreciation' } } }
-      ]),
-      Employee.aggregate([
-        { $match: { hireDate: { $lte: endDate } } },
-        { $project: { monthlySalary: { $divide: ['$salary', 12] } } },
-        { $group: { _id: null, total: { $sum: '$monthlySalary' } } }
-      ]),
-      Maintenance.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate }, status: 'completed' } },
-        { $group: { _id: null, total: { $sum: '$cost' } } }
-      ]),
-      HSE.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$cost' } } }
-      ]),
-      Training.aggregate([
-        { $match: { startDate: { $lte: endDate }, endDate: { $gte: startDate } } },
-        { $group: { _id: null, total: { $sum: '$cost' } } }
+        {
+          $match: {
+            purchaseDate: { $lte: endDate }
+          }
+        },
+        {
+          $project: {
+            monthlyDepreciation: { $divide: ['$purchasePrice', { $multiply: ['$usefulLife', 12] }] },
+            monthsInPeriod: {
+              $cond: {
+                if: { $gte: ['$purchaseDate', startDate] },
+                then: { $divide: [{ $subtract: [endDate, '$purchaseDate'] }, 1000 * 60 * 60 * 24 * 30] },
+                else: { $divide: [{ $subtract: [endDate, startDate] }, 1000 * 60 * 60 * 24 * 30] }
+              }
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            depreciation: { $sum: { $multiply: ['$monthlyDepreciation', '$monthsInPeriod'] } }
+          }
+        }
       ])
     ]);
 
-    // Update table with actual amounts
-    const revenue = revenueData[0]?.total || 0;
-    const fuel = fuelData[0]?.total || 0;
-    const procurement = procurementData[0]?.total || 0;
-    const depreciation = depreciationData[0]?.total || 0;
-    const staff = staffData[0]?.total || 0;
-    const maintenance = maintenanceData[0]?.total || 0;
-    const hse = hseData[0]?.total || 0;
-    const training = trainingData[0]?.total || 0;
+    // Extract values
+    const operatingRevenues = revenueData[0][0]?.operatingRevenues || 0;
+    const rentalEquipmentRevenue = revenueData[1][0]?.rentalEquipmentRevenue || 0;
+    const operationCost = expensesData[0][0]?.operationCost || 0;
+    const staffCost = expensesData[1][0]?.staffCost || 0;
+    const depreciation = depreciationData[0]?.depreciation || 0;
 
-    // Update revenue section
-    pnlTable[0].items[0].amount = revenue;
-    pnlTable[0].subtotal = revenue;
+    // Manual entries (these would come from a manual entry system)
+    const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
+    const subCompaniesRevenue = getManualEntryValue('subCompaniesRevenue', filters.period, startDate, endDate);
+    const otherRevenue = getManualEntryValue('otherRevenue', filters.period, startDate, endDate);
+    const provisionEndService = getManualEntryValue('provisionEndService', filters.period, startDate, endDate);
+    const provisionImpairment = getManualEntryValue('provisionImpairment', filters.period, startDate, endDate);
+    const dsRevenue = getManualEntryValue('dsRevenue', filters.period, startDate, endDate);
+    const rentalEquipmentCost = getManualEntryValue('rentalEquipmentCost', filters.period, startDate, endDate);
+    const dsCost = getManualEntryValue('dsCost', filters.period, startDate, endDate);
+    const generalAdminExpenses = getManualEntryValue('generalAdminExpenses', filters.period, startDate, endDate);
+    const provisionCreditLoss = getManualEntryValue('provisionCreditLoss', filters.period, startDate, endDate);
+    const serviceAgreementCost = getManualEntryValue('serviceAgreementCost', filters.period, startDate, endDate);
+    const gainSellingProducts = getManualEntryValue('gainSellingProducts', filters.period, startDate, endDate);
+    const financeCosts = getManualEntryValue('financeCosts', filters.period, startDate, endDate);
 
-    // Update cost of sales section
-    pnlTable[1].items[0].amount = fuel;
-    pnlTable[1].items[1].amount = procurement;
-    pnlTable[1].items[2].amount = depreciation;
-    pnlTable[1].subtotal = fuel + procurement + depreciation;
+    // Calculate summary values
+    const netOperatingRevenue = operatingRevenues + rebate;
+    const totalRevenue = netOperatingRevenue + rentalEquipmentRevenue + dsRevenue + subCompaniesRevenue + 
+                        otherRevenue + provisionEndService + provisionImpairment;
+    const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
+                         staffCost + provisionCreditLoss + serviceAgreementCost;
+    const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
 
-    // Update operating expenses section
-    pnlTable[2].items[0].amount = staff;
-    pnlTable[2].items[1].amount = maintenance;
-    pnlTable[2].items[2].amount = hse;
-    pnlTable[2].items[3].amount = 0; // Admin costs placeholder
-    pnlTable[2].items[4].amount = training;
-    pnlTable[2].subtotal = staff + maintenance + hse + training;
+    // Build P&L table structure using VERTICAL_PNL_STRUCTURE
+    const pnlTable = Object.values(VERTICAL_PNL_STRUCTURE).map(section => {
+      const sectionData = {
+        id: section.id,
+        category: section.category,
+        items: section.items.map(item => {
+          let amount = 0;
+          let trend = 'neutral';
+          let expandable = false;
 
-    // Calculate totals
-    const grossProfit = revenue - pnlTable[1].subtotal;
-    const operatingProfit = grossProfit - pnlTable[2].subtotal;
-    const profitBeforeTax = operatingProfit;
-    const incomeTax = profitBeforeTax * 0.15;
-    const profitForPeriod = profitBeforeTax - incomeTax;
+          // Map item IDs to actual values
+          switch (item.id) {
+            case 'operating_revenues':
+              amount = operatingRevenues;
+              trend = 'up';
+              break;
+            case 'rebate':
+              amount = rebate;
+              trend = 'up';
+              break;
+            case 'net_operating_revenue':
+              amount = netOperatingRevenue;
+              trend = 'up';
+              expandable = true;
+              break;
+            case 'rental_equipment_revenue':
+              amount = rentalEquipmentRevenue;
+              trend = 'up';
+              break;
+            case 'ds_revenue':
+              amount = dsRevenue;
+              trend = 'up';
+              break;
+            case 'sub_companies_revenue':
+              amount = subCompaniesRevenue;
+              trend = 'up';
+              break;
+            case 'other_revenue':
+              amount = otherRevenue;
+              trend = 'up';
+              break;
+            case 'provision_end_service':
+              amount = provisionEndService;
+              trend = 'up';
+              break;
+            case 'provision_impairment':
+              amount = provisionImpairment;
+              trend = 'up';
+              break;
+            case 'total_revenue':
+              amount = totalRevenue;
+              trend = 'up';
+              expandable = true;
+              break;
+            case 'operation_cost':
+              amount = operationCost;
+              trend = 'down';
+              break;
+            case 'rental_equipment_cost':
+              amount = rentalEquipmentCost;
+              trend = 'down';
+              break;
+            case 'ds_cost':
+              amount = dsCost;
+              trend = 'down';
+              break;
+            case 'general_admin_expenses':
+              amount = generalAdminExpenses;
+              trend = 'down';
+              break;
+            case 'staff_costs':
+              amount = staffCost;
+              trend = 'down';
+              break;
+            case 'provision_credit_loss':
+              amount = provisionCreditLoss;
+              trend = 'down';
+              break;
+            case 'service_agreement_cost':
+              amount = serviceAgreementCost;
+              trend = 'down';
+              break;
+            case 'total_expenses':
+              amount = totalExpenses;
+              trend = 'down';
+              expandable = true;
+              break;
+            case 'gain_selling_products':
+              amount = gainSellingProducts;
+              trend = 'up';
+              break;
+            case 'finance_costs':
+              amount = financeCosts;
+              trend = 'down';
+              break;
+            case 'depreciation':
+              amount = depreciation;
+              trend = 'down';
+              break;
+          }
 
-    // Add summary rows
-    pnlTable.push({
-      id: 'gross_profit',
-      category: 'Gross Profit',
-      items: [],
-      subtotal: grossProfit,
-      type: 'summary'
-    });
+          return {
+            id: item.id,
+            description: item.description,
+            amount,
+            module: item.module,
+            trend,
+            expandable,
+            type: item.type
+          };
+        }),
+        subtotal: 0,
+        type: section.id === 'revenue' ? 'revenue' : 'expense'
+      };
 
-    pnlTable.push({
-      id: 'operating_profit',
-      category: 'Operating Profit',
-      items: [],
-      subtotal: operatingProfit,
-      type: 'summary'
-    });
+      // Calculate section subtotal
+      if (section.id === 'revenue') {
+        sectionData.subtotal = totalRevenue;
+      } else if (section.id === 'expenses') {
+        sectionData.subtotal = totalExpenses;
+      } else if (section.id === 'income_expenses_other') {
+        sectionData.subtotal = gainSellingProducts;
+      } else if (section.id === 'ebitida') {
+        sectionData.subtotal = ebitida;
+      }
 
-    pnlTable.push({
-      id: 'profit_before_tax',
-      category: 'Profit Before Tax',
-      items: [],
-      subtotal: profitBeforeTax,
-      type: 'summary'
-    });
-
-    pnlTable.push({
-      id: 'income_tax',
-      category: 'Income Tax Expense',
-      items: [],
-      subtotal: incomeTax,
-      type: 'expense'
-    });
-
-    pnlTable.push({
-      id: 'profit_for_period',
-      category: 'Profit for the Period',
-      items: [],
-      subtotal: profitForPeriod,
-      type: 'summary'
+      return sectionData;
     });
 
     res.json(pnlTable);
-
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getPnLTable:', error);
-    res.status(500).json({ message: 'Failed to generate P&L table', error: error.message });
+    res.status(500).json({ error: 'Failed to generate P&L table' });
   }
 };
 
