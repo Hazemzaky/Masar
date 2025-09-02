@@ -9,4 +9,5 @@ router.get('/kpis', auth_1.authenticate, dashboardController_1.getKPIs);
 router.get('/income-statement', auth_1.authenticate, dashboardController_1.getIncomeStatement);
 router.get('/balance-sheet', auth_1.authenticate, dashboardController_1.getBalanceSheet);
 router.get('/cash-flow-statement', auth_1.authenticate, dashboardController_1.getCashFlowStatement);
+router.get('/dashboard-summary', auth_1.authenticate, dashboardController_1.getDashboardSummary);
 exports.default = router;

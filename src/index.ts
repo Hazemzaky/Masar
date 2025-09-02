@@ -61,6 +61,7 @@ import chartOfAccountsRoutes from './routes/chartOfAccountsRoutes';
 import accidentRoutes from './routes/accidentRoutes';
 import nearMissRoutes from './routes/nearMissRoutes';
 import trainingRoutes from './routes/trainingRoutes';
+import attendanceRoutes from './routes/attendance';
 import './models/Contract';
 import './models/ProcurementInvoice';
 import './models/Vendor';
@@ -86,6 +87,7 @@ import './models/Invoice';
 import './models/AccountMapping';
 import './models/ChartOfAccounts';
 import './models/GeneralLedgerEntry';
+import './models/Attendance';
 
 dotenv.config();
 
@@ -145,7 +147,8 @@ app.get('/health', (req: Request, res: Response) => {
       '/api/reimbursements',
       '/api/pnl',
       '/api/gl',
-      '/api/chart-of-accounts'
+      '/api/chart-of-accounts',
+      '/api/attendance'
     ]
   });
 });
@@ -208,6 +211,7 @@ app.use('/api/chart-of-accounts', chartOfAccountsRoutes);
 app.use('/api/hse/accidents', accidentRoutes);
 app.use('/api/hse/near-misses', nearMissRoutes);
 app.use('/api/hse/training', trainingRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
