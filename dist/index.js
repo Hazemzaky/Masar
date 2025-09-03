@@ -98,6 +98,7 @@ const chartOfAccountsRoutes_1 = __importDefault(require("./routes/chartOfAccount
 const accidentRoutes_1 = __importDefault(require("./routes/accidentRoutes"));
 const nearMissRoutes_1 = __importDefault(require("./routes/nearMissRoutes"));
 const trainingRoutes_1 = __importDefault(require("./routes/trainingRoutes"));
+const attendance_1 = __importDefault(require("./routes/attendance"));
 require("./models/Contract");
 require("./models/ProcurementInvoice");
 require("./models/Vendor");
@@ -123,6 +124,7 @@ require("./models/Invoice");
 require("./models/AccountMapping");
 require("./models/ChartOfAccounts");
 require("./models/GeneralLedgerEntry");
+require("./models/Attendance");
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -174,7 +176,8 @@ app.get('/health', (req, res) => {
             '/api/reimbursements',
             '/api/pnl',
             '/api/gl',
-            '/api/chart-of-accounts'
+            '/api/chart-of-accounts',
+            '/api/attendance'
         ]
     });
 });
@@ -236,6 +239,7 @@ app.use('/api/chart-of-accounts', chartOfAccountsRoutes_1.default);
 app.use('/api/hse/accidents', accidentRoutes_1.default);
 app.use('/api/hse/near-misses', nearMissRoutes_1.default);
 app.use('/api/hse/training', trainingRoutes_1.default);
+app.use('/api/attendance', attendance_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

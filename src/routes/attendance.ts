@@ -1,14 +1,14 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import Attendance from '../models/Attendance';
 import Employee from '../models/Employee';
-import { authMiddleware } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth';
 import { PayrollAttendanceService } from '../services/payrollAttendanceService';
 
 const router = express.Router();
 
 // Get attendance records with advanced filtering
-router.get('/records', authMiddleware, async (req, res) => {
+router.get('/records', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { date, employeeId, department, status, startDate, endDate, page = 1, limit = 50 } = req.query;
     
@@ -77,7 +77,7 @@ router.get('/records', authMiddleware, async (req, res) => {
 });
 
 // Get comprehensive attendance statistics
-router.get('/stats', authMiddleware, async (req, res) => {
+router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { date } = req.query;
     const targetDate = date ? new Date(date as string) : new Date();
@@ -135,10 +135,10 @@ router.get('/stats', authMiddleware, async (req, res) => {
       .sort((a, b) => (b.productivity?.score || 0) - (a.productivity?.score || 0))
       .slice(0, 10)
       .map(a => ({
-        employeeId: a.employee._id,
-        name: a.employee.name,
+        employeeId: a.employeeId,
+        name: (a.employee as any)?.name || 'Unknown',
         score: a.productivity?.score || 0,
-        avatar: a.employee.avatar
+        avatar: (a.employee as any)?.avatar
       }));
     
     // Department statistics
@@ -217,7 +217,7 @@ router.get('/stats', authMiddleware, async (req, res) => {
 });
 
 // Get live updates
-router.get('/live-updates', authMiddleware, async (req, res) => {
+router.get('/live-updates', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     
@@ -231,9 +231,9 @@ router.get('/live-updates', authMiddleware, async (req, res) => {
     const updates = recentUpdates.map(record => ({
       type: record.checkOut ? 'check-out' : 'check-in',
       employee: {
-        name: record.employee.name,
-        avatar: record.employee.avatar,
-        department: record.employee.department
+        name: (record.employee as any)?.name || 'Unknown',
+        avatar: (record.employee as any)?.avatar,
+        department: (record.employee as any)?.department || 'Unknown'
       },
       timestamp: record.updatedAt,
       location: record.location?.address
@@ -247,9 +247,9 @@ router.get('/live-updates', authMiddleware, async (req, res) => {
 });
 
 // Quick check-in
-router.post('/quick-check-in', authMiddleware, [
+router.post('/quick-check-in', authenticate, [
   body('employeeId').notEmpty().withMessage('Employee ID is required')
-], async (req, res) => {
+], async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -332,10 +332,10 @@ router.post('/quick-check-in', authMiddleware, [
 });
 
 // Biometric authentication endpoint
-router.post('/biometric-auth', authMiddleware, [
+router.post('/biometric-auth', authenticate, [
   body('type').isIn(['fingerprint', 'face']).withMessage('Invalid biometric type'),
   body('data').notEmpty().withMessage('Biometric data is required')
-], async (req, res) => {
+], async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -411,10 +411,10 @@ router.post('/biometric-auth', authMiddleware, [
 });
 
 // Bulk attendance operations
-router.post('/bulk-update', authMiddleware, [
+router.post('/bulk-update', authenticate, [
   body('records').isArray().withMessage('Records must be an array'),
   body('operation').isIn(['approve', 'reject', 'modify']).withMessage('Invalid operation')
-], async (req, res) => {
+], async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -430,7 +430,7 @@ router.post('/bulk-update', authMiddleware, [
       if (attendance) {
         switch (operation) {
           case 'approve':
-            attendance.approvedBy = req.user.userId;
+            attendance.approvedBy = req.user?.userId || 'system';
             break;
           case 'reject':
             attendance.status = 'absent';
@@ -459,7 +459,7 @@ router.post('/bulk-update', authMiddleware, [
 });
 
 // Export attendance data
-router.get('/export', authMiddleware, async (req, res) => {
+router.get('/export', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { format = 'csv', startDate, endDate, department } = req.query;
     
@@ -489,10 +489,10 @@ router.get('/export', authMiddleware, async (req, res) => {
       ].join(',');
       
       const csvData = filteredRecords.map(record => [
-        record.employee.employeeId,
-        record.employee.name,
-        record.employee.department,
-        record.employee.position,
+        record.employeeId,
+        (record.employee as any)?.name || 'Unknown',
+        (record.employee as any)?.department || 'Unknown',
+        (record.employee as any)?.position || 'Unknown',
         record.date.toISOString().split('T')[0],
         record.checkIn || '',
         record.checkOut || '',
@@ -514,7 +514,7 @@ router.get('/export', authMiddleware, async (req, res) => {
 });
 
 // Analytics endpoint for advanced reporting
-router.get('/analytics', authMiddleware, async (req, res) => {
+router.get('/analytics', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { period = '30', department } = req.query;
     const days = parseInt(period as string);
@@ -614,7 +614,7 @@ router.get('/analytics', authMiddleware, async (req, res) => {
 });
 
 // Payroll integration endpoints
-router.get('/payroll-calculation/:employeeId', authMiddleware, async (req, res) => {
+router.get('/payroll-calculation/:employeeId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { employeeId } = req.params;
     const { startDate, endDate } = req.query;
@@ -640,7 +640,7 @@ router.get('/payroll-calculation/:employeeId', authMiddleware, async (req, res) 
   }
 });
 
-router.get('/payroll-bulk', authMiddleware, async (req, res) => {
+router.get('/payroll-bulk', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { startDate, endDate, department } = req.query;
     
@@ -669,7 +669,7 @@ router.get('/payroll-bulk', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/payroll-insights', authMiddleware, async (req, res) => {
+router.get('/payroll-insights', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
     

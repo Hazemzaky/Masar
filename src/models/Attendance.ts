@@ -237,7 +237,7 @@ AttendanceSchema.index({ updatedAt: -1 });
 
 // Virtual for calculating late status
 AttendanceSchema.virtual('isLate').get(function() {
-  if (!this.checkIn) return false;
+  if (!this.checkIn || typeof this.checkIn !== 'string') return false;
   const [hours, minutes] = this.checkIn.split(':').map(Number);
   const checkInMinutes = hours * 60 + minutes;
   const standardStartTime = 9 * 60; // 9:00 AM in minutes
@@ -246,7 +246,7 @@ AttendanceSchema.virtual('isLate').get(function() {
 
 // Virtual for calculating early departure
 AttendanceSchema.virtual('isEarlyDeparture').get(function() {
-  if (!this.checkOut) return false;
+  if (!this.checkOut || typeof this.checkOut !== 'string') return false;
   const [hours, minutes] = this.checkOut.split(':').map(Number);
   const checkOutMinutes = hours * 60 + minutes;
   const standardEndTime = 17 * 60; // 5:00 PM in minutes
@@ -255,7 +255,7 @@ AttendanceSchema.virtual('isEarlyDeparture').get(function() {
 
 // Virtual for work duration in minutes
 AttendanceSchema.virtual('workDurationMinutes').get(function() {
-  if (!this.checkIn || !this.checkOut) return 0;
+  if (!this.checkIn || !this.checkOut || typeof this.checkIn !== 'string' || typeof this.checkOut !== 'string') return 0;
   
   const [inHours, inMinutes] = this.checkIn.split(':').map(Number);
   const [outHours, outMinutes] = this.checkOut.split(':').map(Number);
@@ -263,17 +263,17 @@ AttendanceSchema.virtual('workDurationMinutes').get(function() {
   const checkInMinutes = inHours * 60 + inMinutes;
   const checkOutMinutes = outHours * 60 + outMinutes;
   
-  return checkOutMinutes - checkInMinutes - (this.breakDuration || 0);
+  return checkOutMinutes - checkInMinutes - ((this.breakDuration as number) || 0);
 });
 
 // Pre-save middleware to calculate hours and determine status
 AttendanceSchema.pre('save', function(next) {
   // Calculate total hours if both check-in and check-out are present
   if (this.checkIn && this.checkOut) {
-    const workMinutes = this.workDurationMinutes;
+    const workMinutes = this.workDurationMinutes as number;
     this.totalHours = Math.round((workMinutes / 60) * 100) / 100;
-    this.regularHours = Math.min(this.totalHours, 8);
-    this.overtimeHours = Math.max(0, this.totalHours - 8);
+    this.regularHours = Math.min(this.totalHours as number, 8);
+    this.overtimeHours = Math.max(0, (this.totalHours as number) - 8);
   }
   
   // Auto-determine status based on check-in time and presence
@@ -284,8 +284,11 @@ AttendanceSchema.pre('save', function(next) {
   }
   
   // Set default productivity score if not provided
-  if (!this.productivity.score) {
-    this.productivity.score = Math.floor(Math.random() * 30) + 70; // Random between 70-100
+  if (!this.productivity || !(this.productivity as any).score) {
+    if (!this.productivity) {
+      this.productivity = { score: 0, activeMinutes: 0 };
+    }
+    (this.productivity as any).score = Math.floor(Math.random() * 30) + 70; // Random between 70-100
   }
   
   next();

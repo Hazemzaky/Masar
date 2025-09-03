@@ -179,7 +179,7 @@ export class PayrollAttendanceService {
 
       for (const employee of employees) {
         const data = await this.calculateAttendanceBasedPayroll(
-          employee._id.toString(), 
+          (employee._id as any).toString(), 
           startDate, 
           endDate
         );
