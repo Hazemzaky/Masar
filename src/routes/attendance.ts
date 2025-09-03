@@ -39,9 +39,22 @@ router.get('/records', authenticate, async (req: AuthRequest, res: Response) => 
       };
     }
     
-    // Employee filtering
+    // Employee filtering - integrate with Employee database
     if (employeeId) {
-      query.employeeId = employeeId;
+      // First try to find employee by employeeId field in Employee model
+      const employee = await Employee.findOne({ employeeId: employeeId });
+      if (employee) {
+        query.employee = employee._id;
+      } else {
+        // If not found by employeeId, try by _id
+        query.employee = employeeId;
+      }
+    }
+    
+    // Department filtering - get employees from that department first
+    if (department) {
+      const departmentEmployees = await Employee.find({ department: department }).select('_id');
+      query.employee = { $in: departmentEmployees.map(emp => emp._id) };
     }
     
     // Status filtering
@@ -52,8 +65,8 @@ router.get('/records', authenticate, async (req: AuthRequest, res: Response) => 
     const records = await Attendance.find(query)
       .populate({
         path: 'employee',
-        select: 'name email position department employeeId site avatar',
-        match: department ? { department } : {}
+        select: 'name email position department employeeId site avatar status active',
+        match: {} // Remove department match since we handle it in query
       })
       .sort({ date: -1, checkIn: -1 })
       .limit(Number(limit))
@@ -84,28 +97,45 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
     
-    // Get all employees
-    const totalEmployees = await Employee.countDocuments({ status: 'active' });
+    // Get all active employees from Employee database
+    const totalEmployees = await Employee.countDocuments({ 
+      $or: [
+        { status: 'active' },
+        { active: true }
+      ]
+    });
     
-    // Get today's attendance
+    // Get today's attendance records that are linked to active employees
     const todayAttendance = await Attendance.find({
       date: { $gte: startOfDay, $lte: endOfDay }
-    }).populate('employee', 'name department position employeeId avatar');
+    }).populate({
+      path: 'employee',
+      select: 'name department position employeeId avatar status active',
+      match: { 
+        $or: [
+          { status: 'active' },
+          { active: true }
+        ]
+      }
+    });
     
-    // Calculate basic stats
-    const presentToday = todayAttendance.filter(a => ['present', 'late'].includes(a.status)).length;
-    const absentToday = todayAttendance.filter(a => a.status === 'absent').length;
-    const lateToday = todayAttendance.filter(a => a.status === 'late').length;
-    const onLeaveToday = todayAttendance.filter(a => a.status === 'on-leave').length;
-    const remoteToday = todayAttendance.filter(a => a.workMode === 'remote').length;
+    // Filter out records where employee is null (inactive employees)
+    const validAttendance = todayAttendance.filter(record => record.employee);
+    
+    // Calculate basic stats using valid attendance records
+    const presentToday = validAttendance.filter(a => ['present', 'late'].includes(a.status)).length;
+    const absentToday = validAttendance.filter(a => a.status === 'absent').length;
+    const lateToday = validAttendance.filter(a => a.status === 'late').length;
+    const onLeaveToday = validAttendance.filter(a => a.status === 'on-leave').length;
+    const remoteToday = validAttendance.filter(a => a.workMode === 'remote').length;
     
     // Calculate advanced metrics
     const attendanceRate = totalEmployees > 0 ? (presentToday / totalEmployees) * 100 : 0;
     const punctualityRate = presentToday > 0 ? ((presentToday - lateToday) / presentToday) * 100 : 0;
     
-    // Calculate average times
-    const checkInTimes = todayAttendance.filter(a => a.checkIn).map(a => a.checkIn);
-    const checkOutTimes = todayAttendance.filter(a => a.checkOut).map(a => a.checkOut);
+    // Calculate average times using valid attendance records
+    const checkInTimes = validAttendance.filter(a => a.checkIn).map(a => a.checkIn);
+    const checkOutTimes = validAttendance.filter(a => a.checkOut).map(a => a.checkOut);
     
     const averageCheckInTime = checkInTimes.length > 0 ? 
       checkInTimes.reduce((acc, time) => {
@@ -119,18 +149,18 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         return acc + hours * 60 + minutes;
       }, 0) / checkOutTimes.length : 0;
     
-    // Calculate productivity and other advanced metrics
-    const productivityScore = todayAttendance.length > 0 ?
-      todayAttendance.reduce((acc, record) => acc + (record.productivity?.score || 75), 0) / todayAttendance.length : 75;
+    // Calculate productivity and other advanced metrics using valid attendance
+    const productivityScore = validAttendance.length > 0 ?
+      validAttendance.reduce((acc, record) => acc + (record.productivity?.score || 75), 0) / validAttendance.length : 75;
     
-    const healthComplianceRate = todayAttendance.length > 0 ?
-      (todayAttendance.filter(a => a.healthCheck).length / todayAttendance.length) * 100 : 0;
+    const healthComplianceRate = validAttendance.length > 0 ?
+      (validAttendance.filter(a => a.healthCheck).length / validAttendance.length) * 100 : 0;
     
-    const biometricSuccessRate = todayAttendance.length > 0 ?
-      (todayAttendance.filter(a => a.biometricData?.confidence && a.biometricData.confidence > 0.8).length / todayAttendance.length) * 100 : 0;
+    const biometricSuccessRate = validAttendance.length > 0 ?
+      (validAttendance.filter(a => a.biometricData?.confidence && a.biometricData.confidence > 0.8).length / validAttendance.length) * 100 : 0;
     
-    // Get top performers
-    const topPerformers = todayAttendance
+    // Get top performers from valid attendance records
+    const topPerformers = validAttendance
       .filter(a => a.productivity?.score)
       .sort((a, b) => (b.productivity?.score || 0) - (a.productivity?.score || 0))
       .slice(0, 10)
@@ -141,9 +171,14 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         avatar: (a.employee as any)?.avatar
       }));
     
-    // Department statistics
+    // Department statistics - include all active employees
     const departmentStats = await Employee.aggregate([
-      { $match: { status: 'active' } },
+      { $match: { 
+        $or: [
+          { status: 'active' },
+          { active: true }
+        ]
+      } },
       {
         $group: {
           _id: '$department',
@@ -685,6 +720,103 @@ router.get('/payroll-insights', authenticate, async (req: AuthRequest, res: Resp
     res.json(insights);
   } catch (error) {
     console.error('Error getting payroll insights:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Sync attendance records with Employee database
+router.post('/sync-employees', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    // Get all active employees from Employee database
+    const employees = await Employee.find({
+      $or: [
+        { status: 'active' },
+        { active: true }
+      ]
+    }).select('_id employeeId name email department position');
+
+    let syncedCount = 0;
+    let createdCount = 0;
+
+    for (const employee of employees) {
+      // Check if attendance record exists for today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const existingRecord = await Attendance.findOne({
+        employee: employee._id,
+        date: { $gte: today, $lt: tomorrow }
+      });
+
+      if (!existingRecord) {
+        // Create attendance record for today if it doesn't exist
+        const newAttendance = new Attendance({
+          employeeId: employee.employeeId || (employee._id as any).toString(),
+          employee: employee._id,
+          date: today,
+          status: 'absent', // Default status, will be updated when they check in
+          workMode: 'office',
+          productivity: {
+            score: 0,
+            activeMinutes: 0
+          },
+          energyLevel: 5,
+          healthCheck: false,
+          isManualEntry: false
+        });
+
+        await newAttendance.save();
+        createdCount++;
+      } else {
+        syncedCount++;
+      }
+    }
+
+    res.json({
+      message: 'Employee attendance sync completed',
+      totalEmployees: employees.length,
+      existingRecords: syncedCount,
+      newRecordsCreated: createdCount
+    });
+  } catch (error) {
+    console.error('Error syncing employee attendance:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all employees for attendance system
+router.get('/employees', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { department, status, search } = req.query;
+    
+    let query: any = {
+      $or: [
+        { status: 'active' },
+        { active: true }
+      ]
+    };
+
+    if (department) {
+      query.department = department;
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { employeeId: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const employees = await Employee.find(query)
+      .select('_id employeeId name email department position avatar status active site')
+      .sort({ name: 1 });
+
+    res.json({ employees });
+  } catch (error) {
+    console.error('Error fetching employees for attendance:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
