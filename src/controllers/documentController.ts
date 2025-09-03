@@ -528,16 +528,136 @@ export const getDocumentAuditTrail = async (req: Request, res: Response) => {
 // Get document statistics
 export const getDocumentStats = async (req: Request, res: Response) => {
   try {
-    const { module } = req.query;
     const userId = (req as any).user?.userId;
-    const userRoles = (req as any).user?.roles || [];
-    
-    const stats = await (Document as any).getDocumentStats(module as string);
-    
-    res.json({ stats });
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Get document statistics
+    const totalDocuments = await Document.countDocuments();
+    const totalSizeResult = await Document.aggregate([
+      { $group: { _id: null, totalSize: { $sum: '$fileSize' } } }
+    ]);
+
+    const byModule = await Document.aggregate([
+      { $group: { _id: '$module', count: { $sum: 1 } } }
+    ]);
+
+    const recentUploads = await Document.countDocuments({
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+    });
+
+    const pendingReview = await Document.countDocuments({
+      status: 'pending-review'
+    });
+
+    // Format total size
+    const totalSizeBytes = totalSizeResult[0]?.totalSize || 0;
+    const formatFileSize = (bytes: number) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    res.json({
+      totalDocuments,
+      totalSize: formatFileSize(totalSizeBytes),
+      byModule: byModule.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {} as any),
+      recentUploads,
+      pendingReview
+    });
   } catch (error) {
-    console.error('Error fetching document stats:', error);
-    res.status(500).json({ message: 'Failed to fetch document stats', error });
+    console.error('Error getting document stats:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get file type statistics
+export const getFileTypeStats = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const fileTypeStats = await Document.aggregate([
+      {
+        $group: {
+          _id: '$fileExtension',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          type: '$_id',
+          count: 1,
+          _id: 0
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Map file extensions to icons and colors
+    const getFileTypeInfo = (extension: string) => {
+      const ext = extension.toLowerCase();
+      if (ext === 'pdf') return { icon: '📄', color: '#f44336' };
+      if (['doc', 'docx'].includes(ext)) return { icon: '📝', color: '#2196f3' };
+      if (['xls', 'xlsx'].includes(ext)) return { icon: '📊', color: '#4caf50' };
+      if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return { icon: '🖼️', color: '#ff9800' };
+      if (['zip', 'rar'].includes(ext)) return { icon: '📦', color: '#9c27b0' };
+      return { icon: '📄', color: '#757575' };
+    };
+
+    const fileTypes = fileTypeStats.map(stat => {
+      const info = getFileTypeInfo(stat.type);
+      return {
+        type: stat.type,
+        count: stat.count,
+        icon: info.icon,
+        color: info.color
+      };
+    });
+
+    res.json({ fileTypes });
+  } catch (error) {
+    console.error('Error getting file type stats:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get recent activities
+export const getRecentActivities = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const activities = await DocumentAudit.find({
+      action: { $in: ['upload', 'download', 'view'] }
+    })
+    .populate('documentId', 'title originalName module')
+    .sort({ performedAt: -1 })
+    .limit(10);
+
+    const formattedActivities = activities.map(activity => ({
+      _id: activity._id,
+      action: activity.action,
+      fileName: activity.details?.fileName || 'Unknown file',
+      user: activity.performedBy,
+      timestamp: activity.performedAt,
+      module: activity.module
+    }));
+
+    res.json({ activities: formattedActivities });
+  } catch (error) {
+    console.error('Error getting recent activities:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 

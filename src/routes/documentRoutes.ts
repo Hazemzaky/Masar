@@ -9,6 +9,8 @@ import {
   deleteDocument,
   getDocumentAuditTrail,
   getDocumentStats,
+  getFileTypeStats,
+  getRecentActivities,
   bulkDownload,
   upload
 } from '../controllers/documentController';
@@ -22,6 +24,8 @@ router.use(authenticate);
 router.get('/', getDocuments);
 router.post('/upload', upload.array('files', 10), uploadDocument);
 router.get('/stats', getDocumentStats);
+router.get('/stats/file-types', getFileTypeStats);
+router.get('/activities/recent', getRecentActivities);
 router.post('/bulk-download', bulkDownload);
 
 // Individual document routes
