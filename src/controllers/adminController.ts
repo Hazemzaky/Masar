@@ -546,22 +546,49 @@ export const getCompanyFacilities = async (req: Request, res: Response): Promise
 
 export const updateCompanyFacility = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Extract nested objects to avoid conflicts
+    const {
+      rentAgreement,
+      municipalityApproval,
+      fireDepartmentApproval,
+      mocApproval,
+      otherApprovals,
+      documents,
+      facilityDocs,
+      maintenanceHistory,
+      ...otherFields
+    } = req.body;
+
+    const updateData = {
+      ...otherFields,
+      rentAgreement: {
+        ...rentAgreement,
+        // Support new security deposit fields
+        hasSecurityDeposit: req.body.hasSecurityDeposit,
+        securityDepositAmount: req.body.securityDepositAmount,
+        securityDepositPaymentType: req.body.securityDepositPaymentType,
+        securityDepositChequeType: req.body.securityDepositChequeType,
+        securityDepositAmortization: req.body.securityDepositAmortization,
+      },
+      municipalityApproval: {
+        ...municipalityApproval,
+        renewalPlace: municipalityApproval?.renewalProcess,
+      },
+      fireDepartmentApproval,
+      ministryApproval: mocApproval,
+      otherApprovals,
+      documents: {
+        ...documents,
+        ministriesDocuments: documents?.ministriesDocuments,
+      },
+      facilityDocs,
+      maintenanceHistory,
+      updatedAt: new Date()
+    };
+
     const facility = await CompanyFacility.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-        // Support new security deposit fields
-        'rentAgreement.hasSecurityDeposit': req.body.hasSecurityDeposit,
-        'rentAgreement.securityDepositAmount': req.body.securityDepositAmount,
-        'rentAgreement.securityDepositPaymentType': req.body.securityDepositPaymentType,
-        'rentAgreement.securityDepositChequeType': req.body.securityDepositChequeType,
-        'rentAgreement.securityDepositAmortization': req.body.securityDepositAmortization,
-        'municipalityApproval.renewalPlace': req.body.municipalityApproval?.renewalProcess,
-        ministryApproval: req.body.mocApproval,
-        facilityDocs: req.body.facilityDocs,
-        'documents.ministriesDocuments': req.body.documents?.ministriesDocuments,
-        updatedAt: new Date()
-      },
+      updateData,
       { new: true }
     );
     if (!facility) {
