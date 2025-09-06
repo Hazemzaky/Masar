@@ -696,25 +696,28 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     const tripAllowanceData = getDashboardData('tripAllowance');
     const foodAllowanceData = getDashboardData('foodAllowance');
     const hseData = getDashboardData('hse');
+    const procurementData = getDashboardData('procurement');
     
     const businessTripCost = businessTripData?.costs?.yearly || 0;
     const overtimeCost = overtimeData?.costs?.yearly || 0;
     const tripAllowanceCost = tripAllowanceData?.costs?.yearly || 0;
     const foodAllowanceCost = foodAllowanceData?.costs?.yearly || 0;
     const hseTrainingCost = hseData?.costs?.yearly || 0;
+    const procurementCost = procurementData?.costs?.yearly || 0;
     
     console.log('Dashboard costs:', {
       businessTrip: businessTripCost,
       overtime: overtimeCost,
       tripAllowance: tripAllowanceCost,
       foodAllowance: foodAllowanceCost,
-      hse: hseTrainingCost
+      hse: hseTrainingCost,
+      procurement: procurementCost
     });
     
     const rentalEquipmentCost = expensesData[6][0]?.rentalEquipmentCost || 0;
     const dsCost = expensesData[7][0]?.dsCost || 0;
     const staffCost = expensesData[8][0]?.staffCost || 0;
-    const procurementCost = expensesData[9][0]?.procurementCost || 0;
+    // procurementCost is now calculated from dashboard data above
     
     // Manual entries
     const generalAdminExpenses = getManualEntryValue('generalAdminExpenses', filters.period, startDate, endDate);
@@ -833,7 +836,8 @@ export const getPnLSummary = async (req: Request, res: Response) => {
           businessTrips: businessTripCost,
           overtime: overtimeCost,
           tripAllowance: tripAllowanceCost,
-          foodAllowance: foodAllowanceCost
+          foodAllowance: foodAllowanceCost,
+          procurement: procurementCost
         }
       }
     };
