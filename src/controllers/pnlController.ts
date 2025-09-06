@@ -14,6 +14,13 @@ import HSE from '../models/Environmental';
 import Overtime from '../models/Overtime';
 import TripAllowance from '../models/TripAllowance';
 import FoodAllowance from '../models/FoodAllowance';
+import AdminLegalCase from '../models/LegalCase';
+import AdminGovCorrespondence from '../models/GovernmentCorrespondence';
+import AdminCompanyFacility from '../models/CompanyFacility';
+import InventoryItem from '../models/InventoryItem';
+import InventoryTransaction from '../models/InventoryTransaction';
+import Project from '../models/Project';
+import Client from '../models/Client';
 
 // IFRS P&L Structure as per IAS 1 - Updated for vertical table format
 const PNL_STRUCTURE = {
@@ -323,6 +330,8 @@ export const getPnLSummary = async (req: Request, res: Response) => {
   try {
     const filters = getFilters(req);
     const { startDate, endDate, period } = filters;
+
+    console.log('P&L Summary - Using integrated data sources:', { period, startDate, endDate });
 
     // Get account mappings for categorization
     const accountMappings = await AccountMapping.find({ isActive: true });
@@ -692,6 +701,17 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     // Calculate EBITIDA
     const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
 
+    console.log('P&L Summary - Calculated values:', {
+      totalRevenue,
+      totalExpenses,
+      businessTripCost,
+      overtimeCost,
+      tripAllowanceCost,
+      foodAllowanceCost,
+      hseTrainingCost,
+      ebitida
+    });
+
     // Build response with new structure and ALL integrations
     const pnlSummary = {
       period: filters.period,
@@ -766,6 +786,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
   try {
     const filters = getFilters(req);
     const { startDate, endDate } = filters;
+
+    console.log('P&L Table - Using integrated data sources:', { period: filters.period, startDate, endDate });
 
     // Get account mappings
     const accountMappings = await AccountMapping.find({ isActive: true });
