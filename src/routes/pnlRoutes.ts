@@ -6,7 +6,8 @@ import {
   getPnLCharts,
   getPnLAnalysis,
   updateManualPnLEntry,
-  getManualPnLEntries
+  getManualPnLEntries,
+  updatePnLRealTime
 } from '../controllers/pnlController';
 
 const router = express.Router();
@@ -29,6 +30,19 @@ router.get('/analysis', getPnLAnalysis);
 // Manual PnL Entry Management
 router.get('/manual-entries', getManualPnLEntries);
 router.put('/manual-entries/:itemId', updateManualPnLEntry);
+
+// Real-time P&L Updates
+router.post('/update-realtime', updatePnLRealTime);
+
+// Check for P&L updates endpoint
+router.get('/check-updates', (req, res) => {
+  // Simple implementation - in production, this would check timestamps
+  res.json({ 
+    hasUpdates: false, 
+    lastUpdate: new Date().toISOString(),
+    modules: []
+  });
+});
 
 // Export routes (to be implemented)
 router.get('/export/pdf', (req, res) => {
