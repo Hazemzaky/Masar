@@ -21,6 +21,7 @@ export interface IInventoryItem extends Document {
   costType?: 'direct' | 'depreciated'; // New field
   depreciationDuration?: number; // New field (months)
   serial: string; // Serial number field
+  createdAt?: Date; // Creation date field
 }
 
 const InventoryItemSchema = new Schema<IInventoryItem>({
@@ -44,6 +45,7 @@ const InventoryItemSchema = new Schema<IInventoryItem>({
   costType: { type: String, enum: ['direct', 'depreciated'], default: 'direct' }, // New field
   depreciationDuration: { type: Number }, // New field (months)
   serial: { type: String, required: true, unique: true }, // Serial number field
+  createdAt: { type: Date, default: Date.now }, // Creation date field
 });
 
 export default mongoose.model<IInventoryItem>('InventoryItem', InventoryItemSchema); 
