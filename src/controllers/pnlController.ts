@@ -22,6 +22,52 @@ import InventoryTransaction from '../models/InventoryTransaction';
 import Project from '../models/Project';
 import Client from '../models/Client';
 
+// In-memory store for Cost Analysis Dashboard data
+interface DashboardData {
+  module: string;
+  costs: {
+    daily: number;
+    weekly: number;
+    monthly: number;
+    quarterly: number;
+    halfYearly: number;
+    yearly: number;
+  };
+  recordCount: number;
+  lastUpdated: Date;
+}
+
+// Global store for dashboard data
+const dashboardDataStore = new Map<string, DashboardData>();
+
+// Function to store dashboard data from Cost Analysis Dashboards
+export const storeDashboardData = (module: string, data: any) => {
+  console.log(`Storing dashboard data for ${module}:`, data);
+  dashboardDataStore.set(module, {
+    module,
+    costs: data.costs || {
+      daily: 0,
+      weekly: 0,
+      monthly: 0,
+      quarterly: 0,
+      halfYearly: 0,
+      yearly: 0
+    },
+    recordCount: data.recordCount || 0,
+    lastUpdated: new Date()
+  });
+};
+
+// Function to get dashboard data for a specific module
+const getDashboardData = (module: string): DashboardData | null => {
+  return dashboardDataStore.get(module) || null;
+};
+
+// Function to get all dashboard data
+const getAllDashboardData = (): Map<string, DashboardData> => {
+  return dashboardDataStore;
+};
+
 // IFRS P&L Structure as per IAS 1 - Updated for vertical table format
 const PNL_STRUCTURE = {
   REVENUE: 'revenue',
@@ -333,6 +379,10 @@ export const getPnLSummary = async (req: Request, res: Response) => {
 
     console.log('P&L Summary - Using integrated data sources:', { period, startDate, endDate });
 
+    // Get dashboard data from Cost Analysis Dashboards
+    const allDashboardData = getAllDashboardData();
+    console.log('Available dashboard data:', Array.from(allDashboardData.keys()));
+
     // Get account mappings for categorization
     const accountMappings = await AccountMapping.find({ isActive: true });
 
@@ -640,12 +690,26 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     const maintenanceCost = (expensesData[0] as any[])[1]?.maintenanceCost || 0;
     const operationCost = fuelCost + maintenanceCost;
     
-    // NEW COST INTEGRATIONS
-    const businessTripCost = expensesData[1][0]?.businessTripCost || 0;
-    const overtimeCost = expensesData[2][0]?.overtimeCost || 0;
-    const tripAllowanceCost = expensesData[3][0]?.tripAllowanceCost || 0;
-    const foodAllowanceCost = expensesData[4][0]?.foodAllowanceCost || 0;
-    const hseTrainingCost = expensesData[5][0]?.hseTrainingCost || 0;
+    // NEW COST INTEGRATIONS - Using Dashboard Data
+    const businessTripData = getDashboardData('businessTrip');
+    const overtimeData = getDashboardData('overtime');
+    const tripAllowanceData = getDashboardData('tripAllowance');
+    const foodAllowanceData = getDashboardData('foodAllowance');
+    const hseData = getDashboardData('hse');
+    
+    const businessTripCost = businessTripData?.costs?.yearly || 0;
+    const overtimeCost = overtimeData?.costs?.yearly || 0;
+    const tripAllowanceCost = tripAllowanceData?.costs?.yearly || 0;
+    const foodAllowanceCost = foodAllowanceData?.costs?.yearly || 0;
+    const hseTrainingCost = hseData?.costs?.yearly || 0;
+    
+    console.log('Dashboard costs:', {
+      businessTrip: businessTripCost,
+      overtime: overtimeCost,
+      tripAllowance: tripAllowanceCost,
+      foodAllowance: foodAllowanceCost,
+      hse: hseTrainingCost
+    });
     
     const rentalEquipmentCost = expensesData[6][0]?.rentalEquipmentCost || 0;
     const dsCost = expensesData[7][0]?.dsCost || 0;
@@ -1393,12 +1457,17 @@ export const getPnLAnalysis = async (req: Request, res: Response) => {
     console.error('Error in getPnLAnalysis:', error);
     res.status(500).json({ message: 'Failed to generate P&L analysis', error: error.message });
   }
-};
+}; 
 
 // Real-time P&L update webhook endpoint
 export const updatePnLRealTime = async (req: Request, res: Response) => {
   try {
     const { module, action, data } = req.body;
+    
+    // Store dashboard data if provided
+    if (data && data.costs) {
+      storeDashboardData(module, data);
+    }
     
     // Broadcast update to connected clients via WebSocket or Server-Sent Events
     // This would trigger real-time updates in the frontend PnL dashboard
@@ -1414,5 +1483,31 @@ export const updatePnLRealTime = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error in updatePnLRealTime:', error);
     res.status(500).json({ error: 'Failed to update P&L in real-time' });
+  }
+};
+
+// Endpoint to receive dashboard data from Cost Analysis Dashboards
+export const receiveDashboardData = async (req: Request, res: Response) => {
+  try {
+    const { module, costs, recordCount } = req.body;
+    
+    if (!module || !costs) {
+      return res.status(400).json({ error: 'Module and costs data are required' });
+    }
+    
+    storeDashboardData(module, { costs, recordCount });
+    
+    console.log(`Received dashboard data for ${module}:`, { costs, recordCount });
+    
+    res.json({ 
+      success: true, 
+      message: `Dashboard data stored for ${module}`,
+      module,
+      recordCount,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error in receiveDashboardData:', error);
+    res.status(500).json({ error: 'Failed to store dashboard data' });
   }
 };

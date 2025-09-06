@@ -7,7 +7,8 @@ import {
   getPnLAnalysis,
   updateManualPnLEntry,
   getManualPnLEntries,
-  updatePnLRealTime
+  updatePnLRealTime,
+  receiveDashboardData
 } from '../controllers/pnlController';
 
 const router = express.Router();
@@ -33,6 +34,9 @@ router.put('/manual-entries/:itemId', updateManualPnLEntry);
 
 // Real-time P&L Updates
 router.post('/update-realtime', updatePnLRealTime);
+
+// Receive dashboard data from Cost Analysis Dashboards
+router.post('/dashboard-data', receiveDashboardData);
 
 // Check for P&L updates endpoint
 router.get('/check-updates', (req, res) => {
