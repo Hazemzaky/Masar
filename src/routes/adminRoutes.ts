@@ -96,7 +96,7 @@ router.get('/assets', authenticate, async (req, res) => {
     .sort({ description: 1 });
     
     // Transform the data to match the expected format
-    const transformedAssets = assets.map(asset => ({
+    const transformedAssets = assets.map((asset: any) => ({
       _id: asset._id,
       description: asset.description,
       type: asset.type,
