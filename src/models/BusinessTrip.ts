@@ -10,6 +10,7 @@ export interface IBusinessTrip extends Document {
   requiresVisa: boolean;
   seminarFile?: string;
   perDiem: number;
+  manualPerDiem: number;
   flightClass: string;
   hotelQuotes?: string[];
   flightQuotes?: string[];
@@ -58,6 +59,7 @@ const BusinessTripSchema = new Schema<IBusinessTrip>({
   requiresVisa: { type: Boolean, default: false },
   seminarFile: { type: String },
   perDiem: { type: Number, required: true },
+  manualPerDiem: { type: Number, required: true, default: 0 },
   flightClass: { type: String, required: true },
   hotelQuotes: [{ type: String }],
   flightQuotes: [{ type: String }],

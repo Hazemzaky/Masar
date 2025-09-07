@@ -25,6 +25,8 @@ export const createBusinessTrip = async (req: Request, res: Response) => {
       postTripSummary: getFile(req, 'postTripSummary'),
       boardingPass: getFile(req, 'boardingPass'),
       signedClaimForm: getFile(req, 'signedClaimForm'),
+      // Handle manual per diem
+      manualPerDiem: req.body.manualPerDiem ? Number(req.body.manualPerDiem) : 0,
       // Handle amortization fields
       costAmortization: req.body.costAmortization === 'true',
       totalTripCost: req.body.totalTripCost ? Number(req.body.totalTripCost) : undefined,
@@ -74,6 +76,11 @@ export const updateBusinessTrip = async (req: Request, res: Response) => {
       if (getFile(req, 'postTripSummary')) update.postTripSummary = getFile(req, 'postTripSummary');
       if (getFile(req, 'boardingPass')) update.boardingPass = getFile(req, 'boardingPass');
       if (getFile(req, 'signedClaimForm')) update.signedClaimForm = getFile(req, 'signedClaimForm');
+    }
+    
+    // Handle manual per diem
+    if (req.body.manualPerDiem !== undefined) {
+      update.manualPerDiem = Number(req.body.manualPerDiem);
     }
     
     // Handle amortization fields
