@@ -81,4 +81,40 @@ router.delete('/company-facilities/:id', authenticate, deleteCompanyFacility);
 // Employees
 router.get('/employees', authenticate, getEmployees);
 
+// Assets (for vehicle dropdown)
+router.get('/assets', authenticate, async (req, res) => {
+  try {
+    // Import Asset model
+    const Asset = require('../models/Asset').default;
+    
+    // Fetch assets excluding IT, Furniture, and Building types
+    const assets = await Asset.find({
+      type: { $nin: ['IT', 'Furniture', 'Building'] },
+      status: 'active' // Only active assets
+    })
+    .select('_id description type mainCategory subCategory plateNumber serialNumber fleetNumber chassisNumber brand')
+    .sort({ description: 1 });
+    
+    // Transform the data to match the expected format
+    const transformedAssets = assets.map(asset => ({
+      _id: asset._id,
+      description: asset.description,
+      type: asset.type,
+      mainCategory: asset.mainCategory,
+      subCategory: asset.subCategory,
+      plateNumber: asset.plateNumber,
+      serialNumber: asset.serialNumber,
+      fleetNumber: asset.fleetNumber,
+      chassisNumber: asset.chassisNumber,
+      brand: asset.brand
+    }));
+    
+    console.log(`Found ${transformedAssets.length} assets (excluding IT, Furniture, Building)`);
+    res.json(transformedAssets);
+  } catch (error) {
+    console.error('Error fetching assets:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router; 
