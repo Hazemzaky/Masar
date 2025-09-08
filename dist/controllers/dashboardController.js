@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -54,30 +87,62 @@ function getDateRange(req) {
     }
     return { startDate, endDate };
 }
+// Helper function to get P&L data for a specific period
+function getPnLDataForPeriod(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Import the P&L controller functions
+            const { getPnLSummary } = yield Promise.resolve().then(() => __importStar(require('./pnlController')));
+            // Create a mock request object with the date range
+            const mockReq = {
+                query: {
+                    start: startDate.toISOString().split('T')[0],
+                    end: endDate.toISOString().split('T')[0],
+                    period: 'monthly'
+                }
+            };
+            // Create a mock response object to capture the data
+            let pnlData = null;
+            const mockRes = {
+                json: (data) => {
+                    pnlData = data;
+                },
+                status: () => mockRes,
+                send: () => { }
+            };
+            // Call the P&L summary function
+            yield getPnLSummary(mockReq, mockRes);
+            // Return the P&L data or default values if not available
+            return pnlData || {
+                revenue: { total: 0 },
+                expenses: { total: 0 },
+                ebitida: { total: 0 },
+                netProfit: 0
+            };
+        }
+        catch (error) {
+            console.error('Error fetching P&L data:', error);
+            // Return default values if P&L data is not available
+            return {
+                revenue: { total: 0 },
+                expenses: { total: 0 },
+                ebitida: { total: 0 },
+                netProfit: 0
+            };
+        }
+    });
+}
 // Enhanced Dashboard Summary with all module KPIs
 const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
     try {
         const { startDate, endDate } = getDateRange(req);
-        // Financial KPIs
-        const [revenue, expenses, grossProfit, netProfit] = yield Promise.all([
-            Expense_1.default.aggregate([
-                { $match: { category: 'income', date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]),
-            Expense_1.default.aggregate([
-                { $match: { category: 'expenses', date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]),
-            Expense_1.default.aggregate([
-                { $match: { category: { $in: ['income', 'expenses'] }, date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: '$category', total: { $sum: '$amount' } } }
-            ]),
-            Expense_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: { $cond: [{ $eq: ['$category', 'income'] }, '$amount', { $multiply: ['$amount', -1] }] } } } }
-            ])
-        ]);
+        // Financial KPIs - Get data from P&L system
+        const pnlData = yield getPnLDataForPeriod(startDate, endDate);
+        const revenue = pnlData.revenue.total;
+        const expenses = pnlData.expenses.total;
+        const ebitda = pnlData.ebitida.total;
+        const netProfit = pnlData.netProfit;
         // HR KPIs
         const [headcount, payroll, attrition] = yield Promise.all([
             Employee_1.default.countDocuments({ status: 'active' }),
@@ -264,55 +329,55 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
         });
         res.json({
             financial: {
-                revenue: ((_a = revenue[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
-                expenses: ((_b = expenses[0]) === null || _b === void 0 ? void 0 : _b.total) || 0,
-                grossProfit: ((_c = grossProfit[0]) === null || _c === void 0 ? void 0 : _c.total) || 0,
-                netProfit: ((_d = netProfit[0]) === null || _d === void 0 ? void 0 : _d.total) || 0,
-                margin: ((_e = revenue[0]) === null || _e === void 0 ? void 0 : _e.total) ? ((((_f = netProfit[0]) === null || _f === void 0 ? void 0 : _f.total) || 0) / ((_g = revenue[0]) === null || _g === void 0 ? void 0 : _g.total) * 100) : 0
+                revenue: revenue,
+                expenses: expenses,
+                ebitda: ebitda,
+                netProfit: netProfit,
+                margin: revenue ? (ebitda / revenue * 100) : 0
             },
             hr: {
                 headcount: headcount || 0,
-                payroll: ((_h = payroll[0]) === null || _h === void 0 ? void 0 : _h.total) || 0,
+                payroll: ((_a = payroll[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
                 attrition: attrition || 0,
                 attritionRate: headcount ? (attrition / headcount * 100) : 0
             },
             assets: {
-                bookValue: ((_j = bookValue[0]) === null || _j === void 0 ? void 0 : _j.total) || 0,
-                utilization: ((_k = utilization[0]) === null || _k === void 0 ? void 0 : _k.avgUtilization) || 0,
-                depreciation: ((_l = depreciation[0]) === null || _l === void 0 ? void 0 : _l.total) || 0,
+                bookValue: ((_b = bookValue[0]) === null || _b === void 0 ? void 0 : _b.total) || 0,
+                utilization: ((_c = utilization[0]) === null || _c === void 0 ? void 0 : _c.avgUtilization) || 0,
+                depreciation: ((_d = depreciation[0]) === null || _d === void 0 ? void 0 : _d.total) || 0,
                 renewals: renewals || 0
             },
             operations: {
                 deliveries: deliveries || 0,
-                onTimePercentage: ((_m = onTimePercentage[0]) === null || _m === void 0 ? void 0 : _m.total) ? (onTimePercentage[0].onTime / onTimePercentage[0].total * 100) : 0,
-                deliveryCost: ((_o = deliveryCost[0]) === null || _o === void 0 ? void 0 : _o.total) || 0,
-                fleetUtilization: ((_p = fleetUtilization[0]) === null || _p === void 0 ? void 0 : _p.avgUtilization) || 0
+                onTimePercentage: ((_e = onTimePercentage[0]) === null || _e === void 0 ? void 0 : _e.total) ? (onTimePercentage[0].onTime / onTimePercentage[0].total * 100) : 0,
+                deliveryCost: ((_f = deliveryCost[0]) === null || _f === void 0 ? void 0 : _f.total) || 0,
+                fleetUtilization: ((_g = fleetUtilization[0]) === null || _g === void 0 ? void 0 : _g.avgUtilization) || 0
             },
             maintenance: {
-                cost: ((_q = maintenanceCost[0]) === null || _q === void 0 ? void 0 : _q.total) || 0,
+                cost: ((_h = maintenanceCost[0]) === null || _h === void 0 ? void 0 : _h.total) || 0,
                 preventiveVsCorrective: preventiveVsCorrective || [],
-                downtime: ((_r = downtime[0]) === null || _r === void 0 ? void 0 : _r.total) || 0
+                downtime: ((_j = downtime[0]) === null || _j === void 0 ? void 0 : _j.total) || 0
             },
             procurement: {
-                totalSpend: ((_s = totalSpend[0]) === null || _s === void 0 ? void 0 : _s.total) || 0,
+                totalSpend: ((_k = totalSpend[0]) === null || _k === void 0 ? void 0 : _k.total) || 0,
                 topVendors: topVendors || [],
                 openPOs: openPOs || 0,
-                cycleTime: ((_t = cycleTime[0]) === null || _t === void 0 ? void 0 : _t.avgCycleTime) || 0
+                cycleTime: ((_l = cycleTime[0]) === null || _l === void 0 ? void 0 : _l.avgCycleTime) || 0
             },
             sales: {
-                totalSales: ((_u = totalSales[0]) === null || _u === void 0 ? void 0 : _u.total) || 0,
+                totalSales: ((_m = totalSales[0]) === null || _m === void 0 ? void 0 : _m.total) || 0,
                 pipeline: pipeline || 0,
                 topCustomers: topCustomers || [],
-                salesMargin: ((_v = salesMargin[0]) === null || _v === void 0 ? void 0 : _v.avgMargin) || 0
+                salesMargin: ((_o = salesMargin[0]) === null || _o === void 0 ? void 0 : _o.avgMargin) || 0
             },
             admin: {
-                costs: ((_w = adminCosts[0]) === null || _w === void 0 ? void 0 : _w.total) || 0,
-                overheadPercentage: ((_x = adminCosts[0]) === null || _x === void 0 ? void 0 : _x.total) && ((_y = expenses[0]) === null || _y === void 0 ? void 0 : _y.total) ? (adminCosts[0].total / expenses[0].total * 100) : 0,
+                costs: ((_p = adminCosts[0]) === null || _p === void 0 ? void 0 : _p.total) || 0,
+                overheadPercentage: ((_q = adminCosts[0]) === null || _q === void 0 ? void 0 : _q.total) && ((_r = expenses[0]) === null || _r === void 0 ? void 0 : _r.total) ? (adminCosts[0].total / expenses[0].total * 100) : 0,
                 pendingApprovals: pendingApprovals || 0
             },
             hse: {
                 incidents: incidents || 0,
-                trainingCompliance: ((_z = trainingCompliance[0]) === null || _z === void 0 ? void 0 : _z.compliance) || 0,
+                trainingCompliance: ((_s = trainingCompliance[0]) === null || _s === void 0 ? void 0 : _s.compliance) || 0,
                 openActions: openActions || 0
             },
             alerts: {

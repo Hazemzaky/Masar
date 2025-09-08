@@ -43,30 +43,64 @@ function getDateRange(req: Request) {
   return { startDate, endDate };
 }
 
+// Helper function to get P&L data for a specific period
+async function getPnLDataForPeriod(startDate: Date, endDate: Date) {
+  try {
+    // Import the P&L controller functions
+    const { getPnLSummary } = await import('./pnlController');
+    
+    // Create a mock request object with the date range
+    const mockReq = {
+      query: {
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0],
+        period: 'monthly'
+      }
+    } as any;
+    
+    // Create a mock response object to capture the data
+    let pnlData: any = null;
+    const mockRes = {
+      json: (data: any) => {
+        pnlData = data;
+      },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+    
+    // Call the P&L summary function
+    await getPnLSummary(mockReq, mockRes);
+    
+    // Return the P&L data or default values if not available
+    return pnlData || {
+      revenue: { total: 0 },
+      expenses: { total: 0 },
+      ebitida: { total: 0 },
+      netProfit: 0
+    };
+  } catch (error) {
+    console.error('Error fetching P&L data:', error);
+    // Return default values if P&L data is not available
+    return {
+      revenue: { total: 0 },
+      expenses: { total: 0 },
+      ebitida: { total: 0 },
+      netProfit: 0
+    };
+  }
+}
+
 // Enhanced Dashboard Summary with all module KPIs
 export const getDashboardSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const { startDate, endDate } = getDateRange(req);
     
-    // Financial KPIs
-    const [revenue, expenses, grossProfit, netProfit] = await Promise.all([
-      Expense.aggregate([
-        { $match: { category: 'income', date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      Expense.aggregate([
-        { $match: { category: 'expenses', date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      Expense.aggregate([
-        { $match: { category: { $in: ['income', 'expenses'] }, date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: '$category', total: { $sum: '$amount' } } }
-      ]),
-      Expense.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: { $cond: [{ $eq: ['$category', 'income'] }, '$amount', { $multiply: ['$amount', -1] }] } } } }
-      ])
-    ]);
+    // Financial KPIs - Get data from P&L system
+    const pnlData = await getPnLDataForPeriod(startDate, endDate);
+    const revenue = pnlData.revenue.total;
+    const expenses = pnlData.expenses.total;
+    const ebitda = pnlData.ebitida.total;
+    const netProfit = pnlData.netProfit;
 
     // HR KPIs
     const [headcount, payroll, attrition] = await Promise.all([
@@ -281,11 +315,11 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
 
     res.json({
       financial: {
-        revenue: revenue[0]?.total || 0,
-        expenses: expenses[0]?.total || 0,
-        grossProfit: grossProfit[0]?.total || 0,
-        netProfit: netProfit[0]?.total || 0,
-        margin: revenue[0]?.total ? ((netProfit[0]?.total || 0) / revenue[0]?.total * 100) : 0
+        revenue: revenue,
+        expenses: expenses,
+        ebitda: ebitda,
+        netProfit: netProfit,
+        margin: revenue ? (ebitda / revenue * 100) : 0
       },
       hr: {
         headcount: headcount || 0,
