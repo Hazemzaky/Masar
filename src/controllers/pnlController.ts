@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import axios from 'axios';
 import Expense from '../models/Expense';
 import Invoice from '../models/Invoice';
 import AccountMapping from '../models/AccountMapping';
