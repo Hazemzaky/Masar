@@ -118,13 +118,12 @@ const VERTICAL_PNL_STRUCTURE = {
     id: 'income_expenses_other',
     category: 'Income, Expenses and Other Items',
     items: [
-      { id: 'gain_selling_products', description: 'Gain from Selling Other Products (Manual Entry)', type: 'revenue', module: 'sales' },
-      { id: 'ebitda', description: 'EBITDA', type: 'calculated', module: 'calculated' }
+      { id: 'gain_selling_products', description: 'Gain from Selling Other Products (Manual Entry)', type: 'revenue', module: 'sales' }
     ]
   },
-  REBATE: {
-    id: 'rebate',
-    category: 'Rebate',
+  EBITDA: {
+    id: 'ebitda',
+    category: 'EBITDA',
     items: [
       { id: 'finance_costs', description: 'Finance Costs (Manual Entry)', type: 'expense', module: 'finance' },
       { id: 'depreciation', description: 'Depreciation', type: 'expense', module: 'assets' }
@@ -1249,7 +1248,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
           };
         }),
         subtotal: 0,
-        type: section.id === 'revenue' ? 'revenue' : section.id === 'rebate' ? 'rebate' : 'expense'
+        type: section.id === 'revenue' ? 'revenue' : section.id === 'ebitda' ? 'ebitda' : 'expense'
       };
 
       // Calculate section subtotal
@@ -1258,9 +1257,9 @@ export const getPnLTable = async (req: Request, res: Response) => {
       } else if (section.id === 'expenses') {
         sectionData.subtotal = totalExpenses;
       } else if (section.id === 'income_expenses_other') {
-        sectionData.subtotal = gainSellingProducts + (totalRevenue + gainSellingProducts - totalExpenses);
-      } else if (section.id === 'rebate') {
-        sectionData.subtotal = rebate;
+        sectionData.subtotal = gainSellingProducts;
+      } else if (section.id === 'ebitda') {
+        sectionData.subtotal = totalRevenue + gainSellingProducts - totalExpenses;
       }
 
       return sectionData;
