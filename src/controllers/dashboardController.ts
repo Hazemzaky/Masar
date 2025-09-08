@@ -71,6 +71,8 @@ async function getPnLDataForPeriod(startDate: Date, endDate: Date) {
     // Call the P&L summary function
     await getPnLSummary(mockReq, mockRes);
     
+    console.log('P&L Data fetched for dashboard:', JSON.stringify(pnlData, null, 2));
+    
     // Return the P&L data or default values if not available
     return pnlData || {
       revenue: { total: 0 },
@@ -97,10 +99,14 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     
     // Financial KPIs - Get data from P&L system
     const pnlData = await getPnLDataForPeriod(startDate, endDate);
-    const revenue = pnlData.revenue.total;
-    const expenses = pnlData.expenses.total;
-    const ebitda = pnlData.ebitida.total;
-    const netProfit = pnlData.netProfit;
+    console.log('Dashboard - P&L Data received:', JSON.stringify(pnlData, null, 2));
+    
+    const revenue = pnlData.revenue?.total || 0;
+    const expenses = pnlData.expenses?.total || 0;
+    const ebitda = pnlData.ebitida?.total || 0;
+    const netProfit = pnlData.netProfit || 0;
+    
+    console.log('Dashboard - Financial values:', { revenue, expenses, ebitda, netProfit });
 
     // HR KPIs
     const [headcount, payroll, attrition] = await Promise.all([

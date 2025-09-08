@@ -112,6 +112,7 @@ function getPnLDataForPeriod(startDate, endDate) {
             };
             // Call the P&L summary function
             yield getPnLSummary(mockReq, mockRes);
+            console.log('P&L Data fetched for dashboard:', JSON.stringify(pnlData, null, 2));
             // Return the P&L data or default values if not available
             return pnlData || {
                 revenue: { total: 0 },
@@ -134,15 +135,17 @@ function getPnLDataForPeriod(startDate, endDate) {
 }
 // Enhanced Dashboard Summary with all module KPIs
 const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
     try {
         const { startDate, endDate } = getDateRange(req);
         // Financial KPIs - Get data from P&L system
         const pnlData = yield getPnLDataForPeriod(startDate, endDate);
-        const revenue = pnlData.revenue.total;
-        const expenses = pnlData.expenses.total;
-        const ebitda = pnlData.ebitida.total;
-        const netProfit = pnlData.netProfit;
+        console.log('Dashboard - P&L Data received:', JSON.stringify(pnlData, null, 2));
+        const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0;
+        const ebitda = ((_c = pnlData.ebitida) === null || _c === void 0 ? void 0 : _c.total) || 0;
+        const netProfit = pnlData.netProfit || 0;
+        console.log('Dashboard - Financial values:', { revenue, expenses, ebitda, netProfit });
         // HR KPIs
         const [headcount, payroll, attrition] = yield Promise.all([
             Employee_1.default.countDocuments({ status: 'active' }),
@@ -337,47 +340,47 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
             },
             hr: {
                 headcount: headcount || 0,
-                payroll: ((_a = payroll[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
+                payroll: ((_d = payroll[0]) === null || _d === void 0 ? void 0 : _d.total) || 0,
                 attrition: attrition || 0,
                 attritionRate: headcount ? (attrition / headcount * 100) : 0
             },
             assets: {
-                bookValue: ((_b = bookValue[0]) === null || _b === void 0 ? void 0 : _b.total) || 0,
-                utilization: ((_c = utilization[0]) === null || _c === void 0 ? void 0 : _c.avgUtilization) || 0,
-                depreciation: ((_d = depreciation[0]) === null || _d === void 0 ? void 0 : _d.total) || 0,
+                bookValue: ((_e = bookValue[0]) === null || _e === void 0 ? void 0 : _e.total) || 0,
+                utilization: ((_f = utilization[0]) === null || _f === void 0 ? void 0 : _f.avgUtilization) || 0,
+                depreciation: ((_g = depreciation[0]) === null || _g === void 0 ? void 0 : _g.total) || 0,
                 renewals: renewals || 0
             },
             operations: {
                 deliveries: deliveries || 0,
-                onTimePercentage: ((_e = onTimePercentage[0]) === null || _e === void 0 ? void 0 : _e.total) ? (onTimePercentage[0].onTime / onTimePercentage[0].total * 100) : 0,
-                deliveryCost: ((_f = deliveryCost[0]) === null || _f === void 0 ? void 0 : _f.total) || 0,
-                fleetUtilization: ((_g = fleetUtilization[0]) === null || _g === void 0 ? void 0 : _g.avgUtilization) || 0
+                onTimePercentage: ((_h = onTimePercentage[0]) === null || _h === void 0 ? void 0 : _h.total) ? (onTimePercentage[0].onTime / onTimePercentage[0].total * 100) : 0,
+                deliveryCost: ((_j = deliveryCost[0]) === null || _j === void 0 ? void 0 : _j.total) || 0,
+                fleetUtilization: ((_k = fleetUtilization[0]) === null || _k === void 0 ? void 0 : _k.avgUtilization) || 0
             },
             maintenance: {
-                cost: ((_h = maintenanceCost[0]) === null || _h === void 0 ? void 0 : _h.total) || 0,
+                cost: ((_l = maintenanceCost[0]) === null || _l === void 0 ? void 0 : _l.total) || 0,
                 preventiveVsCorrective: preventiveVsCorrective || [],
-                downtime: ((_j = downtime[0]) === null || _j === void 0 ? void 0 : _j.total) || 0
+                downtime: ((_m = downtime[0]) === null || _m === void 0 ? void 0 : _m.total) || 0
             },
             procurement: {
-                totalSpend: ((_k = totalSpend[0]) === null || _k === void 0 ? void 0 : _k.total) || 0,
+                totalSpend: ((_o = totalSpend[0]) === null || _o === void 0 ? void 0 : _o.total) || 0,
                 topVendors: topVendors || [],
                 openPOs: openPOs || 0,
-                cycleTime: ((_l = cycleTime[0]) === null || _l === void 0 ? void 0 : _l.avgCycleTime) || 0
+                cycleTime: ((_p = cycleTime[0]) === null || _p === void 0 ? void 0 : _p.avgCycleTime) || 0
             },
             sales: {
-                totalSales: ((_m = totalSales[0]) === null || _m === void 0 ? void 0 : _m.total) || 0,
+                totalSales: ((_q = totalSales[0]) === null || _q === void 0 ? void 0 : _q.total) || 0,
                 pipeline: pipeline || 0,
                 topCustomers: topCustomers || [],
-                salesMargin: ((_o = salesMargin[0]) === null || _o === void 0 ? void 0 : _o.avgMargin) || 0
+                salesMargin: ((_r = salesMargin[0]) === null || _r === void 0 ? void 0 : _r.avgMargin) || 0
             },
             admin: {
-                costs: ((_p = adminCosts[0]) === null || _p === void 0 ? void 0 : _p.total) || 0,
-                overheadPercentage: ((_q = adminCosts[0]) === null || _q === void 0 ? void 0 : _q.total) && ((_r = expenses[0]) === null || _r === void 0 ? void 0 : _r.total) ? (adminCosts[0].total / expenses[0].total * 100) : 0,
+                costs: ((_s = adminCosts[0]) === null || _s === void 0 ? void 0 : _s.total) || 0,
+                overheadPercentage: ((_t = adminCosts[0]) === null || _t === void 0 ? void 0 : _t.total) && ((_u = expenses[0]) === null || _u === void 0 ? void 0 : _u.total) ? (adminCosts[0].total / expenses[0].total * 100) : 0,
                 pendingApprovals: pendingApprovals || 0
             },
             hse: {
                 incidents: incidents || 0,
-                trainingCompliance: ((_s = trainingCompliance[0]) === null || _s === void 0 ? void 0 : _s.compliance) || 0,
+                trainingCompliance: ((_v = trainingCompliance[0]) === null || _v === void 0 ? void 0 : _v.compliance) || 0,
                 openActions: openActions || 0
             },
             alerts: {
