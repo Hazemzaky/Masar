@@ -818,7 +818,6 @@ export const getPnLSummary = async (req: Request, res: Response) => {
         foodAllowanceCost, // NEW
         hseTrainingCost, // NEW
         procurementCost,
-        provisionCreditLoss,
         serviceAgreementCost,
         total: totalExpenses
       },
@@ -1089,7 +1088,6 @@ export const getPnLTable = async (req: Request, res: Response) => {
     const depreciation = depreciationData[0]?.depreciation || 0;
 
     // Manual entries (these would come from a manual entry system)
-    const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
     const subCompaniesRevenue = getManualEntryValue('sub_companies_revenue', filters.period, startDate, endDate);
     const otherRevenue = getManualEntryValue('other_revenue', filters.period, startDate, endDate);
     const provisionEndService = getManualEntryValue('provision_end_service', filters.period, startDate, endDate);
@@ -1103,7 +1101,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
     const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
 
     // Calculate summary values with ALL integrations
-    const netOperatingRevenue = operatingRevenues + rebate;
+    const netOperatingRevenue = operatingRevenues;
     const totalRevenue = netOperatingRevenue + rentalEquipmentRevenue + dsRevenue + subCompaniesRevenue + 
                         otherRevenue + provisionEndService + provisionImpairment;
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
