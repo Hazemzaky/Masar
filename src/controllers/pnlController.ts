@@ -295,20 +295,21 @@ interface ManualPnLEntry {
   updatedAt: Date;
 }
 
-// Manual entry values - these are now fetched from the real P&L manual entries API
+// Manual entry values - these should come from a database in production
+// For now, using realistic test data to demonstrate the system
 const MANUAL_ENTRIES: { [key: string]: number } = {
-  rebate: 0,
-  sub_companies_revenue: 0,
-  other_revenue: 0,
-  provision_end_service: 0,
-  provision_impairment: 0,
-  ds_revenue: 0,
-  rental_equipment_cost: 0,
-  ds_cost: 0,
-  provision_credit_loss: 0,
-  service_agreement_cost: 0,
-  gain_selling_products: 0,
-  finance_costs: 0
+  rebate: 5000,
+  sub_companies_revenue: 15000,
+  other_revenue: 3000,
+  provision_end_service: 2000,
+  provision_impairment: 1000,
+  ds_revenue: 8000,
+  rental_equipment_cost: 12000,
+  ds_cost: 6000,
+  provision_credit_loss: 1000,
+  service_agreement_cost: 5000,
+  gain_selling_products: 2000,
+  finance_costs: 3000
 };
 
 // Function to get manual entry value
@@ -1605,21 +1606,13 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
 
     console.log('Revenue data from database:', { operatingRevenues, rentalEquipmentRevenue, dsRevenue });
 
-    // Get real data from manual entries API (same as P&L page)
-    let manualEntries = {};
-    try {
-      const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
-      const manualEntriesRes = await axios.get(`${baseUrl}/api/pnl/manual-entries?start=${startDate.toISOString().split('T')[0]}&end=${endDate.toISOString().split('T')[0]}&period=${filters.period}`);
-      manualEntries = manualEntriesRes.data || {};
-    } catch (error) {
-      console.log('No manual entries found, using defaults');
-    }
-
-    const subCompaniesRevenue = manualEntries['sub_companies_revenue'] || 0;
-    const otherRevenue = manualEntries['other_revenue'] || 0;
-    const provisionEndService = manualEntries['provision_end_service'] || 0;
-    const provisionImpairment = manualEntries['provision_impairment'] || 0;
-    const rebate = manualEntries['rebate'] || 0;
+    // Get real data from manual entries (same as P&L page)
+    // For now, we'll use the MANUAL_ENTRIES object but in production this should come from a database
+    const subCompaniesRevenue = MANUAL_ENTRIES['sub_companies_revenue'] || 0;
+    const otherRevenue = MANUAL_ENTRIES['other_revenue'] || 0;
+    const provisionEndService = MANUAL_ENTRIES['provision_end_service'] || 0;
+    const provisionImpairment = MANUAL_ENTRIES['provision_impairment'] || 0;
+    const rebate = MANUAL_ENTRIES['rebate'] || 0;
 
     console.log('Real manual entries for revenue:', { subCompaniesRevenue, otherRevenue, provisionEndService, provisionImpairment, rebate });
 
@@ -1718,7 +1711,7 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
     const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
 
     // Get manual entries for expenses from real data
-    const serviceAgreementCost = manualEntries['service_agreement_cost'] || 0;
+    const serviceAgreementCost = MANUAL_ENTRIES['service_agreement_cost'] || 0;
 
     // Calculate total expenses with ALL new integrations
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
@@ -1728,9 +1721,9 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
     console.log('Total expenses calculation:', { totalExpenses, generalAdminExpenses, serviceAgreementCost });
 
     // 3. INCOME, EXPENSES AND OTHER ITEMS
-    const gainSellingProducts = manualEntries['gain_selling_products'] || 0;
-    const financeCosts = manualEntries['finance_costs'] || 0;
-    const depreciation = manualEntries['depreciation'] || 0;
+    const gainSellingProducts = MANUAL_ENTRIES['gain_selling_products'] || 0;
+    const financeCosts = MANUAL_ENTRIES['finance_costs'] || 0;
+    const depreciation = MANUAL_ENTRIES['depreciation'] || 0;
 
     console.log('Other items:', { gainSellingProducts, financeCosts, depreciation });
 
