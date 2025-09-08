@@ -118,7 +118,8 @@ const VERTICAL_PNL_STRUCTURE = {
     id: 'income_expenses_other',
     category: 'Income, Expenses and Other Items',
     items: [
-      { id: 'gain_selling_products', description: 'Gain from Selling Other Products (Manual Entry)', type: 'revenue', module: 'sales' }
+      { id: 'gain_selling_products', description: 'Gain from Selling Other Products (Manual Entry)', type: 'revenue', module: 'sales' },
+      { id: 'ebitda', description: 'EBITDA', type: 'calculated', module: 'calculated' }
     ]
   },
   REBATE: {
@@ -370,8 +371,8 @@ export const getManualPnLEntries = async (req: Request, res: Response): Promise<
       }
       
       return {
-        itemId,
-        amount,
+      itemId,
+      amount,
         description
       };
     });
@@ -1222,6 +1223,11 @@ export const getPnLTable = async (req: Request, res: Response) => {
               amount = gainSellingProducts;
               trend = 'up';
               break;
+            case 'ebitda':
+              amount = totalRevenue - totalExpenses;
+              trend = totalRevenue - totalExpenses >= 0 ? 'up' : 'down';
+              expandable = true;
+              break;
             case 'finance_costs':
               amount = financeCosts;
               trend = 'down';
@@ -1252,7 +1258,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
       } else if (section.id === 'expenses') {
         sectionData.subtotal = totalExpenses;
       } else if (section.id === 'income_expenses_other') {
-        sectionData.subtotal = gainSellingProducts;
+        sectionData.subtotal = gainSellingProducts + (totalRevenue - totalExpenses);
       } else if (section.id === 'rebate') {
         sectionData.subtotal = rebate;
       }
