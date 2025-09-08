@@ -97,14 +97,16 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
   try {
     const { startDate, endDate } = getDateRange(req);
     
-    // Financial KPIs - Get data from P&L system
+    // Financial KPIs - Get data from Vertical P&L system
     const pnlData = await getPnLDataForPeriod(startDate, endDate);
-    console.log('Dashboard - P&L Data received:', JSON.stringify(pnlData, null, 2));
+    console.log('Dashboard - Vertical P&L Data received:', JSON.stringify(pnlData, null, 2));
     
+    // Extract values from vertical P&L structure
     const revenue = pnlData.revenue?.total || 0;
     const expenses = pnlData.expenses?.total || 0;
     const ebitda = pnlData.ebitida?.total || 0;
-    const netProfit = pnlData.netProfit || 0;
+    // Net profit = revenue - expenses only (as requested)
+    const netProfit = revenue - expenses;
     
     console.log('Dashboard - Financial values:', { revenue, expenses, ebitda, netProfit });
 
@@ -325,7 +327,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         expenses: expenses,
         ebitda: ebitda,
         netProfit: netProfit,
-        margin: revenue ? (ebitda / revenue * 100) : 0
+        margin: revenue ? (netProfit / revenue * 100) : 0
       },
       hr: {
         headcount: headcount || 0,

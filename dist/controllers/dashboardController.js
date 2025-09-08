@@ -138,13 +138,15 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
     try {
         const { startDate, endDate } = getDateRange(req);
-        // Financial KPIs - Get data from P&L system
+        // Financial KPIs - Get data from Vertical P&L system
         const pnlData = yield getPnLDataForPeriod(startDate, endDate);
-        console.log('Dashboard - P&L Data received:', JSON.stringify(pnlData, null, 2));
+        console.log('Dashboard - Vertical P&L Data received:', JSON.stringify(pnlData, null, 2));
+        // Extract values from vertical P&L structure
         const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0;
         const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0;
         const ebitda = ((_c = pnlData.ebitida) === null || _c === void 0 ? void 0 : _c.total) || 0;
-        const netProfit = pnlData.netProfit || 0;
+        // Net profit = revenue - expenses only (as requested)
+        const netProfit = revenue - expenses;
         console.log('Dashboard - Financial values:', { revenue, expenses, ebitda, netProfit });
         // HR KPIs
         const [headcount, payroll, attrition] = yield Promise.all([
@@ -336,7 +338,7 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
                 expenses: expenses,
                 ebitda: ebitda,
                 netProfit: netProfit,
-                margin: revenue ? (ebitda / revenue * 100) : 0
+                margin: revenue ? (netProfit / revenue * 100) : 0
             },
             hr: {
                 headcount: headcount || 0,
