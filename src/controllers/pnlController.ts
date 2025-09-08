@@ -1259,6 +1259,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
       } else if (section.id === 'income_expenses_other') {
         sectionData.subtotal = gainSellingProducts;
       } else if (section.id === 'ebitda') {
+        // EBITDA value is the calculated formula, not the sum of items underneath
         sectionData.subtotal = totalRevenue + gainSellingProducts - totalExpenses;
       }
 
