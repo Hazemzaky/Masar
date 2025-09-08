@@ -18,6 +18,13 @@ import GeneralLedgerEntry from '../models/GeneralLedgerEntry';
 import ChartOfAccounts from '../models/ChartOfAccounts';
 import Contract from '../models/Contract';
 import ReconciliationSession from '../models/ReconciliationSession';
+import Leave from '../models/Leave';
+import Reimbursement from '../models/Reimbursement';
+import RiskAssessment from '../models/RiskAssessment';
+import TravelAuthorization from '../models/TravelAuthorization';
+import GovernmentDocument from '../models/GovernmentDocument';
+import LegalCase from '../models/LegalCase';
+import GoodsReceipt from '../models/GoodsReceipt';
 
 // Helper to get date range from query or default to current financial year
 function getDateRange(req: Request) {
@@ -206,8 +213,51 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         },
         'contractData.status': { $in: ['active', 'pending'] } // Only active or pending contracts
       }),
-      // Pending Requests: Check PurchaseRequest with status='pending'
-      PurchaseRequest.countDocuments({ status: 'pending' })
+      // Pending Requests: Count all pending requests from all modules (same as pending requests page)
+      (async () => {
+        const [
+          purchaseRequests,
+          businessTrips,
+          leaveRequests,
+          reimbursements,
+          payrollPending,
+          assetPending,
+          maintenancePending,
+          trainingPending,
+          riskPending,
+          travelAuthPending,
+          govDocPending,
+          legalPending,
+          salesPending,
+          invoicePending,
+          expensePending,
+          procInvoicePending,
+          grnPending
+        ] = await Promise.all([
+          PurchaseRequest.countDocuments({ status: { $in: ['pending', 'sent_to_procurement'] } }),
+          BusinessTrip.countDocuments({ status: { $in: ['Under Review', 'Pending'] } }),
+          Leave.countDocuments({ status: 'pending' }),
+          Reimbursement.countDocuments({ status: 'pending' }),
+          Payroll.countDocuments({ status: 'pending' }),
+          Asset.countDocuments({ status: 'pending' }),
+          Maintenance.countDocuments({ status: { $in: ['pending', 'scheduled'] } }),
+          Training.countDocuments({ 'certificates.status': 'pending_renewal' }),
+          RiskAssessment.countDocuments({ status: { $in: ['pending', 'in_progress'] } }),
+          TravelAuthorization.countDocuments({ status: { $in: ['pending', 'in_progress'] } }),
+          GovernmentDocument.countDocuments({ status: 'pending_renewal' }),
+          LegalCase.countDocuments({ status: { $in: ['open', 'pending'] } }),
+          Client.countDocuments({ type: 'quotation', 'quotationData.approvalStatus': 'pending' }),
+          Invoice.countDocuments({ status: 'pending_approval' }),
+          Expense.countDocuments({ status: 'pending_approval' }),
+          ProcurementInvoice.countDocuments({ status: 'pending' }),
+          GoodsReceipt.countDocuments({ status: 'pending' })
+        ]);
+        
+        return purchaseRequests + businessTrips + leaveRequests + reimbursements + 
+               payrollPending + assetPending + maintenancePending + trainingPending + 
+               riskPending + travelAuthPending + govDocPending + legalPending + 
+               salesPending + invoicePending + expensePending + procInvoicePending + grnPending;
+      })()
     ]);
 
     // Debug: Log expiring contracts query for troubleshooting

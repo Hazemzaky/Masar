@@ -30,6 +30,13 @@ const Payroll_1 = __importDefault(require("../models/Payroll"));
 const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const GeneralLedgerEntry_1 = __importDefault(require("../models/GeneralLedgerEntry"));
 const ReconciliationSession_1 = __importDefault(require("../models/ReconciliationSession"));
+const Leave_1 = __importDefault(require("../models/Leave"));
+const Reimbursement_1 = __importDefault(require("../models/Reimbursement"));
+const RiskAssessment_1 = __importDefault(require("../models/RiskAssessment"));
+const TravelAuthorization_1 = __importDefault(require("../models/TravelAuthorization"));
+const GovernmentDocument_1 = __importDefault(require("../models/GovernmentDocument"));
+const LegalCase_1 = __importDefault(require("../models/LegalCase"));
+const GoodsReceipt_1 = __importDefault(require("../models/GoodsReceipt"));
 // Helper to get date range from query or default to current financial year
 function getDateRange(req) {
     let { start, end } = req.query;
@@ -208,8 +215,32 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
                 },
                 'contractData.status': { $in: ['active', 'pending'] } // Only active or pending contracts
             }),
-            // Pending Requests: Check PurchaseRequest with status='pending'
-            PurchaseRequest_1.default.countDocuments({ status: 'pending' })
+            // Pending Requests: Count all pending requests from all modules (same as pending requests page)
+            (() => __awaiter(void 0, void 0, void 0, function* () {
+                const [purchaseRequests, businessTrips, leaveRequests, reimbursements, payrollPending, assetPending, maintenancePending, trainingPending, riskPending, travelAuthPending, govDocPending, legalPending, salesPending, invoicePending, expensePending, procInvoicePending, grnPending] = yield Promise.all([
+                    PurchaseRequest_1.default.countDocuments({ status: { $in: ['pending', 'sent_to_procurement'] } }),
+                    BusinessTrip_1.default.countDocuments({ status: { $in: ['Under Review', 'Pending'] } }),
+                    Leave_1.default.countDocuments({ status: 'pending' }),
+                    Reimbursement_1.default.countDocuments({ status: 'pending' }),
+                    Payroll_1.default.countDocuments({ status: 'pending' }),
+                    Asset_1.default.countDocuments({ status: 'pending' }),
+                    Maintenance_1.default.countDocuments({ status: { $in: ['pending', 'scheduled'] } }),
+                    Training_1.default.countDocuments({ 'certificates.status': 'pending_renewal' }),
+                    RiskAssessment_1.default.countDocuments({ status: { $in: ['pending', 'in_progress'] } }),
+                    TravelAuthorization_1.default.countDocuments({ status: { $in: ['pending', 'in_progress'] } }),
+                    GovernmentDocument_1.default.countDocuments({ status: 'pending_renewal' }),
+                    LegalCase_1.default.countDocuments({ status: { $in: ['open', 'pending'] } }),
+                    Client_1.default.countDocuments({ type: 'quotation', 'quotationData.approvalStatus': 'pending' }),
+                    Invoice_1.default.countDocuments({ status: 'pending_approval' }),
+                    Expense_1.default.countDocuments({ status: 'pending_approval' }),
+                    ProcurementInvoice_1.default.countDocuments({ status: 'pending' }),
+                    GoodsReceipt_1.default.countDocuments({ status: 'pending' })
+                ]);
+                return purchaseRequests + businessTrips + leaveRequests + reimbursements +
+                    payrollPending + assetPending + maintenancePending + trainingPending +
+                    riskPending + travelAuthPending + govDocPending + legalPending +
+                    salesPending + invoicePending + expensePending + procInvoicePending + grnPending;
+            }))()
         ]);
         // Debug: Log expiring contracts query for troubleshooting
         const debugExpiringContracts = yield Client_1.default.find({
