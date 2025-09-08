@@ -63,6 +63,7 @@ import nearMissRoutes from './routes/nearMissRoutes';
 import trainingRoutes from './routes/trainingRoutes';
 import attendanceRoutes from './routes/attendance';
 import documentRoutes from './routes/documentRoutes';
+import pendingRequestsRoutes from './routes/pendingRequestsRoutes';
 import './models/Contract';
 import './models/ProcurementInvoice';
 import './models/Vendor';
@@ -217,6 +218,7 @@ app.use('/api/hse/near-misses', nearMissRoutes);
 app.use('/api/hse/training', trainingRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/pending-requests', pendingRequestsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
