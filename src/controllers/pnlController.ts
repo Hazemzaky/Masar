@@ -83,7 +83,6 @@ const VERTICAL_PNL_STRUCTURE = {
     category: 'Revenue',
     items: [
       { id: 'operating_revenues', description: 'Operating Revenues', type: 'revenue', module: 'sales' },
-      { id: 'rebate', description: 'Rebate', type: 'revenue', module: 'sales' },
       { id: 'net_operating_revenue', description: 'Net Operating Revenue', type: 'summary', module: 'sales' },
       { id: 'rental_equipment_revenue', description: 'Revenue from Rental Equipment', type: 'revenue', module: 'assets' },
       { id: 'ds_revenue', description: 'Revenue from DS', type: 'revenue', module: 'sales' },
@@ -122,9 +121,9 @@ const VERTICAL_PNL_STRUCTURE = {
       { id: 'gain_selling_products', description: 'Gain from Selling Other Products (Manual Entry)', type: 'revenue', module: 'sales' }
     ]
   },
-  EBITIDA: {
-    id: 'ebitida',
-    category: 'EBITIDA',
+  REBATE: {
+    id: 'rebate',
+    category: 'Rebate',
     items: [
       { id: 'finance_costs', description: 'Finance Costs (Manual Entry)', type: 'expense', module: 'finance' },
       { id: 'depreciation', description: 'Depreciation', type: 'expense', module: 'assets' }
@@ -1112,6 +1111,10 @@ export const getPnLTable = async (req: Request, res: Response) => {
                          foodAllowanceCost + hseTrainingCost + serviceAgreementCost;
     const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
 
+    // Calculate rebate: (Income, Expenses and Other Items + Total Expenses - Total Revenue)
+    const incomeExpensesOther = gainSellingProducts;
+    const rebate = incomeExpensesOther + totalExpenses - totalRevenue;
+
     // Build P&L table structure using VERTICAL_PNL_STRUCTURE with ALL integrations
     const pnlTable = Object.values(VERTICAL_PNL_STRUCTURE).map(section => {
       const sectionData = {
@@ -1126,10 +1129,6 @@ export const getPnLTable = async (req: Request, res: Response) => {
           switch (item.id) {
             case 'operating_revenues':
               amount = operatingRevenues;
-              trend = 'up';
-              break;
-            case 'rebate':
-              amount = rebate;
               trend = 'up';
               break;
             case 'net_operating_revenue':
@@ -1164,6 +1163,11 @@ export const getPnLTable = async (req: Request, res: Response) => {
             case 'total_revenue':
               amount = totalRevenue;
               trend = 'up';
+              expandable = true;
+              break;
+            case 'rebate':
+              amount = rebate;
+              trend = rebate >= 0 ? 'up' : 'down';
               expandable = true;
               break;
             case 'operation_cost':
@@ -1241,7 +1245,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
           };
         }),
         subtotal: 0,
-        type: section.id === 'revenue' ? 'revenue' : 'expense'
+        type: section.id === 'revenue' ? 'revenue' : section.id === 'rebate' ? 'rebate' : 'expense'
       };
 
       // Calculate section subtotal
@@ -1251,8 +1255,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
         sectionData.subtotal = totalExpenses;
       } else if (section.id === 'income_expenses_other') {
         sectionData.subtotal = gainSellingProducts;
-      } else if (section.id === 'ebitida') {
-        sectionData.subtotal = ebitida;
+      } else if (section.id === 'rebate') {
+        sectionData.subtotal = rebate;
       }
 
       return sectionData;
