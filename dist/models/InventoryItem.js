@@ -55,5 +55,6 @@ const InventoryItemSchema = new mongoose_1.Schema({
     costType: { type: String, enum: ['direct', 'depreciated'], default: 'direct' }, // New field
     depreciationDuration: { type: Number }, // New field (months)
     serial: { type: String, required: true, unique: true }, // Serial number field
+    createdAt: { type: Date, default: Date.now }, // Creation date field
 });
 exports.default = mongoose_1.default.model('InventoryItem', InventoryItemSchema);

@@ -49,9 +49,9 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     purchaseRequests.forEach(pr => {
       pendingRequests.push({
-        id: pr._id.toString(),
+        id: (pr._id as any).toString(),
         type: 'Purchase Request',
-        title: `PR-${pr._id.toString().slice(-6)}`,
+        title: `PR-${(pr._id as any).toString().slice(-6)}`,
         description: pr.itemDescription || 'Purchase Request',
         status: pr.status,
         priority: pr.priority,
@@ -73,7 +73,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     businessTrips.forEach(trip => {
       pendingRequests.push({
-        id: trip._id.toString(),
+        id: (trip._id as any).toString(),
         type: 'Business Trip',
         title: `Trip to ${trip.region}`,
         description: `Business trip from ${trip.departureDate.toISOString().split('T')[0]} to ${trip.returnDate.toISOString().split('T')[0]}`,
@@ -97,7 +97,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     leaveRequests.forEach(leave => {
       pendingRequests.push({
-        id: leave._id.toString(),
+        id: (leave._id as any).toString(),
         type: 'Leave Request',
         title: `${leave.days} days leave`,
         description: `Leave request for ${leave.days} days`,
@@ -120,7 +120,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     reimbursements.forEach(reimb => {
       pendingRequests.push({
-        id: reimb._id.toString(),
+        id: (reimb._id as any).toString(),
         type: 'Reimbursement',
         title: `Reimbursement - ${reimb.description}`,
         description: reimb.description,
@@ -128,7 +128,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
         priority: 'medium',
         requestedBy: 'Unknown',
         department: 'Finance',
-        requestDate: reimb.createdAt.toISOString(),
+        requestDate: (reimb as any).createdAt?.toISOString() || new Date().toISOString(),
         amount: reimb.amount,
         source: 'reimbursements',
         sourcePage: 'Reimbursements',
@@ -143,7 +143,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     payrollPending.forEach(payroll => {
       pendingRequests.push({
-        id: payroll._id.toString(),
+        id: (payroll._id as any).toString(),
         type: 'Payroll Processing',
         title: `Payroll Run - ${payroll.runDate.toISOString().split('T')[0]}`,
         description: `Payroll processing`,
@@ -166,7 +166,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     assetPending.forEach(asset => {
       pendingRequests.push({
-        id: asset._id.toString(),
+        id: (asset._id as any).toString(),
         type: 'Asset Approval',
         title: `Asset - ${asset.description}`,
         description: `Asset approval for ${asset.description}`,
@@ -174,8 +174,8 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
         priority: 'medium',
         requestedBy: 'Unknown',
         department: 'Assets',
-        requestDate: asset.createdAt.toISOString(),
-        amount: asset.purchasePrice || 0,
+        requestDate: (asset as any).createdAt?.toISOString() || new Date().toISOString(),
+        amount: (asset as any).purchasePrice || 0,
         source: 'assets',
         sourcePage: 'Asset Management',
         actions: ['approve', 'reject', 'view']
@@ -189,7 +189,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     maintenancePending.forEach(maintenance => {
       pendingRequests.push({
-        id: maintenance._id.toString(),
+        id: (maintenance._id as any).toString(),
         type: 'Maintenance Request',
         title: `Maintenance - ${maintenance.description}`,
         description: maintenance.description,
@@ -197,9 +197,9 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
         priority: 'medium',
         requestedBy: 'Unknown',
         department: 'Maintenance',
-        requestDate: maintenance.createdAt.toISOString(),
+        requestDate: (maintenance as any).createdAt?.toISOString() || new Date().toISOString(),
         requiredDate: maintenance.scheduledDate?.toISOString(),
-        amount: maintenance.cost || 0,
+        amount: (maintenance as any).cost || 0,
         source: 'maintenance',
         sourcePage: 'Maintenance',
         actions: ['approve', 'schedule', 'view']
@@ -215,7 +215,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
       training.certificates?.forEach((cert: any) => {
         if (cert.status === 'pending_renewal') {
           pendingRequests.push({
-            id: `${training._id}-${cert.certificateNumber}`,
+            id: `${(training._id as any).toString()}-${cert.certificateNumber}`,
             type: 'Certificate Renewal',
             title: `Certificate Renewal - ${cert.certificateNumber}`,
             description: `Certificate renewal`,
@@ -240,16 +240,16 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     riskPending.forEach(risk => {
       pendingRequests.push({
-        id: risk._id.toString(),
+        id: (risk._id as any).toString(),
         type: 'Risk Assessment',
         title: `Risk Assessment - ${risk.title}`,
-        description: risk.description || 'Risk Assessment',
+        description: (risk as any).description || 'Risk Assessment',
         status: risk.status,
         priority: risk.overallRiskLevel === 'critical' ? 'urgent' : 'high',
         requestedBy: 'Unknown',
         department: 'HSE',
         requestDate: risk.createdAt.toISOString(),
-        requiredDate: risk.targetDate?.toISOString(),
+        requiredDate: (risk as any).targetDate?.toISOString(),
         source: 'hse',
         sourcePage: 'HSE Risk Assessment',
         actions: ['review', 'complete', 'view']
@@ -263,7 +263,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     travelAuthPending.forEach(auth => {
       pendingRequests.push({
-        id: auth._id.toString(),
+        id: (auth._id as any).toString(),
         type: 'Travel Authorization',
         title: `Travel Auth - ${auth.destination}`,
         description: `Travel authorization`,
@@ -272,7 +272,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
         requestedBy: 'Unknown',
         department: 'Admin',
         requestDate: auth.createdAt.toISOString(),
-        requiredDate: auth.departureDate?.toISOString(),
+        requiredDate: (auth as any).departureDate?.toISOString(),
         source: 'admin',
         sourcePage: 'Admin Travel',
         actions: ['approve', 'reject', 'view']
@@ -286,7 +286,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     govDocPending.forEach(doc => {
       pendingRequests.push({
-        id: doc._id.toString(),
+        id: (doc._id as any).toString(),
         type: 'Document Renewal',
         title: `Document Renewal - ${doc.documentType}`,
         description: `Document renewal for ${doc.documentType}`,
@@ -309,7 +309,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     legalPending.forEach(legal => {
       pendingRequests.push({
-        id: legal._id.toString(),
+        id: (legal._id as any).toString(),
         type: 'Legal Case',
         title: `Legal Case - ${legal.caseNumber}`,
         description: legal.description || 'Legal Case',
@@ -333,7 +333,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     salesPending.forEach(client => {
       pendingRequests.push({
-        id: client._id.toString(),
+        id: (client._id as any).toString(),
         type: 'Sales Quotation',
         title: `Quotation - ${client.name}`,
         description: `Quotation approval for ${client.name}`,
@@ -355,7 +355,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     invoicePending.forEach(invoice => {
       pendingRequests.push({
-        id: invoice._id.toString(),
+        id: (invoice._id as any).toString(),
         type: 'Invoice Approval',
         title: `Invoice - ${invoice.invoiceNumber}`,
         description: `Invoice approval`,
@@ -378,7 +378,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     expensePending.forEach(expense => {
       pendingRequests.push({
-        id: expense._id.toString(),
+        id: (expense._id as any).toString(),
         type: 'Expense Approval',
         title: `Expense - ${expense.description}`,
         description: expense.description,
@@ -401,7 +401,7 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     procInvoicePending.forEach(invoice => {
       pendingRequests.push({
-        id: invoice._id.toString(),
+        id: (invoice._id as any).toString(),
         type: 'Procurement Invoice',
         title: `Proc Invoice - ${invoice.serial}`,
         description: `Procurement invoice approval`,
@@ -424,9 +424,9 @@ export const getAllPendingRequests = async (req: Request, res: Response): Promis
     
     grnPending.forEach(grn => {
       pendingRequests.push({
-        id: grn._id.toString(),
+        id: (grn._id as any).toString(),
         type: 'Goods Receipt',
-        title: `GRN - ${grn._id.toString().slice(-6)}`,
+        title: `GRN - ${(grn._id as any).toString().slice(-6)}`,
         description: `Goods receipt approval`,
         status: grn.status,
         priority: 'medium',

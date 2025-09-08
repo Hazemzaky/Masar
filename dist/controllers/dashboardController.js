@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCashFlowStatement = exports.getBalanceSheet = exports.getIncomeStatement = exports.getKPIs = exports.getSummary = exports.getDashboardSummary = void 0;
+exports.debugExpiringContracts = exports.getCashFlowStatement = exports.getBalanceSheet = exports.getIncomeStatement = exports.getKPIs = exports.getSummary = exports.getDashboardSummary = void 0;
 const Expense_1 = __importDefault(require("../models/Expense"));
 const Invoice_1 = __importDefault(require("../models/Invoice"));
 const User_1 = __importDefault(require("../models/User"));
@@ -22,13 +22,14 @@ const Maintenance_1 = __importDefault(require("../models/Maintenance"));
 const PurchaseRequest_1 = __importDefault(require("../models/PurchaseRequest"));
 const PurchaseOrder_1 = __importDefault(require("../models/PurchaseOrder"));
 const ProcurementInvoice_1 = __importDefault(require("../models/ProcurementInvoice"));
+const Client_1 = __importDefault(require("../models/Client"));
 const BusinessTrip_1 = __importDefault(require("../models/BusinessTrip"));
 const Incident_1 = __importDefault(require("../models/Incident"));
 const Training_1 = __importDefault(require("../models/Training"));
 const Payroll_1 = __importDefault(require("../models/Payroll"));
 const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const GeneralLedgerEntry_1 = __importDefault(require("../models/GeneralLedgerEntry"));
-const Contract_1 = __importDefault(require("../models/Contract"));
+const ReconciliationSession_1 = __importDefault(require("../models/ReconciliationSession"));
 // Helper to get date range from query or default to current financial year
 function getDateRange(req) {
     let { start, end } = req.query;
@@ -183,12 +184,53 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
         ]);
         // Action Center Alerts
         const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = yield Promise.all([
-            Invoice_1.default.countDocuments({ dueDate: { $lt: new Date() }, status: 'pending' }),
-            PurchaseOrder_1.default.countDocuments({ status: 'pending_approval' }),
-            GeneralLedgerEntry_1.default.countDocuments({ status: 'pending_reconciliation' }),
-            Contract_1.default.countDocuments({ expiryDate: { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }),
+            // Overdue Invoices: Check for invoices with paymentStatus='overdue' or dueDate < now and status='pending'
+            Invoice_1.default.countDocuments({
+                $or: [
+                    { paymentStatus: 'overdue' },
+                    { dueDate: { $lt: new Date() }, status: 'pending' }
+                ]
+            }),
+            // Unapproved POs: Check PurchaseRequest with status='pending' or 'sent_to_procurement'
+            PurchaseRequest_1.default.countDocuments({
+                status: { $in: ['pending', 'sent_to_procurement'] }
+            }),
+            // Pending Reconciliations: Check ReconciliationSession with status='draft' or 'in-progress'
+            ReconciliationSession_1.default.countDocuments({
+                status: { $in: ['draft', 'in-progress'] }
+            }),
+            // Expiring Contracts: Check Client contractData endDate within 30 days (including past due)
+            Client_1.default.countDocuments({
+                type: 'contract',
+                'contractData.endDate': {
+                    $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                    // Removed $gte: new Date() to include contracts that are already past due
+                },
+                'contractData.status': { $in: ['active', 'pending'] } // Only active or pending contracts
+            }),
+            // Pending Requests: Check PurchaseRequest with status='pending'
             PurchaseRequest_1.default.countDocuments({ status: 'pending' })
         ]);
+        // Debug: Log expiring contracts query for troubleshooting
+        const debugExpiringContracts = yield Client_1.default.find({
+            type: 'contract',
+            'contractData.endDate': {
+                $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                // Removed $gte: new Date() to include contracts that are already past due
+            },
+            'contractData.status': { $in: ['active', 'pending'] }
+        }).select('name contractData.endDate contractData.status');
+        console.log('Debug - Expiring contracts query result:', {
+            count: expiringContracts,
+            contracts: debugExpiringContracts.map(c => {
+                var _a, _b;
+                return ({
+                    name: c.name,
+                    endDate: (_a = c.contractData) === null || _a === void 0 ? void 0 : _a.endDate,
+                    status: (_b = c.contractData) === null || _b === void 0 ? void 0 : _b.status
+                });
+            })
+        });
         res.json({
             financial: {
                 revenue: ((_a = revenue[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
@@ -457,3 +499,52 @@ const getCashFlowStatement = (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.getCashFlowStatement = getCashFlowStatement;
+// Debug endpoint to check expiring contracts
+const debugExpiringContracts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        console.log('Debug - Date range:', {
+            now: now.toISOString(),
+            thirtyDaysFromNow: thirtyDaysFromNow.toISOString()
+        });
+        // Get all contract clients
+        const allContractClients = yield Client_1.default.find({ type: 'contract' }).select('name contractData');
+        // Get expiring contracts (including past due contracts within 30 days)
+        const expiringContracts = yield Client_1.default.find({
+            type: 'contract',
+            'contractData.endDate': {
+                $lte: thirtyDaysFromNow
+                // Removed $gte: now to include contracts that are already past due
+            },
+            'contractData.status': { $in: ['active', 'pending'] }
+        }).select('name contractData.endDate contractData.status');
+        res.json({
+            debug: {
+                now: now.toISOString(),
+                thirtyDaysFromNow: thirtyDaysFromNow.toISOString(),
+                totalContractClients: allContractClients.length,
+                allContractClients: allContractClients.map(c => {
+                    var _a, _b;
+                    return ({
+                        name: c.name,
+                        endDate: (_a = c.contractData) === null || _a === void 0 ? void 0 : _a.endDate,
+                        status: (_b = c.contractData) === null || _b === void 0 ? void 0 : _b.status
+                    });
+                }),
+                expiringContracts: expiringContracts.map(c => {
+                    var _a, _b;
+                    return ({
+                        name: c.name,
+                        endDate: (_a = c.contractData) === null || _a === void 0 ? void 0 : _a.endDate,
+                        status: (_b = c.contractData) === null || _b === void 0 ? void 0 : _b.status
+                    });
+                })
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+exports.debugExpiringContracts = debugExpiringContracts;

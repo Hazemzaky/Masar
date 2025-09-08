@@ -10,4 +10,5 @@ router.get('/income-statement', auth_1.authenticate, dashboardController_1.getIn
 router.get('/balance-sheet', auth_1.authenticate, dashboardController_1.getBalanceSheet);
 router.get('/cash-flow-statement', auth_1.authenticate, dashboardController_1.getCashFlowStatement);
 router.get('/dashboard-summary', auth_1.authenticate, dashboardController_1.getDashboardSummary);
+router.get('/debug-expiring-contracts', auth_1.authenticate, dashboardController_1.debugExpiringContracts);
 exports.default = router;

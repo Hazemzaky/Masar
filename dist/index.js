@@ -100,6 +100,7 @@ const nearMissRoutes_1 = __importDefault(require("./routes/nearMissRoutes"));
 const trainingRoutes_1 = __importDefault(require("./routes/trainingRoutes"));
 const attendance_1 = __importDefault(require("./routes/attendance"));
 const documentRoutes_1 = __importDefault(require("./routes/documentRoutes"));
+const pendingRequestsRoutes_1 = __importDefault(require("./routes/pendingRequestsRoutes"));
 require("./models/Contract");
 require("./models/ProcurementInvoice");
 require("./models/Vendor");
@@ -245,6 +246,7 @@ app.use('/api/hse/near-misses', nearMissRoutes_1.default);
 app.use('/api/hse/training', trainingRoutes_1.default);
 app.use('/api/attendance', attendance_1.default);
 app.use('/api/documents', documentRoutes_1.default);
+app.use('/api/pending-requests', pendingRequestsRoutes_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
