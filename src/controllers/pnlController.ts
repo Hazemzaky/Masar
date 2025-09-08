@@ -329,7 +329,8 @@ function updateManualEntryValue(itemId: string, amount: number): void {
 // Endpoint to update manual PnL entries
 export const updateManualPnLEntry = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { itemId, amount, period, startDate, endDate, notes } = req.body;
+    const { itemId } = req.params; // Get itemId from URL parameters
+    const { amount, period, startDate, endDate, notes } = req.body;
     
     if (!itemId || typeof amount !== 'number') {
       res.status(400).json({ error: 'Invalid itemId or amount' });
@@ -358,11 +359,24 @@ export const updateManualPnLEntry = async (req: Request, res: Response): Promise
 // Endpoint to get all manual PnL entries
 export const getManualPnLEntries = async (req: Request, res: Response): Promise<void> => {
   try {
-    const entries = Object.entries(MANUAL_ENTRIES).map(([itemId, amount]) => ({
-      itemId,
-      amount,
-      description: VERTICAL_PNL_STRUCTURE[itemId as keyof typeof VERTICAL_PNL_STRUCTURE]?.items?.find(item => item.id === itemId)?.description || itemId
-    }));
+    const entries = Object.entries(MANUAL_ENTRIES).map(([itemId, amount]) => {
+      // Search through all sections to find the matching item
+      let description = itemId; // fallback to itemId
+      
+      for (const section of Object.values(VERTICAL_PNL_STRUCTURE)) {
+        const item = section.items?.find(item => item.id === itemId);
+        if (item) {
+          description = item.description;
+          break;
+        }
+      }
+      
+      return {
+        itemId,
+        amount,
+        description
+      };
+    });
     
     res.json(entries);
   } catch (error) {
