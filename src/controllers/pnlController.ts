@@ -303,7 +303,6 @@ const MANUAL_ENTRIES: { [key: string]: number } = {
   ds_revenue: 0,
   rental_equipment_cost: 0,
   ds_cost: 0,
-  general_admin_expenses: 0,
   provision_credit_loss: 0,
   service_agreement_cost: 0,
   gain_selling_products: 0,
@@ -731,8 +730,23 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     const staffCost = expensesData[8][0]?.staffCost || 0;
     // procurementCost is now calculated from dashboard data above
     
+    // Get general admin expenses from admin module (government correspondence)
+    const generalAdminExpensesData = await AdminGovCorrespondence.aggregate([
+      {
+        $match: {
+          submissionDate: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $toDouble: '$fee' } }
+        }
+      }
+    ]);
+    const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
+    
     // Manual entries
-    const generalAdminExpenses = getManualEntryValue('general_admin_expenses', filters.period, startDate, endDate);
     const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
     
     // Calculate total expenses with ALL new integrations
@@ -1095,7 +1109,21 @@ export const getPnLTable = async (req: Request, res: Response) => {
     const dsRevenue = getManualEntryValue('ds_revenue', filters.period, startDate, endDate);
     const rentalEquipmentCost = getManualEntryValue('rental_equipment_cost', filters.period, startDate, endDate);
     const dsCost = getManualEntryValue('ds_cost', filters.period, startDate, endDate);
-    const generalAdminExpenses = getManualEntryValue('general_admin_expenses', filters.period, startDate, endDate);
+    // Get general admin expenses from admin module (government correspondence)
+    const generalAdminExpensesData = await AdminGovCorrespondence.aggregate([
+      {
+        $match: {
+          submissionDate: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $toDouble: '$fee' } }
+        }
+      }
+    ]);
+    const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
     const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
     const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
     const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
