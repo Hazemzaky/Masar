@@ -141,13 +141,12 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
         // Financial KPIs - Get data from Vertical P&L system
         const pnlData = yield getPnLDataForPeriod(startDate, endDate);
         console.log('Dashboard - Vertical P&L Data received:', JSON.stringify(pnlData, null, 2));
-        // Extract values from vertical P&L structure
-        const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0;
-        const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0;
-        const ebitda = ((_c = pnlData.ebitida) === null || _c === void 0 ? void 0 : _c.total) || 0;
-        // Net profit = revenue - expenses only (as requested)
-        const netProfit = revenue - expenses;
-        console.log('Dashboard - Financial values:', { revenue, expenses, ebitda, netProfit });
+        // Extract values from vertical P&L structure to match vertical P&L table cards
+        const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0; // From Revenue card in vertical P&L table
+        const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0; // From Expenses card in vertical P&L table
+        const ebitda = ((_c = pnlData.ebitida) === null || _c === void 0 ? void 0 : _c.total) || 0; // From EBITDA card in vertical P&L table
+        const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0; // From manual entries Revenue From Sub Companies
+        console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
         // HR KPIs
         const [headcount, payroll, attrition] = yield Promise.all([
             Employee_1.default.countDocuments({ status: 'active' }),
@@ -337,8 +336,8 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
                 revenue: revenue,
                 expenses: expenses,
                 ebitda: ebitda,
-                netProfit: netProfit,
-                margin: revenue ? (netProfit / revenue * 100) : 0
+                subCompaniesRevenue: subCompaniesRevenue,
+                margin: revenue ? (subCompaniesRevenue / revenue * 100) : 0
             },
             hr: {
                 headcount: headcount || 0,

@@ -101,14 +101,13 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const pnlData = await getPnLDataForPeriod(startDate, endDate);
     console.log('Dashboard - Vertical P&L Data received:', JSON.stringify(pnlData, null, 2));
     
-    // Extract values from vertical P&L structure
-    const revenue = pnlData.revenue?.total || 0;
-    const expenses = pnlData.expenses?.total || 0;
-    const ebitda = pnlData.ebitida?.total || 0;
-    // Net profit = revenue - expenses only (as requested)
-    const netProfit = revenue - expenses;
+    // Extract values from vertical P&L structure to match vertical P&L table cards
+    const revenue = pnlData.revenue?.total || 0;  // From Revenue card in vertical P&L table
+    const expenses = pnlData.expenses?.total || 0;  // From Expenses card in vertical P&L table
+    const ebitda = pnlData.ebitida?.total || 0;  // From EBITDA card in vertical P&L table
+    const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;  // From manual entries Revenue From Sub Companies
     
-    console.log('Dashboard - Financial values:', { revenue, expenses, ebitda, netProfit });
+    console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
 
     // HR KPIs
     const [headcount, payroll, attrition] = await Promise.all([
@@ -326,8 +325,8 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         revenue: revenue,
         expenses: expenses,
         ebitda: ebitda,
-        netProfit: netProfit,
-        margin: revenue ? (netProfit / revenue * 100) : 0
+        subCompaniesRevenue: subCompaniesRevenue,
+        margin: revenue ? (subCompaniesRevenue / revenue * 100) : 0
       },
       hr: {
         headcount: headcount || 0,

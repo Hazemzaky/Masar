@@ -1756,6 +1756,7 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
         financeCosts,
         depreciation
       },
+      subCompaniesRevenue: subCompaniesRevenue,
       netProfit: netProfit
     });
   } catch (error) {
