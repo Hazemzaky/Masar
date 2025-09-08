@@ -197,12 +197,12 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       ReconciliationSession.countDocuments({ 
         status: { $in: ['draft', 'in-progress'] }
       }),
-      // Expiring Contracts: Check Client contractData endDate within 30 days
+      // Expiring Contracts: Check Client contractData endDate within 30 days (including past due)
       Client.countDocuments({ 
         type: 'contract',
         'contractData.endDate': { 
-          $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          $gte: new Date()
+          $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          // Removed $gte: new Date() to include contracts that are already past due
         },
         'contractData.status': { $in: ['active', 'pending'] } // Only active or pending contracts
       }),
@@ -214,8 +214,8 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const debugExpiringContracts = await Client.find({ 
       type: 'contract',
       'contractData.endDate': { 
-        $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        $gte: new Date()
+        $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        // Removed $gte: new Date() to include contracts that are already past due
       },
       'contractData.status': { $in: ['active', 'pending'] }
     }).select('name contractData.endDate contractData.status');
@@ -508,12 +508,12 @@ export const debugExpiringContracts = async (req: Request, res: Response): Promi
     // Get all contract clients
     const allContractClients = await Client.find({ type: 'contract' }).select('name contractData');
     
-    // Get expiring contracts
+    // Get expiring contracts (including past due contracts within 30 days)
     const expiringContracts = await Client.find({ 
       type: 'contract',
       'contractData.endDate': { 
-        $lte: thirtyDaysFromNow,
-        $gte: now
+        $lte: thirtyDaysFromNow
+        // Removed $gte: now to include contracts that are already past due
       },
       'contractData.status': { $in: ['active', 'pending'] }
     }).select('name contractData.endDate contractData.status');
