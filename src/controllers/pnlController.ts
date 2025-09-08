@@ -21,6 +21,7 @@ import InventoryItem from '../models/InventoryItem';
 import InventoryTransaction from '../models/InventoryTransaction';
 import Project from '../models/Project';
 import Client from '../models/Client';
+import Payroll from '../models/Payroll';
 
 // In-memory store for Cost Analysis Dashboard data
 interface DashboardData {
@@ -1555,5 +1556,210 @@ export const receiveDashboardData = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error in receiveDashboardData:', error);
     res.status(500).json({ error: 'Failed to store dashboard data' });
+  }
+};
+
+// Get Vertical P&L Data for Dashboard
+export const getVerticalPnLData = async (req: Request, res: Response) => {
+  try {
+    const filters = getFilters(req);
+    const { startDate, endDate, period } = filters;
+
+    console.log('Vertical P&L Data - Using integrated data sources:', { period, startDate, endDate });
+
+    // Get dashboard data from Cost Analysis Dashboards
+    const allDashboardData = getAllDashboardData();
+    console.log('Available dashboard data:', Array.from(allDashboardData.keys()));
+
+    // 1. REVENUE SECTION
+    const revenueData = await Promise.all([
+      // Operating Revenues - from Invoice module
+      Invoice.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, operatingRevenues: { $sum: '$amount' } } }
+      ]),
+      // Rental Equipment Revenue - from Asset module
+      Asset.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $addFields: {
+          rentalRevenue: {
+            $multiply: ['$rentalRate', '$utilizationRate', 30] // Monthly rental revenue
+          }
+        }},
+        { $group: { _id: null, rentalEquipmentRevenue: { $sum: '$rentalRevenue' } } }
+      ]),
+      // DS Revenue - from operations
+      BusinessTrip.aggregate([
+        { $match: { status: 'Completed', date: { $gte: startDate, $lte: endDate } } },
+        { $addFields: {
+          revenue: { $multiply: ['$cost', 0.1] } // 10% revenue from business trips
+        }},
+        { $group: { _id: null, dsRevenue: { $sum: '$revenue' } } }
+      ])
+    ]);
+
+    const operatingRevenues = revenueData[0][0]?.operatingRevenues || 0;
+    const rentalEquipmentRevenue = revenueData[1][0]?.rentalEquipmentRevenue || 0;
+    const dsRevenue = revenueData[2][0]?.dsRevenue || 0;
+
+    // Get manual entries for revenue
+    const subCompaniesRevenue = getManualEntryValue('sub_companies_revenue', filters.period, startDate, endDate);
+    const otherRevenue = getManualEntryValue('other_revenue', filters.period, startDate, endDate);
+    const provisionEndService = getManualEntryValue('provision_end_service', filters.period, startDate, endDate);
+    const provisionImpairment = getManualEntryValue('provision_impairment', filters.period, startDate, endDate);
+    const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
+
+    // Calculate net operating revenue and total revenue
+    const netOperatingRevenue = operatingRevenues + rebate;
+    const totalRevenue = netOperatingRevenue + rentalEquipmentRevenue + dsRevenue + subCompaniesRevenue + 
+                        otherRevenue + provisionEndService + provisionImpairment;
+
+    // 2. EXPENSES SECTION - ENHANCED WITH ALL MODULES
+    const expensesData = await Promise.all([
+      // Operation costs (fuel, maintenance, procurement)
+      Promise.all([
+        FuelLog.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, fuelCost: { $sum: '$cost' } } }
+        ]),
+        Maintenance.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, maintenanceCost: { $sum: '$cost' } } }
+        ]),
+        ProcurementInvoice.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, procurementCost: { $sum: '$amount' } } }
+        ])
+      ]),
+      // Staff costs
+      Payroll.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, staffCost: { $sum: '$totalAmount' } } }
+      ]),
+      // Business trip costs
+      BusinessTrip.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, businessTripCost: { $sum: '$cost' } } }
+      ]),
+      // Overtime costs
+      Overtime.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, overtimeCost: { $sum: '$amount' } } }
+      ]),
+      // Trip allowance costs
+      TripAllowance.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, tripAllowanceCost: { $sum: '$amount' } } }
+      ]),
+      // Food allowance costs
+      FoodAllowance.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, foodAllowanceCost: { $sum: '$amount' } } }
+      ]),
+      // HSE & Training costs
+      Training.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, hseTrainingCost: { $sum: '$cost' } } }
+      ]),
+      // Rental equipment costs
+      Asset.aggregate([
+        { $match: { type: 'rental', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, rentalEquipmentCost: { $sum: '$cost' } } }
+      ]),
+      // DS costs
+      BusinessTrip.aggregate([
+        { $match: { status: 'Completed', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, dsCost: { $sum: '$cost' } } }
+      ])
+    ]);
+
+    const fuelCost = (expensesData[0] as any[])[0]?.fuelCost || 0;
+    const maintenanceCost = (expensesData[0] as any[])[1]?.maintenanceCost || 0;
+    const procurementCost = (expensesData[0] as any[])[2]?.procurementCost || 0;
+    const operationCost = fuelCost + maintenanceCost + procurementCost;
+
+    const staffCost = expensesData[1][0]?.staffCost || 0;
+    const businessTripCost = expensesData[2][0]?.businessTripCost || 0;
+    const overtimeCost = expensesData[3][0]?.overtimeCost || 0;
+    const tripAllowanceCost = expensesData[4][0]?.tripAllowanceCost || 0;
+    const foodAllowanceCost = expensesData[5][0]?.foodAllowanceCost || 0;
+    const hseTrainingCost = expensesData[6][0]?.hseTrainingCost || 0;
+    const rentalEquipmentCost = expensesData[7][0]?.rentalEquipmentCost || 0;
+    const dsCost = expensesData[8][0]?.dsCost || 0;
+
+    // Get general admin expenses from admin module (government correspondence)
+    const generalAdminExpensesData = await AdminGovCorrespondence.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: '$cost' } } }
+    ]);
+
+    const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
+
+    // Get manual entries for expenses
+    const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
+
+    // Calculate total expenses with ALL new integrations
+    const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
+                         staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
+                         foodAllowanceCost + hseTrainingCost + procurementCost + serviceAgreementCost;
+
+    // 3. INCOME, EXPENSES AND OTHER ITEMS
+    const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
+    const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
+    const depreciation = getManualEntryValue('depreciation', filters.period, startDate, endDate);
+
+    // 4. EBITDA CALCULATION
+    const ebitda = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
+
+    // 5. NET PROFIT
+    const netProfit = ebitda;
+
+    // Return vertical P&L structure
+    res.json({
+      summary: {
+        revenue: totalRevenue,
+        operatingExpenses: totalExpenses,
+        grossProfit: totalRevenue - totalExpenses,
+        operatingProfit: totalRevenue - totalExpenses,
+        ebitda: ebitda,
+        netProfit: netProfit
+      },
+      revenue: {
+        total: totalRevenue,
+        operatingRevenues,
+        rebate,
+        netOperatingRevenue,
+        rentalEquipmentRevenue,
+        dsRevenue,
+        subCompaniesRevenue,
+        otherRevenue,
+        provisionEndService,
+        provisionImpairment
+      },
+      expenses: {
+        total: totalExpenses,
+        operationCost,
+        rentalEquipmentCost,
+        dsCost,
+        generalAdminExpenses,
+        staffCost,
+        businessTripCost,
+        overtimeCost,
+        tripAllowanceCost,
+        foodAllowanceCost,
+        hseTrainingCost,
+        procurementCost,
+        serviceAgreementCost
+      },
+      ebitida: {
+        total: ebitda,
+        financeCosts,
+        depreciation
+      },
+      netProfit: netProfit
+    });
+  } catch (error) {
+    console.error('Error in getVerticalPnLData:', error);
+    res.status(500).json({ error: 'Failed to generate vertical P&L data' });
   }
 };

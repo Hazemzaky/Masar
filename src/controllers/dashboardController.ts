@@ -47,7 +47,7 @@ function getDateRange(req: Request) {
 async function getPnLDataForPeriod(startDate: Date, endDate: Date) {
   try {
     // Import the P&L controller functions
-    const { getPnLSummary } = await import('./pnlController');
+    const { getVerticalPnLData } = await import('./pnlController');
     
     // Create a mock request object with the date range
     const mockReq = {
@@ -68,10 +68,10 @@ async function getPnLDataForPeriod(startDate: Date, endDate: Date) {
       send: () => {}
     } as any;
     
-    // Call the P&L summary function
-    await getPnLSummary(mockReq, mockRes);
+    // Call the vertical P&L data function
+    await getVerticalPnLData(mockReq, mockRes);
     
-    console.log('P&L Data fetched for dashboard:', JSON.stringify(pnlData, null, 2));
+    console.log('Vertical P&L Data fetched for dashboard:', JSON.stringify(pnlData, null, 2));
     
     // Return the P&L data or default values if not available
     return pnlData || {
@@ -81,7 +81,7 @@ async function getPnLDataForPeriod(startDate: Date, endDate: Date) {
       netProfit: 0
     };
   } catch (error) {
-    console.error('Error fetching P&L data:', error);
+    console.error('Error fetching vertical P&L data:', error);
     // Return default values if P&L data is not available
     return {
       revenue: { total: 0 },

@@ -8,7 +8,8 @@ import {
   updateManualPnLEntry,
   getManualPnLEntries,
   updatePnLRealTime,
-  receiveDashboardData
+  receiveDashboardData,
+  getVerticalPnLData
 } from '../controllers/pnlController';
 
 const router = express.Router();
@@ -18,6 +19,9 @@ router.use(authenticate);
 
 // P&L Summary - Main dashboard view
 router.get('/summary', getPnLSummary);
+
+// Vertical P&L Data - For dashboard integration
+router.get('/vertical', getVerticalPnLData);
 
 // P&L Table - Detailed breakdown view
 router.get('/table', getPnLTable);
