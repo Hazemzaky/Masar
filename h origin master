@@ -1,0 +1,5 @@
+[33mfa8bd43[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Fix manual P&L entries: Add missing Cost of Service Agreement and Cost of Rental Equipment fields, fix update endpoint parameter handling
+[33m99f6f7e[m[33m ([m[1;31morigin/master[m[33m)[m Remove per diem system and replace with cost-based system for business trips
+[33m0eb0d44[m Fix business trip creation 500 error - add proper field mapping and validation
+[33m88c6c9f[m Fix infinite loop in business trip PnL integration and improve error handling
+[33m9cb8a3e[m Add manual per diem system for business trips

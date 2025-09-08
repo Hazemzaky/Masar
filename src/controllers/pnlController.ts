@@ -298,18 +298,18 @@ interface ManualPnLEntry {
 // Manual entry values - these would come from a database in production
 const MANUAL_ENTRIES: { [key: string]: number } = {
   rebate: 0,
-  subCompaniesRevenue: 0,
-  otherRevenue: 0,
-  provisionEndService: 0,
-  provisionImpairment: 0,
-  dsRevenue: 0,
-  rentalEquipmentCost: 0,
-  dsCost: 0,
-  generalAdminExpenses: 0,
-  provisionCreditLoss: 0,
-  serviceAgreementCost: 0,
-  gainSellingProducts: 0,
-  financeCosts: 0
+  sub_companies_revenue: 0,
+  other_revenue: 0,
+  provision_end_service: 0,
+  provision_impairment: 0,
+  ds_revenue: 0,
+  rental_equipment_cost: 0,
+  ds_cost: 0,
+  general_admin_expenses: 0,
+  provision_credit_loss: 0,
+  service_agreement_cost: 0,
+  gain_selling_products: 0,
+  finance_costs: 0
 };
 
 // Function to get manual entry value
@@ -475,10 +475,10 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     
     // Manual entries (these would come from a manual entry system)
     const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
-    const subCompaniesRevenue = getManualEntryValue('subCompaniesRevenue', filters.period, startDate, endDate);
-    const otherRevenue = getManualEntryValue('otherRevenue', filters.period, startDate, endDate);
-    const provisionEndService = getManualEntryValue('provisionEndService', filters.period, startDate, endDate);
-    const provisionImpairment = getManualEntryValue('provisionImpairment', filters.period, startDate, endDate);
+    const subCompaniesRevenue = getManualEntryValue('sub_companies_revenue', filters.period, startDate, endDate);
+    const otherRevenue = getManualEntryValue('other_revenue', filters.period, startDate, endDate);
+    const provisionEndService = getManualEntryValue('provision_end_service', filters.period, startDate, endDate);
+    const provisionImpairment = getManualEntryValue('provision_impairment', filters.period, startDate, endDate);
     
     // Calculate net operating revenue and total revenue
     const netOperatingRevenue = operatingRevenues + rebate;
@@ -734,9 +734,9 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     // procurementCost is now calculated from dashboard data above
     
     // Manual entries
-    const generalAdminExpenses = getManualEntryValue('generalAdminExpenses', filters.period, startDate, endDate);
-    const provisionCreditLoss = getManualEntryValue('provisionCreditLoss', filters.period, startDate, endDate);
-    const serviceAgreementCost = getManualEntryValue('serviceAgreementCost', filters.period, startDate, endDate);
+    const generalAdminExpenses = getManualEntryValue('general_admin_expenses', filters.period, startDate, endDate);
+    const provisionCreditLoss = getManualEntryValue('provision_credit_loss', filters.period, startDate, endDate);
+    const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
     
     // Calculate total expenses with ALL new integrations
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
@@ -745,10 +745,10 @@ export const getPnLSummary = async (req: Request, res: Response) => {
                          serviceAgreementCost + procurementCost;
 
     // 3. INCOME, EXPENSES AND OTHER ITEMS
-    const gainSellingProducts = getManualEntryValue('gainSellingProducts', filters.period, startDate, endDate);
+    const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
 
     // 4. EBITIDA
-    const financeCosts = getManualEntryValue('financeCosts', filters.period, startDate, endDate);
+    const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
     
     // Calculate depreciation with amortization
     const depreciationData = await Asset.aggregate([
@@ -1094,18 +1094,18 @@ export const getPnLTable = async (req: Request, res: Response) => {
 
     // Manual entries (these would come from a manual entry system)
     const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
-    const subCompaniesRevenue = getManualEntryValue('subCompaniesRevenue', filters.period, startDate, endDate);
-    const otherRevenue = getManualEntryValue('otherRevenue', filters.period, startDate, endDate);
-    const provisionEndService = getManualEntryValue('provisionEndService', filters.period, startDate, endDate);
-    const provisionImpairment = getManualEntryValue('provisionImpairment', filters.period, startDate, endDate);
-    const dsRevenue = getManualEntryValue('dsRevenue', filters.period, startDate, endDate);
-    const rentalEquipmentCost = getManualEntryValue('rentalEquipmentCost', filters.period, startDate, endDate);
-    const dsCost = getManualEntryValue('dsCost', filters.period, startDate, endDate);
-    const generalAdminExpenses = getManualEntryValue('generalAdminExpenses', filters.period, startDate, endDate);
-    const provisionCreditLoss = getManualEntryValue('provisionCreditLoss', filters.period, startDate, endDate);
-    const serviceAgreementCost = getManualEntryValue('serviceAgreementCost', filters.period, startDate, endDate);
-    const gainSellingProducts = getManualEntryValue('gainSellingProducts', filters.period, startDate, endDate);
-    const financeCosts = getManualEntryValue('financeCosts', filters.period, startDate, endDate);
+    const subCompaniesRevenue = getManualEntryValue('sub_companies_revenue', filters.period, startDate, endDate);
+    const otherRevenue = getManualEntryValue('other_revenue', filters.period, startDate, endDate);
+    const provisionEndService = getManualEntryValue('provision_end_service', filters.period, startDate, endDate);
+    const provisionImpairment = getManualEntryValue('provision_impairment', filters.period, startDate, endDate);
+    const dsRevenue = getManualEntryValue('ds_revenue', filters.period, startDate, endDate);
+    const rentalEquipmentCost = getManualEntryValue('rental_equipment_cost', filters.period, startDate, endDate);
+    const dsCost = getManualEntryValue('ds_cost', filters.period, startDate, endDate);
+    const generalAdminExpenses = getManualEntryValue('general_admin_expenses', filters.period, startDate, endDate);
+    const provisionCreditLoss = getManualEntryValue('provision_credit_loss', filters.period, startDate, endDate);
+    const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
+    const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
+    const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
 
     // Calculate summary values with ALL integrations
     const netOperatingRevenue = operatingRevenues + rebate;
