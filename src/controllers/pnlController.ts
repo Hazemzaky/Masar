@@ -1224,8 +1224,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
               trend = 'up';
               break;
             case 'ebitda':
-              amount = totalRevenue - totalExpenses;
-              trend = totalRevenue - totalExpenses >= 0 ? 'up' : 'down';
+              amount = totalRevenue + gainSellingProducts - totalExpenses;
+              trend = totalRevenue + gainSellingProducts - totalExpenses >= 0 ? 'up' : 'down';
               expandable = true;
               break;
             case 'finance_costs':
@@ -1258,7 +1258,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
       } else if (section.id === 'expenses') {
         sectionData.subtotal = totalExpenses;
       } else if (section.id === 'income_expenses_other') {
-        sectionData.subtotal = gainSellingProducts + (totalRevenue - totalExpenses);
+        sectionData.subtotal = gainSellingProducts + (totalRevenue + gainSellingProducts - totalExpenses);
       } else if (section.id === 'rebate') {
         sectionData.subtotal = rebate;
       }
