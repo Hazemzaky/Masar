@@ -14,6 +14,26 @@ function getFiles(req: Request, field: string): string[] | undefined {
 // Create a new business trip
 export const createBusinessTrip = async (req: Request, res: Response) => {
   try {
+    console.log('Creating business trip with data:', req.body);
+    
+    // Parse approval comments if provided
+    let approvalComments: any = {};
+    if (req.body.approvalComments) {
+      try {
+        approvalComments = JSON.parse(req.body.approvalComments);
+      } catch (e) {
+        console.log('Failed to parse approval comments:', e);
+      }
+    }
+
+    // Initialize approval chain
+    const approvalChain = [
+      { role: 'Dept. Manager', name: '', status: 'Pending' as const, comment: approvalComments['manager'] || '' },
+      { role: 'HR', name: '', status: 'Pending' as const, comment: approvalComments['hr'] || '' },
+      { role: 'DCEO', name: '', status: 'Pending' as const, comment: approvalComments['dceo'] || '' },
+      { role: 'GCEO', name: '', status: 'Pending' as const, comment: approvalComments['gceo'] || '' },
+    ];
+
     const trip = new BusinessTrip({
       ...req.body,
       agendaFile: getFile(req, 'agendaFile'),
@@ -31,10 +51,24 @@ export const createBusinessTrip = async (req: Request, res: Response) => {
       customPeriod: req.body.customPeriod ? Number(req.body.customPeriod) : undefined,
       amortizationStartDate: req.body.amortizationStartDate ? new Date(req.body.amortizationStartDate) : undefined,
       amortizationEndDate: req.body.amortizationEndDate ? new Date(req.body.amortizationEndDate) : undefined,
+      // Initialize required fields
+      approvalChain,
+      // Handle other fields
+      requiresVisa: req.body.requiresVisa === 'true',
+      perDiemPaid: req.body.perDiemPaid === 'true',
+      perDiem: Number(req.body.perDiem) || 0,
+      totalPerDiem: Number(req.body.totalPerDiem) || 0,
+      // Handle additional fields
+      financeApproval: req.body.financeApproval || 'pending',
+      financeComments: req.body.financeComments || '',
     });
+    
+    console.log('Saving business trip...');
     await trip.save();
+    console.log('Business trip saved successfully');
     res.status(201).json(trip);
   } catch (err) {
+    console.error('Error creating business trip:', err);
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 };

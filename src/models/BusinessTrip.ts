@@ -27,7 +27,7 @@ export interface IBusinessTrip extends Document {
   amortizationEndDate?: Date;
   totalTripCost?: number;
   customPeriod?: number;
-  approvalChain: Array<{
+  approvalChain?: Array<{
     role: string;
     name: string;
     status: 'Approved' | 'Under Review' | 'Pending' | 'Rejected';
@@ -75,15 +75,13 @@ const BusinessTripSchema = new Schema<IBusinessTrip>({
   amortizationEndDate: { type: Date },
   totalTripCost: { type: Number },
   customPeriod: { type: Number },
-  approvalChain: [
-    {
-      role: String,
-      name: String,
-      status: { type: String, enum: ['Approved', 'Under Review', 'Pending', 'Rejected'], default: 'Pending' },
-      timestamp: Date,
-      comment: String,
-    }
-  ],
+  approvalChain: [{
+    role: String,
+    name: String,
+    status: { type: String, enum: ['Approved', 'Under Review', 'Pending', 'Rejected'], default: 'Pending' },
+    timestamp: Date,
+    comment: String,
+  }],
   postTripSummary: { type: String },
   boardingPass: { type: String },
   signedClaimForm: { type: String },
