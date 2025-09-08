@@ -1,0 +1,46 @@
+warning: in the working copy of 'src/models/BusinessTrip.ts', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/controllers/businessTripController.ts b/src/controllers/businessTripController.ts[m
+[1mindex 6980856..4e7d698 100644[m
+[1m--- a/src/controllers/businessTripController.ts[m
+[1m+++ b/src/controllers/businessTripController.ts[m
+[36m@@ -25,6 +25,8 @@[m [mexport const createBusinessTrip = async (req: Request, res: Response) => {[m
+       postTripSummary: getFile(req, 'postTripSummary'),[m
+       boardingPass: getFile(req, 'boardingPass'),[m
+       signedClaimForm: getFile(req, 'signedClaimForm'),[m
+[32m+[m[32m      // Handle manual per diem[m
+[32m+[m[32m      manualPerDiem: req.body.manualPerDiem ? Number(req.body.manualPerDiem) : 0,[m
+       // Handle amortization fields[m
+       costAmortization: req.body.costAmortization === 'true',[m
+       totalTripCost: req.body.totalTripCost ? Number(req.body.totalTripCost) : undefined,[m
+[36m@@ -76,6 +78,11 @@[m [mexport const updateBusinessTrip = async (req: Request, res: Response) => {[m
+       if (getFile(req, 'signedClaimForm')) update.signedClaimForm = getFile(req, 'signedClaimForm');[m
+     }[m
+     [m
+[32m+[m[32m    // Handle manual per diem[m
+[32m+[m[32m    if (req.body.manualPerDiem !== undefined) {[m
+[32m+[m[32m      update.manualPerDiem = Number(req.body.manualPerDiem);[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+     // Handle amortization fields[m
+     if (req.body.costAmortization !== undefined) {[m
+       update.costAmortization = req.body.costAmortization === 'true';[m
+[1mdiff --git a/src/models/BusinessTrip.ts b/src/models/BusinessTrip.ts[m
+[1mindex 302f628..564277f 100644[m
+[1m--- a/src/models/BusinessTrip.ts[m
+[1m+++ b/src/models/BusinessTrip.ts[m
+[36m@@ -10,6 +10,7 @@[m [mexport interface IBusinessTrip extends Document {[m
+   requiresVisa: boolean;[m
+   seminarFile?: string;[m
+   perDiem: number;[m
+[32m+[m[32m  manualPerDiem: number;[m
+   flightClass: string;[m
+   hotelQuotes?: string[];[m
+   flightQuotes?: string[];[m
+[36m@@ -58,6 +59,7 @@[m [mconst BusinessTripSchema = new Schema<IBusinessTrip>({[m
+   requiresVisa: { type: Boolean, default: false },[m
+   seminarFile: { type: String },[m
+   perDiem: { type: Number, required: true },[m
+[32m+[m[32m  manualPerDiem: { type: Number, required: true, default: 0 },[m
+   flightClass: { type: String, required: true },[m
+   hotelQuotes: [{ type: String }],[m
+   flightQuotes: [{ type: String }],[m
