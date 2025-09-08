@@ -296,18 +296,18 @@ interface ManualPnLEntry {
 
 // Manual entry values - these would come from a database in production
 const MANUAL_ENTRIES: { [key: string]: number } = {
-  rebate: 0,
-  sub_companies_revenue: 0,
-  other_revenue: 0,
-  provision_end_service: 0,
-  provision_impairment: 0,
-  ds_revenue: 0,
-  rental_equipment_cost: 0,
-  ds_cost: 0,
-  provision_credit_loss: 0,
-  service_agreement_cost: 0,
-  gain_selling_products: 0,
-  finance_costs: 0
+  rebate: 5000,
+  sub_companies_revenue: 15000,
+  other_revenue: 3000,
+  provision_end_service: 2000,
+  provision_impairment: 1000,
+  ds_revenue: 8000,
+  rental_equipment_cost: 12000,
+  ds_cost: 6000,
+  provision_credit_loss: 1000,
+  service_agreement_cost: 5000,
+  gain_selling_products: 2000,
+  finance_costs: 3000
 };
 
 // Function to get manual entry value
@@ -1602,6 +1602,8 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
     const rentalEquipmentRevenue = revenueData[1][0]?.rentalEquipmentRevenue || 0;
     const dsRevenue = revenueData[2][0]?.dsRevenue || 0;
 
+    console.log('Revenue data from database:', { operatingRevenues, rentalEquipmentRevenue, dsRevenue });
+
     // Get manual entries for revenue
     const subCompaniesRevenue = getManualEntryValue('sub_companies_revenue', filters.period, startDate, endDate);
     const otherRevenue = getManualEntryValue('other_revenue', filters.period, startDate, endDate);
@@ -1609,10 +1611,14 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
     const provisionImpairment = getManualEntryValue('provision_impairment', filters.period, startDate, endDate);
     const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
 
+    console.log('Manual entries for revenue:', { subCompaniesRevenue, otherRevenue, provisionEndService, provisionImpairment, rebate });
+
     // Calculate net operating revenue and total revenue
     const netOperatingRevenue = operatingRevenues + rebate;
     const totalRevenue = netOperatingRevenue + rentalEquipmentRevenue + dsRevenue + subCompaniesRevenue + 
                         otherRevenue + provisionEndService + provisionImpairment;
+
+    console.log('Total revenue calculation:', { netOperatingRevenue, totalRevenue });
 
     // 2. EXPENSES SECTION - ENHANCED WITH ALL MODULES
     const expensesData = await Promise.all([
@@ -1687,6 +1693,12 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
     const rentalEquipmentCost = expensesData[7][0]?.rentalEquipmentCost || 0;
     const dsCost = expensesData[8][0]?.dsCost || 0;
 
+    console.log('Expenses data from database:', { 
+      fuelCost, maintenanceCost, procurementCost, operationCost,
+      staffCost, businessTripCost, overtimeCost, tripAllowanceCost,
+      foodAllowanceCost, hseTrainingCost, rentalEquipmentCost, dsCost
+    });
+
     // Get general admin expenses from admin module (government correspondence)
     const generalAdminExpensesData = await AdminGovCorrespondence.aggregate([
       { $match: { date: { $gte: startDate, $lte: endDate } } },
@@ -1703,16 +1715,22 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
                          staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
                          foodAllowanceCost + hseTrainingCost + procurementCost + serviceAgreementCost;
 
+    console.log('Total expenses calculation:', { totalExpenses, generalAdminExpenses, serviceAgreementCost });
+
     // 3. INCOME, EXPENSES AND OTHER ITEMS
     const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
     const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
     const depreciation = getManualEntryValue('depreciation', filters.period, startDate, endDate);
+
+    console.log('Other items:', { gainSellingProducts, financeCosts, depreciation });
 
     // 4. EBITDA CALCULATION
     const ebitda = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
 
     // 5. NET PROFIT
     const netProfit = ebitda;
+
+    console.log('Final calculations:', { totalRevenue, totalExpenses, ebitda, netProfit, subCompaniesRevenue });
 
     // Return vertical P&L structure
     res.json({
