@@ -111,7 +111,6 @@ const VERTICAL_PNL_STRUCTURE = {
       { id: 'inventory_costs', description: 'Inventory & Material Costs', type: 'expense', module: 'operations' },
       { id: 'legal_costs', description: 'Legal & Compliance Costs', type: 'expense', module: 'admin' },
       { id: 'facility_costs', description: 'Facility & Infrastructure Costs', type: 'expense', module: 'admin' },
-      { id: 'provision_credit_loss', description: 'Provision for Expected Credit Loss (Manual Entry)', type: 'expense', module: 'finance' },
       { id: 'service_agreement_cost', description: 'Cost of Service Agreement', type: 'expense', module: 'operations' },
       { id: 'total_expenses', description: 'Total Expenses', type: 'summary', module: 'operations' }
     ]
@@ -735,14 +734,12 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     
     // Manual entries
     const generalAdminExpenses = getManualEntryValue('general_admin_expenses', filters.period, startDate, endDate);
-    const provisionCreditLoss = getManualEntryValue('provision_credit_loss', filters.period, startDate, endDate);
     const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
     
     // Calculate total expenses with ALL new integrations
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
                          staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
-                         foodAllowanceCost + hseTrainingCost + provisionCreditLoss + 
-                         serviceAgreementCost + procurementCost;
+                         foodAllowanceCost + hseTrainingCost + serviceAgreementCost + procurementCost;
 
     // 3. INCOME, EXPENSES AND OTHER ITEMS
     const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
@@ -1102,7 +1099,6 @@ export const getPnLTable = async (req: Request, res: Response) => {
     const rentalEquipmentCost = getManualEntryValue('rental_equipment_cost', filters.period, startDate, endDate);
     const dsCost = getManualEntryValue('ds_cost', filters.period, startDate, endDate);
     const generalAdminExpenses = getManualEntryValue('general_admin_expenses', filters.period, startDate, endDate);
-    const provisionCreditLoss = getManualEntryValue('provision_credit_loss', filters.period, startDate, endDate);
     const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
     const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
     const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
@@ -1113,7 +1109,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
                         otherRevenue + provisionEndService + provisionImpairment;
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
                          staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
-                         foodAllowanceCost + hseTrainingCost + provisionCreditLoss + serviceAgreementCost;
+                         foodAllowanceCost + hseTrainingCost + serviceAgreementCost;
     const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
 
     // Build P&L table structure using VERTICAL_PNL_STRUCTURE with ALL integrations
@@ -1209,10 +1205,6 @@ export const getPnLTable = async (req: Request, res: Response) => {
               break;
             case 'hse_training_costs':
               amount = hseTrainingCost;
-              trend = 'down';
-              break;
-            case 'provision_credit_loss':
-              amount = provisionCreditLoss;
               trend = 'down';
               break;
             case 'service_agreement_cost':
