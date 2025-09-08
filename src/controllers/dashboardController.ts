@@ -43,69 +43,29 @@ function getDateRange(req: Request) {
   return { startDate, endDate };
 }
 
-// Helper function to get P&L data for a specific period
-async function getPnLDataForPeriod(startDate: Date, endDate: Date) {
-  try {
-    // Import the P&L controller functions
-    const { getVerticalPnLData } = await import('./pnlController');
-    
-    // Create a mock request object with the date range
-    const mockReq = {
-      query: {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0],
-        period: 'monthly'
-      }
-    } as any;
-    
-    // Create a mock response object to capture the data
-    let pnlData: any = null;
-    const mockRes = {
-      json: (data: any) => {
-        pnlData = data;
-      },
-      status: () => mockRes,
-      send: () => {}
-    } as any;
-    
-    // Call the vertical P&L data function
-    await getVerticalPnLData(mockReq, mockRes);
-    
-    console.log('Vertical P&L Data fetched for dashboard:', JSON.stringify(pnlData, null, 2));
-    
-    // Return the P&L data or default values if not available
-    return pnlData || {
-      revenue: { total: 0 },
-      expenses: { total: 0 },
-      ebitida: { total: 0 },
-      netProfit: 0
-    };
-  } catch (error) {
-    console.error('Error fetching vertical P&L data:', error);
-    // Return default values if P&L data is not available
-    return {
-      revenue: { total: 0 },
-      expenses: { total: 0 },
-      ebitida: { total: 0 },
-      netProfit: 0
-    };
-  }
-}
-
 // Enhanced Dashboard Summary with all module KPIs
 export const getDashboardSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const { startDate, endDate } = getDateRange(req);
     
-    // Financial KPIs - Get data from Vertical P&L system
-    const pnlData = await getPnLDataForPeriod(startDate, endDate);
-    console.log('Dashboard - Vertical P&L Data received:', JSON.stringify(pnlData, null, 2));
-    
-    // Extract values from vertical P&L structure to match vertical P&L table cards
-    const revenue = pnlData.revenue?.total || 0;  // From Revenue card in vertical P&L table
-    const expenses = pnlData.expenses?.total || 0;  // From Expenses card in vertical P&L table
-    const ebitda = pnlData.ebitida?.total || 0;  // From EBITDA card in vertical P&L table
-    const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;  // From manual entries Revenue From Sub Companies
+    // Financial KPIs - Calculate real data from actual modules
+    const [revenueData, expensesData] = await Promise.all([
+      // Calculate total revenue from invoices
+      Invoice.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate }, status: { $in: ['approved', 'sent', 'paid'] } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      // Calculate total expenses from all expense sources
+      Expense.aggregate([
+        { $match: { date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
+    ]);
+
+    const revenue = revenueData[0]?.total || 0;
+    const expenses = expensesData[0]?.total || 0;
+    const ebitda = revenue - expenses; // Simple EBITDA calculation
+    const subCompaniesRevenue = 0; // This should come from actual sub-companies data when available
     
     console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
 
