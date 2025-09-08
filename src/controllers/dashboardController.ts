@@ -17,6 +17,7 @@ import FuelLog from '../models/FuelLog';
 import GeneralLedgerEntry from '../models/GeneralLedgerEntry';
 import ChartOfAccounts from '../models/ChartOfAccounts';
 import Contract from '../models/Contract';
+import ReconciliationSession from '../models/ReconciliationSession';
 
 // Helper to get date range from query or default to current financial year
 function getDateRange(req: Request) {
@@ -181,12 +182,52 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
 
     // Action Center Alerts
     const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = await Promise.all([
-      Invoice.countDocuments({ dueDate: { $lt: new Date() }, status: 'pending' }),
-      PurchaseOrder.countDocuments({ status: 'pending_approval' }),
-      GeneralLedgerEntry.countDocuments({ status: 'pending_reconciliation' }),
-      Contract.countDocuments({ expiryDate: { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }),
+      // Overdue Invoices: Check for invoices with paymentStatus='overdue' or dueDate < now and status='pending'
+      Invoice.countDocuments({ 
+        $or: [
+          { paymentStatus: 'overdue' },
+          { dueDate: { $lt: new Date() }, status: 'pending' }
+        ]
+      }),
+      // Unapproved POs: Check PurchaseRequest with status='pending' or 'sent_to_procurement'
+      PurchaseRequest.countDocuments({ 
+        status: { $in: ['pending', 'sent_to_procurement'] }
+      }),
+      // Pending Reconciliations: Check ReconciliationSession with status='draft' or 'in-progress'
+      ReconciliationSession.countDocuments({ 
+        status: { $in: ['draft', 'in-progress'] }
+      }),
+      // Expiring Contracts: Check Client contractData endDate within 30 days
+      Client.countDocuments({ 
+        type: 'contract',
+        'contractData.endDate': { 
+          $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          $gte: new Date()
+        },
+        'contractData.status': { $in: ['active', 'pending'] } // Only active or pending contracts
+      }),
+      // Pending Requests: Check PurchaseRequest with status='pending'
       PurchaseRequest.countDocuments({ status: 'pending' })
     ]);
+
+    // Debug: Log expiring contracts query for troubleshooting
+    const debugExpiringContracts = await Client.find({ 
+      type: 'contract',
+      'contractData.endDate': { 
+        $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        $gte: new Date()
+      },
+      'contractData.status': { $in: ['active', 'pending'] }
+    }).select('name contractData.endDate contractData.status');
+    
+    console.log('Debug - Expiring contracts query result:', {
+      count: expiringContracts,
+      contracts: debugExpiringContracts.map(c => ({
+        name: c.name,
+        endDate: c.contractData?.endDate,
+        status: c.contractData?.status
+      }))
+    });
 
     res.json({
       financial: {
@@ -447,6 +488,52 @@ export const getCashFlowStatement = async (req: Request, res: Response): Promise
       outflows,
       netCashFlow,
       closingBalance
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Debug endpoint to check expiring contracts
+export const debugExpiringContracts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    
+    console.log('Debug - Date range:', {
+      now: now.toISOString(),
+      thirtyDaysFromNow: thirtyDaysFromNow.toISOString()
+    });
+
+    // Get all contract clients
+    const allContractClients = await Client.find({ type: 'contract' }).select('name contractData');
+    
+    // Get expiring contracts
+    const expiringContracts = await Client.find({ 
+      type: 'contract',
+      'contractData.endDate': { 
+        $lte: thirtyDaysFromNow,
+        $gte: now
+      },
+      'contractData.status': { $in: ['active', 'pending'] }
+    }).select('name contractData.endDate contractData.status');
+    
+    res.json({
+      debug: {
+        now: now.toISOString(),
+        thirtyDaysFromNow: thirtyDaysFromNow.toISOString(),
+        totalContractClients: allContractClients.length,
+        allContractClients: allContractClients.map(c => ({
+          name: c.name,
+          endDate: c.contractData?.endDate,
+          status: c.contractData?.status
+        })),
+        expiringContracts: expiringContracts.map(c => ({
+          name: c.name,
+          endDate: c.contractData?.endDate,
+          status: c.contractData?.status
+        }))
+      }
     });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
