@@ -55,9 +55,8 @@ export const createBusinessTrip = async (req: Request, res: Response) => {
       approvalChain,
       // Handle other fields
       requiresVisa: req.body.requiresVisa === 'true',
-      perDiemPaid: req.body.perDiemPaid === 'true',
-      perDiem: Number(req.body.perDiem) || 0,
-      totalPerDiem: Number(req.body.totalPerDiem) || 0,
+      costPaid: req.body.costPaid === 'true',
+      cost: Number(req.body.cost) || 0,
       // Handle additional fields
       financeApproval: req.body.financeApproval || 'pending',
       financeComments: req.body.financeComments || '',

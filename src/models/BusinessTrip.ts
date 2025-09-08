@@ -9,13 +9,13 @@ export interface IBusinessTrip extends Document {
   returnDate: Date;
   requiresVisa: boolean;
   seminarFile?: string;
-  perDiem: number;
+  cost: number;
   flightClass: string;
   hotelQuotes?: string[];
   flightQuotes?: string[];
   travelArrangedBy?: string;
-  perDiemPaid?: boolean;
-  perDiemPaymentDate?: Date;
+  costPaid?: boolean;
+  costPaymentDate?: Date;
   receipts?: string[];
   claimSheet?: string;
   financeApproval?: 'approved' | 'rejected' | 'pending';
@@ -57,13 +57,13 @@ const BusinessTripSchema = new Schema<IBusinessTrip>({
   returnDate: { type: Date, required: true },
   requiresVisa: { type: Boolean, default: false },
   seminarFile: { type: String },
-  perDiem: { type: Number, required: true },
+  cost: { type: Number, required: true },
   flightClass: { type: String, required: true },
   hotelQuotes: [{ type: String }],
   flightQuotes: [{ type: String }],
   travelArrangedBy: { type: String },
-  perDiemPaid: { type: Boolean, default: false },
-  perDiemPaymentDate: { type: Date },
+  costPaid: { type: Boolean, default: false },
+  costPaymentDate: { type: Date },
   receipts: [{ type: String }],
   claimSheet: { type: String },
   financeApproval: { type: String, enum: ['approved', 'rejected', 'pending'], default: 'pending' },
