@@ -103,6 +103,26 @@ import './models/Document';
 import './models/DocumentVersion';
 import './models/DocumentAudit';
 
+// Initialize manual entries on server start
+const initializeManualEntries = async () => {
+  try {
+    console.log('=== INITIALIZING MANUAL ENTRIES ON SERVER START ===');
+    const ManualPnLEntry = require('./models/ManualPnLEntry').default;
+    const count = await ManualPnLEntry.countDocuments({ isActive: true });
+    
+    if (count === 0) {
+      console.log('No manual entries found, initializing...');
+      const { initializeDefaultManualEntries } = require('./controllers/pnlController');
+      await initializeDefaultManualEntries();
+      console.log('Manual entries initialized successfully');
+    } else {
+      console.log(`Found ${count} existing manual entries`);
+    }
+  } catch (error) {
+    console.error('Error initializing manual entries on server start:', error);
+  }
+};
+
 dotenv.config();
 
 const app = express();
@@ -237,6 +257,21 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/pending-requests', pendingRequestsRoutes);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`MongoDB URI: ${process.env.MONGODB_URI ? 'Set' : 'Not set'}`);
+  console.log(`JWT Secret: ${process.env.JWT_SECRET ? 'Set' : 'Not set'}`);
+  console.log(`CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
+  console.log(`API Base URL: http://localhost:${PORT}/api`);
+  console.log(`Health Check: http://localhost:${PORT}/api/health`);
+  console.log(`P&L Test: http://localhost:${PORT}/api/pnl/test`);
+  console.log(`Manual Entries: http://localhost:${PORT}/api/pnl/manual-entries`);
+  console.log(`Manual Entries Health: http://localhost:${PORT}/api/pnl/health/manual-entries`);
+  console.log('=====================================');
+  
+  // Initialize manual entries after server starts
+  setTimeout(() => {
+    initializeManualEntries();
+  }, 2000); // Wait 2 seconds for MongoDB connection to be ready
 }); 

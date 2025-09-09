@@ -27,6 +27,31 @@ router.get('/test', (req, res) => {
   });
 });
 
+// Health check endpoint for manual entries
+router.get('/health/manual-entries', async (req, res) => {
+  try {
+    const ManualPnLEntry = require('../models/ManualPnLEntry').default;
+    const count = await ManualPnLEntry.countDocuments({ isActive: true });
+    const sample = await ManualPnLEntry.findOne({ isActive: true });
+    
+    res.json({
+      status: 'healthy',
+      manualEntriesCount: count,
+      hasData: count > 0,
+      sampleEntry: sample,
+      timestamp: new Date().toISOString(),
+      message: count > 0 ? 'Manual entries are available' : 'No manual entries found'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+      message: 'Manual entries health check failed'
+    });
+  }
+});
+
 // Manual PnL Entry Management (without auth for testing)
 router.get('/manual-entries', getManualPnLEntries);
 router.put('/manual-entries/:itemId', updateManualPnLEntry);

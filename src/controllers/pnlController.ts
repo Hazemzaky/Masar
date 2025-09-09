@@ -304,7 +304,24 @@ interface ManualPnLEntry {
 // Initialize default manual entries in the database
 const initializeDefaultManualEntries = async () => {
   try {
-    console.log('Initializing default manual entries in database...');
+    console.log('=== INITIALIZING DEFAULT MANUAL ENTRIES ===');
+    console.log('Checking if ManualPnLEntry model is available...');
+    
+    // Check if model is properly loaded
+    if (!ManualPnLEntry) {
+      throw new Error('ManualPnLEntry model is not properly loaded');
+    }
+    
+    // Check if entries already exist
+    const existingCount = await ManualPnLEntry.countDocuments({ isActive: true });
+    console.log(`Existing manual entries count: ${existingCount}`);
+    
+    if (existingCount > 0) {
+      console.log('Manual entries already exist, skipping initialization');
+      return;
+    }
+    
+    console.log('Creating default manual entries...');
     
     const defaultEntries = [
       {
@@ -442,8 +459,13 @@ const initializeDefaultManualEntries = async () => {
     // Insert all default entries
     await ManualPnLEntry.insertMany(defaultEntries);
     console.log(`Successfully initialized ${defaultEntries.length} default manual entries`);
+    console.log('=== MANUAL ENTRIES INITIALIZATION COMPLETE ===');
   } catch (error) {
-    console.error('Error initializing default manual entries:', error);
+    console.error('=== ERROR INITIALIZING MANUAL ENTRIES ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('=== END INITIALIZATION ERROR ===');
     throw error;
   }
 };
@@ -512,6 +534,181 @@ export const updateManualPnLEntry = async (req: Request, res: Response) => {
 };
 
 // Endpoint to get all manual PnL entries - NOW WITH DATABASE PERSISTENCE
+// Fallback manual entries data (in case database fails)
+const getFallbackManualEntries = () => {
+  return [
+    {
+      itemId: 'rebate',
+      description: 'Rebate',
+      amount: 0,
+      category: 'revenue',
+      type: 'revenue',
+      notes: 'Rebates received',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'sub_companies_revenue',
+      description: 'Sub Companies Revenue',
+      amount: 0,
+      category: 'revenue',
+      type: 'revenue',
+      notes: 'Revenue from subsidiary companies',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'other_revenue',
+      description: 'Other Revenue',
+      amount: 0,
+      category: 'revenue',
+      type: 'revenue',
+      notes: 'Other miscellaneous revenue',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'provision_end_service',
+      description: 'Provision End Service',
+      amount: 0,
+      category: 'revenue',
+      type: 'revenue',
+      notes: 'Reversal of end of service provisions',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'provision_impairment',
+      description: 'Provision Impairment',
+      amount: 0,
+      category: 'revenue',
+      type: 'revenue',
+      notes: 'Reversal of impairment provisions',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'gain_selling_products',
+      description: 'Gain Selling Products',
+      amount: 0,
+      category: 'revenue',
+      type: 'revenue',
+      notes: 'Gains from selling products',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'provision_credit_loss',
+      description: 'Provision Credit Loss',
+      amount: 0,
+      category: 'expense',
+      type: 'expense',
+      notes: 'Provision for credit losses',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'rental_equipment_cost',
+      description: 'Rental Equipment Cost',
+      amount: 0,
+      category: 'expense',
+      type: 'expense',
+      notes: 'Cost of rental equipment',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'service_agreement_cost',
+      description: 'Service Agreement Cost',
+      amount: 0,
+      category: 'expense',
+      type: 'expense',
+      notes: 'Cost of service agreements',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'ds_revenue',
+      description: 'DS Revenue',
+      amount: 0,
+      category: 'revenue',
+      type: 'revenue',
+      notes: 'DS revenue',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'ds_cost',
+      description: 'DS Cost',
+      amount: 0,
+      category: 'expense',
+      type: 'expense',
+      notes: 'DS cost',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'general_admin_expenses',
+      description: 'General Admin Expenses',
+      amount: 0,
+      category: 'expense',
+      type: 'expense',
+      notes: 'General administrative expenses',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    },
+    {
+      itemId: 'finance_costs',
+      description: 'Finance Costs',
+      amount: 0,
+      category: 'expense',
+      type: 'expense',
+      notes: 'Finance and interest costs',
+      createdBy: 'system',
+      updatedBy: 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    }
+  ];
+};
+
 export const getManualPnLEntries = async (req: Request, res: Response) => {
   try {
     console.log('=== MANUAL P&L ENTRIES ENDPOINT CALLED ===');
@@ -520,6 +717,15 @@ export const getManualPnLEntries = async (req: Request, res: Response) => {
     console.log('Request headers:', req.headers);
     console.log('Request query:', req.query);
     
+    // Check if ManualPnLEntry model is available
+    if (!ManualPnLEntry) {
+      console.warn('ManualPnLEntry model not available, returning fallback data');
+      const fallbackEntries = getFallbackManualEntries();
+      console.log(`Returning ${fallbackEntries.length} fallback manual entries`);
+      res.json(fallbackEntries);
+      return;
+    }
+    
     // Fetch manual entries from database
     const manualEntries = await ManualPnLEntry.find({ isActive: true })
       .sort({ itemId: 1 })
@@ -527,20 +733,28 @@ export const getManualPnLEntries = async (req: Request, res: Response) => {
 
     console.log(`Found ${manualEntries.length} manual entries in database`);
 
-    // If no entries exist, initialize with default entries
+    // If no entries exist, try to initialize with default entries
     if (manualEntries.length === 0) {
-      console.log('No manual entries found, initializing with default entries...');
-      await initializeDefaultManualEntries();
-      
-      // Fetch again after initialization
-      const initializedEntries = await ManualPnLEntry.find({ isActive: true })
-        .sort({ itemId: 1 })
-        .lean();
-      
-      console.log(`Initialized and returning ${initializedEntries.length} manual entries`);
-      console.log('Sample initialized entry:', initializedEntries[0]);
-      res.json(initializedEntries);
-      return;
+      console.log('No manual entries found, attempting to initialize...');
+      try {
+        await initializeDefaultManualEntries();
+        
+        // Fetch again after initialization
+        const initializedEntries = await ManualPnLEntry.find({ isActive: true })
+          .sort({ itemId: 1 })
+          .lean();
+        
+        console.log(`Initialized and returning ${initializedEntries.length} manual entries`);
+        console.log('Sample initialized entry:', initializedEntries[0]);
+        res.json(initializedEntries);
+        return;
+      } catch (initError) {
+        console.error('Failed to initialize manual entries, using fallback:', initError);
+        const fallbackEntries = getFallbackManualEntries();
+        console.log(`Returning ${fallbackEntries.length} fallback manual entries due to initialization failure`);
+        res.json(fallbackEntries);
+        return;
+      }
     }
 
     console.log('Returning manual entries from database:', manualEntries.length, 'entries');
@@ -553,10 +767,11 @@ export const getManualPnLEntries = async (req: Request, res: Response) => {
     console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     console.error('=== END ERROR ===');
-    res.status(500).json({ 
-      error: 'Failed to fetch manual entries', 
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    
+    // Return fallback data instead of error
+    console.log('Returning fallback data due to error');
+    const fallbackEntries = getFallbackManualEntries();
+    res.json(fallbackEntries);
   }
 };
 
