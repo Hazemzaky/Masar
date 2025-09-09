@@ -10,6 +10,7 @@ import Maintenance from '../models/Maintenance';
 import PurchaseRequest from '../models/PurchaseRequest';
 import PurchaseOrder from '../models/PurchaseOrder';
 import ProcurementInvoice from '../models/ProcurementInvoice';
+import Vendor from '../models/Vendor';
 import Client from '../models/Client';
 import BusinessTrip from '../models/BusinessTrip';
 import Incident from '../models/Incident';
@@ -76,9 +77,9 @@ interface MaintenanceData {
 }
 
 interface ProcurementData {
-  totalSpend: number;
-  openPOs: number;
-  cycleTime: number;
+  totalPurchaseRequests: number;
+  totalPurchaseOrders: number;
+  totalVendors: number;
 }
 
 interface SalesData {
@@ -418,6 +419,39 @@ async function getNearMissLogCount() {
   }
 }
 
+async function getTotalPurchaseRequestsCount() {
+  try {
+    // Count total purchase requests
+    const totalPurchaseRequests = await PurchaseRequest.countDocuments();
+    return totalPurchaseRequests || 0;
+  } catch (error) {
+    console.log('Total purchase requests count fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getTotalPurchaseOrdersCount() {
+  try {
+    // Count total purchase orders
+    const totalPurchaseOrders = await PurchaseOrder.countDocuments();
+    return totalPurchaseOrders || 0;
+  } catch (error) {
+    console.log('Total purchase orders count fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getTotalVendorsCount() {
+  try {
+    // Count total vendors
+    const totalVendors = await Vendor.countDocuments();
+    return totalVendors || 0;
+  } catch (error) {
+    console.log('Total vendors count fetch failed:', error);
+    return 0;
+  }
+}
+
 async function getSubCompaniesRevenue(startDate: Date, endDate: Date) {
   try {
     const { getManualPnLEntries } = await import('./pnlController');
@@ -462,7 +496,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       expiryDocuments,
       totalIncidents,
       overdueInspections,
-      nearMissLog
+      nearMissLog,
+      totalPurchaseRequests,
+      totalPurchaseOrders,
+      totalVendors
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -481,7 +518,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getExpiryDocumentsNext30Days(),
       getTotalIncidentsCount(),
       getOverdueInspectionsCount(),
-      getNearMissLogCount()
+      getNearMissLogCount(),
+      getTotalPurchaseRequestsCount(),
+      getTotalPurchaseOrdersCount(),
+      getTotalVendorsCount()
     ]);
 
     console.log('Dashboard operations stats received:', operationsStats);
@@ -548,7 +588,11 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         fleetUtilization: operationsStats.cancelledOrders
       },
       maintenance: { cost: maintenanceExpense, downtime: 0 },
-      procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
+      procurement: { 
+        totalPurchaseRequests: totalPurchaseRequests, 
+        totalPurchaseOrders: totalPurchaseOrders, 
+        totalVendors: totalVendors 
+      },
       sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
       admin: { 
         activeDocuments: activeDocuments, 
@@ -607,7 +651,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         fleetUtilization: 0
       },
       maintenance: { cost: 0, downtime: 0 },
-      procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
+      procurement: { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 },
       sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
       admin: { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 },
       hse: { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 }
@@ -653,7 +697,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       fleetUtilization: 0
     };
     const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
-    const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
+    const procurementData = pnlData.procurement || { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 };
     const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
     const adminData = pnlData.admin || { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 };
     const hseData = pnlData.hse || { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 };
@@ -783,10 +827,9 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         downtime: maintenanceData.downtime || 0
       },
       procurement: {
-        totalSpend: procurementData.totalSpend || 0,
-        topVendors: [],
-        openPOs: procurementData.openPOs || 0,
-        cycleTime: procurementData.cycleTime || 0
+        totalPurchaseRequests: procurementData.totalPurchaseRequests || 0,
+        totalPurchaseOrders: procurementData.totalPurchaseOrders || 0,
+        totalVendors: procurementData.totalVendors || 0
       },
       sales: {
         totalSales: salesData.totalSales || 0,
