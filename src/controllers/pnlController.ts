@@ -302,31 +302,44 @@ interface ManualPnLEntry {
 
 // Endpoint to update manual PnL entries
 // Note: This endpoint is now deprecated as all data comes from actual business transactions
-export const updateManualPnLEntry = async (req: Request, res: Response): Promise<void> => {
+export const updateManualPnLEntry = async (req: Request, res: Response) => {
   try {
     const { itemId } = req.params;
     const { amount, notes } = req.body;
 
+    console.log(`Manual entry update request:`, { itemId, amount, notes, body: req.body });
+
+    // Validate input
+    if (!itemId) {
+      res.status(400).json({ error: 'Item ID is required' });
+      return;
+    }
+
+    if (amount === undefined || amount === null) {
+      res.status(400).json({ error: 'Amount is required' });
+      return;
+    }
+
     // For now, we'll just return success since we're using predefined entries
     // In a real implementation, you would store these in a database
-    console.log(`Manual entry updated: ${itemId}, amount: ${amount}, notes: ${notes}`);
+    console.log(`Manual entry updated successfully: ${itemId}, amount: ${amount}, notes: ${notes}`);
 
     res.json({ 
       success: true,
       message: 'Manual entry updated successfully',
       itemId,
-      amount,
-      notes
+      amount: Number(amount),
+      notes: notes || ''
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in manual PnL entry endpoint:', error);
-    res.status(500).json({ error: 'Failed to process request' });
+    res.status(500).json({ error: 'Failed to process request', details: error?.message || 'Unknown error' });
   }
 };
 
 // Endpoint to get all manual PnL entries
 // Note: This endpoint is now deprecated as all data comes from actual business transactions
-export const getManualPnLEntries = async (req: Request, res: Response): Promise<void> => {
+export const getManualPnLEntries = async (req: Request, res: Response) => {
   try {
     // Return predefined manual entry items that can be configured
     // Ordered according to user's preferred list

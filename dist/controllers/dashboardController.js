@@ -57,6 +57,7 @@ const Client_1 = __importDefault(require("../models/Client"));
 const BusinessTrip_1 = __importDefault(require("../models/BusinessTrip"));
 const Training_1 = __importDefault(require("../models/Training"));
 const Payroll_1 = __importDefault(require("../models/Payroll"));
+const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const GeneralLedgerEntry_1 = __importDefault(require("../models/GeneralLedgerEntry"));
 const ReconciliationSession_1 = __importDefault(require("../models/ReconciliationSession"));
 const Leave_1 = __importDefault(require("../models/Leave"));
@@ -83,58 +84,222 @@ function getDateRange(req) {
     }
     return { startDate, endDate };
 }
-// Helper function to get PnL Vertical Table data for dashboard
-function getVerticalPnLDataForDashboard(startDate, endDate) {
+// Individual Data Source Services - Clean Architecture Approach
+// Each service handles one specific data source for better maintainability
+function getRevenueData(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const invoiceData = yield Invoice_1.default.aggregate([
+                { $match: { invoiceDate: { $gte: startDate, $lte: endDate }, status: 'paid' } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]);
+            return ((_a = invoiceData[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        }
+        catch (error) {
+            console.log('Revenue data fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getExpenseData(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const expenseData = yield Expense_1.default.aggregate([
+                { $match: { date: { $gte: startDate, $lte: endDate } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]);
+            return ((_a = expenseData[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        }
+        catch (error) {
+            console.log('Expense data fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getAssetRentalRevenue(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const assetData = yield Asset_1.default.aggregate([
+                { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+                { $group: { _id: null, bookValue: { $sum: '$bookValue' } } }
+            ]);
+            // Calculate rental revenue as 2% of book value
+            const bookValue = ((_a = assetData[0]) === null || _a === void 0 ? void 0 : _a.bookValue) || 0;
+            return bookValue * 0.02;
+        }
+        catch (error) {
+            console.log('Asset rental revenue fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getPayrollExpense(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const payrollData = yield Payroll_1.default.aggregate([
+                { $match: { runDate: { $gte: startDate, $lte: endDate } } },
+                { $group: { _id: null, total: { $sum: '$netPay' } } }
+            ]);
+            return ((_a = payrollData[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        }
+        catch (error) {
+            console.log('Payroll expense fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getOperationsExpense(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const fuelLogs = yield FuelLog_1.default.aggregate([
+                { $match: { dateTime: { $gte: startDate, $lte: endDate } } },
+                { $group: { _id: null, total: { $sum: '$totalCost' } } }
+            ]);
+            return ((_a = fuelLogs[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        }
+        catch (error) {
+            console.log('Operations expense fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getMaintenanceExpense(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const maintenanceData = yield Maintenance_1.default.aggregate([
+                { $match: { scheduledDate: { $gte: startDate, $lte: endDate } } },
+                { $group: { _id: null, total: { $sum: '$totalCost' } } }
+            ]);
+            return ((_a = maintenanceData[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        }
+        catch (error) {
+            console.log('Maintenance expense fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getProcurementExpense(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const procurementData = yield ProcurementInvoice_1.default.aggregate([
+                { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]);
+            return ((_a = procurementData[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        }
+        catch (error) {
+            console.log('Procurement expense fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getAdminExpense(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const expenseData = yield Expense_1.default.aggregate([
+                { $match: {
+                        category: { $in: ['admin', 'overhead', 'general'] },
+                        date: { $gte: startDate, $lte: endDate }
+                    } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]);
+            return ((_a = expenseData[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        }
+        catch (error) {
+            console.log('Admin expense fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getSubCompaniesRevenue(startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Import the P&L controller functions
-            const { getVerticalPnLData } = yield Promise.resolve().then(() => __importStar(require('./pnlController')));
-            // Create a mock request object with the date range
-            const mockReq = {
-                query: {
-                    start: startDate.toISOString().split('T')[0],
-                    end: endDate.toISOString().split('T')[0],
-                    period: 'monthly'
-                }
-            };
-            // Create a mock response object to capture the data
-            let pnlData = null;
+            const { getManualPnLEntries } = yield Promise.resolve().then(() => __importStar(require('./pnlController')));
+            const mockReq = { query: {} };
+            let manualEntries = [];
             const mockRes = {
-                json: (data) => {
-                    pnlData = data;
-                },
+                json: (data) => { manualEntries = data; },
                 status: () => mockRes,
                 send: () => { }
             };
-            // Call the vertical P&L data function
-            yield getVerticalPnLData(mockReq, mockRes);
-            console.log('Vertical P&L Data fetched for dashboard:', JSON.stringify(pnlData, null, 2));
-            // Return the P&L data or default values if not available
-            return pnlData || {
-                revenue: { total: 0 },
-                expenses: { total: 0 },
-                ebitida: { total: 0 },
-                subCompaniesRevenue: 0,
-                // Module-specific data
-                hr: { payroll: 0, headcount: 0, attrition: 0 },
-                assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
-                operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
-                maintenance: { cost: 0, downtime: 0 },
-                procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
-                sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
-                admin: { costs: 0, overheadPercentage: 0, pendingApprovals: 0 },
-                hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
-            };
+            yield getManualPnLEntries(mockReq, mockRes);
+            const subCompaniesEntry = manualEntries.find((entry) => entry.itemId === 'sub_companies_revenue');
+            return (subCompaniesEntry === null || subCompaniesEntry === void 0 ? void 0 : subCompaniesEntry.amount) || 0;
         }
         catch (error) {
-            console.error('Error fetching vertical P&L data for dashboard:', error);
-            // Return default values if P&L data is not available
+            console.log('Sub companies revenue fetch failed:', error);
+            return 0;
+        }
+    });
+}
+// Main aggregation function using individual data services
+function getVerticalPnLDataForDashboard(startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            console.log('🎯 Dashboard: Fetching data from individual services...', { startDate, endDate });
+            // Fetch data from each service in parallel
+            const [salesRevenue, totalExpenses, rentalRevenue, payrollExpense, operationsExpense, maintenanceExpense, procurementExpense, adminExpense, subCompaniesRevenue] = yield Promise.all([
+                getRevenueData(startDate, endDate),
+                getExpenseData(startDate, endDate),
+                getAssetRentalRevenue(startDate, endDate),
+                getPayrollExpense(startDate, endDate),
+                getOperationsExpense(startDate, endDate),
+                getMaintenanceExpense(startDate, endDate),
+                getProcurementExpense(startDate, endDate),
+                getAdminExpense(startDate, endDate),
+                getSubCompaniesRevenue(startDate, endDate)
+            ]);
+            // Calculate final totals
+            const totalRevenue = salesRevenue + rentalRevenue + subCompaniesRevenue;
+            const totalOperationalExpenses = payrollExpense + operationsExpense + maintenanceExpense +
+                procurementExpense + adminExpense;
+            const finalExpenses = totalExpenses + totalOperationalExpenses;
+            const pnlData = {
+                revenue: { total: totalRevenue },
+                expenses: { total: finalExpenses },
+                ebitda: { total: totalRevenue - finalExpenses },
+                subCompaniesRevenue: subCompaniesRevenue,
+                hr: { payroll: payrollExpense, headcount: 0, attrition: 0 },
+                assets: { bookValue: rentalRevenue / 0.02, utilization: 0, depreciation: 0, renewals: 0 },
+                operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: operationsExpense, fleetUtilization: 0 },
+                maintenance: { cost: maintenanceExpense, downtime: 0 },
+                procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
+                sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
+                admin: { costs: adminExpense, overheadPercentage: 0, pendingApprovals: 0 },
+                hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
+            };
+            console.log('✅ Dashboard: Individual services data aggregation completed:', {
+                totalRevenue,
+                finalExpenses,
+                breakdown: {
+                    salesRevenue,
+                    rentalRevenue,
+                    subCompaniesRevenue,
+                    payrollExpense,
+                    operationsExpense,
+                    maintenanceExpense,
+                    procurementExpense,
+                    adminExpense,
+                    totalExpenses
+                }
+            });
+            return pnlData;
+        }
+        catch (error) {
+            console.error('❌ Error in individual services aggregation:', error);
             return {
                 revenue: { total: 0 },
                 expenses: { total: 0 },
-                ebitida: { total: 0 },
+                ebitda: { total: 0 },
                 subCompaniesRevenue: 0,
-                // Module-specific data
                 hr: { payroll: 0, headcount: 0, attrition: 0 },
                 assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
                 operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
@@ -156,7 +321,7 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
         const pnlData = yield getVerticalPnLDataForDashboard(startDate, endDate);
         const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0;
         const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0;
-        const ebitda = ((_c = pnlData.ebitida) === null || _c === void 0 ? void 0 : _c.total) || 0;
+        const ebitda = ((_c = pnlData.ebitda) === null || _c === void 0 ? void 0 : _c.total) || 0;
         const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;
         console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
         // Extract module data from PnL vertical table
@@ -247,7 +412,7 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
                 expenses: expenses,
                 ebitda: ebitda,
                 subCompaniesRevenue: subCompaniesRevenue,
-                margin: revenue ? (subCompaniesRevenue / revenue * 100) : 0
+                margin: revenue ? ((revenue - expenses) / revenue * 100) : 0
             },
             hr: {
                 headcount: hrData.headcount || 0,
