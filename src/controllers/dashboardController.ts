@@ -5,6 +5,7 @@ import User from '../models/User';
 import Employee from '../models/Employee';
 import Asset from '../models/Asset';
 import AssetPass from '../models/AssetPass';
+import Project from '../models/Project';
 import Maintenance from '../models/Maintenance';
 import PurchaseRequest from '../models/PurchaseRequest';
 import PurchaseOrder from '../models/PurchaseOrder';
@@ -241,6 +242,36 @@ async function getAssetStats() {
   }
 }
 
+async function getOperationsStats() {
+  try {
+    // Get total callouts (projects with rentType: 'call_out')
+    const totalCallouts = await Project.countDocuments({
+      rentType: 'call_out'
+    });
+    
+    // Get total orders (all projects)
+    const totalOrders = await Project.countDocuments();
+    
+    // Get cancelled orders (projects with status: 'cancelled')
+    const cancelledOrders = await Project.countDocuments({
+      status: 'cancelled'
+    });
+    
+    return {
+      totalCallouts,
+      totalOrders,
+      cancelledOrders
+    };
+  } catch (error) {
+    console.log('Operations stats fetch failed:', error);
+    return {
+      totalCallouts: 0,
+      totalOrders: 0,
+      cancelledOrders: 0
+    };
+  }
+}
+
 async function getOperationsExpense(startDate: Date, endDate: Date) {
   try {
     const fuelLogs = await FuelLog.aggregate([
@@ -333,7 +364,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       adminExpense,
       subCompaniesRevenue,
       hrStats,
-      assetStats
+      assetStats,
+      operationsStats
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -345,7 +377,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getAdminExpense(startDate, endDate),
       getSubCompaniesRevenue(startDate, endDate),
       getHREmployeeStats(),
-      getAssetStats()
+      getAssetStats(),
+      getOperationsStats()
     ]);
 
     // Calculate final totals
@@ -370,7 +403,12 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         totalAssets: assetStats.totalAssets,
         renewalsRequired: assetStats.renewalsRequired
       },
-      operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: operationsExpense, fleetUtilization: 0 },
+      operations: {
+        deliveries: operationsStats.totalCallouts,
+        onTimePercentage: operationsStats.totalOrders,
+        deliveryCost: operationsExpense,
+        fleetUtilization: operationsStats.cancelledOrders
+      },
       maintenance: { cost: maintenanceExpense, downtime: 0 },
       procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
       sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
@@ -414,7 +452,12 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         totalAssets: 0, 
         renewalsRequired: 0
       },
-      operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
+      operations: { 
+        deliveries: 0, 
+        onTimePercentage: 0, 
+        deliveryCost: 0, 
+        fleetUtilization: 0
+      },
       maintenance: { cost: 0, downtime: 0 },
       procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
       sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
@@ -452,7 +495,13 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       totalAssets: 0, 
       renewalsRequired: 0
     };
-    const operationsData = pnlData.operations || { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
+    
+    const operationsData = pnlData.operations || { 
+      deliveries: 0, 
+      onTimePercentage: 0, 
+      deliveryCost: 0, 
+      fleetUtilization: 0
+    };
     const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
     const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
     const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };

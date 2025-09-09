@@ -5,6 +5,7 @@ import {
   getPayroll,
   updatePayroll,
   processPayroll,
+  deleteAllPayrolls,
   // New payroll employee management
   createPayrollEmployee,
   getPayrollEmployees,
@@ -58,5 +59,6 @@ router.get('/', getPayrolls);
 router.get('/:id', getPayroll);
 router.put('/:id', updatePayroll);
 router.post('/:id/process', processPayroll);
+router.delete('/all', deleteAllPayrolls);
 
 export default router; 

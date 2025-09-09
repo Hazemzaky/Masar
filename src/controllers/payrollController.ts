@@ -330,6 +330,30 @@ export const processPayroll = async (req: Request, res: Response): Promise<void>
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
+};
+
+export const deleteAllPayrolls = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Delete all legacy payroll records
+    const legacyResult = await Payroll.deleteMany({});
+    
+    // Delete all payroll employees
+    const employeeResult = await PayrollEmployee.deleteMany({});
+    
+    // Delete all payroll history
+    const historyResult = await PayrollHistory.deleteMany({});
+    
+    res.json({ 
+      message: 'All payroll data deleted successfully',
+      deletedCounts: {
+        legacyPayrolls: legacyResult.deletedCount,
+        employees: employeeResult.deletedCount,
+        history: historyResult.deletedCount
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 }; 
 
 // New function to get available employees (not assigned to any project)
