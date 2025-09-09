@@ -85,9 +85,9 @@ interface SalesData {
 }
 
 interface AdminData {
-  costs: number;
-  overheadPercentage: number;
-  pendingApprovals: number;
+  activeDocuments: number;
+  openLegalCases: number;
+  expiryDocuments: number;
 }
 
 interface HSEData {
@@ -329,6 +329,54 @@ async function getAdminExpense(startDate: Date, endDate: Date) {
   }
 }
 
+async function getActiveDocumentsCount() {
+  try {
+    // Count active government documents
+    const activeDocuments = await GovernmentDocument.countDocuments({ 
+      status: { $in: ['active', 'valid', 'current'] } 
+    });
+    return activeDocuments;
+  } catch (error) {
+    console.log('Active documents count fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getOpenLegalCasesCount() {
+  try {
+    // Count open legal cases
+    const openLegalCases = await LegalCase.countDocuments({ 
+      status: { $in: ['open', 'pending', 'in_progress'] } 
+    });
+    return openLegalCases;
+  } catch (error) {
+    console.log('Open legal cases count fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getExpiryDocumentsNext30Days() {
+  try {
+    const currentDate = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    
+    // Count government documents expiring in next 30 days
+    const expiringDocuments = await GovernmentDocument.countDocuments({
+      expiryDate: { 
+        $gte: currentDate, 
+        $lte: thirtyDaysFromNow 
+      },
+      status: { $in: ['active', 'valid', 'current'] }
+    });
+    
+    return expiringDocuments;
+  } catch (error) {
+    console.log('Expiry documents count fetch failed:', error);
+    return 0;
+  }
+}
+
 async function getSubCompaniesRevenue(startDate: Date, endDate: Date) {
   try {
     const { getManualPnLEntries } = await import('./pnlController');
@@ -367,7 +415,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       subCompaniesRevenue,
       hrStats,
       assetStats,
-      operationsStats
+      operationsStats,
+      activeDocuments,
+      openLegalCases,
+      expiryDocuments
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -380,7 +431,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getSubCompaniesRevenue(startDate, endDate),
       getHREmployeeStats(),
       getAssetStats(),
-      getOperationsStats()
+      getOperationsStats(),
+      getActiveDocumentsCount(),
+      getOpenLegalCasesCount(),
+      getExpiryDocumentsNext30Days()
     ]);
 
     console.log('Dashboard operations stats received:', operationsStats);
@@ -391,10 +445,43 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
                                     procurementExpense + adminExpense;
     const finalExpenses = totalExpenses + totalOperationalExpenses;
 
+    // Calculate depreciation for the period
+    const depreciationData = await Asset.aggregate([
+      {
+        $match: {
+          purchaseDate: { $lte: endDate }
+        }
+      },
+      {
+        $project: {
+          monthlyDepreciation: { $divide: ['$purchaseValue', { $multiply: ['$usefulLifeMonths', 1] }] },
+          monthsInPeriod: {
+            $cond: {
+              if: { $gte: ['$purchaseDate', startDate] },
+              then: { $divide: [{ $subtract: [endDate, '$purchaseDate'] }, 1000 * 60 * 60 * 24 * 30] },
+              else: { $divide: [{ $subtract: [endDate, startDate] }, 1000 * 60 * 60 * 24 * 30] }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          depreciation: { $sum: { $multiply: ['$monthlyDepreciation', '$monthsInPeriod'] } }
+        }
+      }
+    ]);
+
+    const depreciation = depreciationData[0]?.depreciation || 0;
+    const ebitda = totalRevenue - finalExpenses;
+    const netProfit = ebitda - depreciation;
+
     const pnlData = {
       revenue: { total: totalRevenue },
       expenses: { total: finalExpenses },
-      ebitda: { total: totalRevenue - finalExpenses },
+      ebitda: { total: ebitda },
+      netProfit: { total: netProfit },
+      depreciation: { total: depreciation },
       subCompaniesRevenue: subCompaniesRevenue,
       hr: { 
         payroll: payrollExpense, 
@@ -416,7 +503,11 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       maintenance: { cost: maintenanceExpense, downtime: 0 },
       procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
       sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
-      admin: { costs: adminExpense, overheadPercentage: 0, pendingApprovals: 0 },
+      admin: { 
+        activeDocuments: activeDocuments, 
+        openLegalCases: openLegalCases, 
+        expiryDocuments: expiryDocuments 
+      },
       hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
     };
 
@@ -444,6 +535,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       revenue: { total: 0 },
       expenses: { total: 0 },
       ebitda: { total: 0 },
+      netProfit: { total: 0 },
+      depreciation: { total: 0 },
       subCompaniesRevenue: 0,
       hr: { 
         payroll: 0, 
@@ -465,7 +558,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       maintenance: { cost: 0, downtime: 0 },
       procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
       sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
-      admin: { costs: 0, overheadPercentage: 0, pendingApprovals: 0 },
+      admin: { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 },
       hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
     };
   }
@@ -482,6 +575,8 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const revenue = pnlData.revenue?.total || 0;
     const expenses = pnlData.expenses?.total || 0;
     const ebitda = pnlData.ebitda?.total || 0;
+    const netProfit = (pnlData as any).netProfit?.total || 0;
+    const depreciation = (pnlData as any).depreciation?.total || 0;
     const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;
     
     console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
@@ -509,7 +604,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
     const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
     const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
-    const adminData = pnlData.admin || { costs: 0, overheadPercentage: 0, pendingApprovals: 0 };
+    const adminData = pnlData.admin || { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 };
     const hseData = pnlData.hse || { incidents: 0, trainingCompliance: 0, openActions: 0 };
 
     // Action Center Alerts
@@ -609,6 +704,8 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         revenue: revenue,
         expenses: expenses,
         ebitda: ebitda,
+        netProfit: netProfit,
+        depreciation: depreciation,
         subCompaniesRevenue: subCompaniesRevenue,
         margin: revenue ? ((revenue - expenses) / revenue * 100) : 0
       },
@@ -647,9 +744,9 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         salesMargin: salesData.salesMargin || 0
       },
       admin: {
-        costs: adminData.costs || 0,
-        overheadPercentage: adminData.overheadPercentage || 0,
-        pendingApprovals: adminData.pendingApprovals || 0
+        activeDocuments: adminData.activeDocuments || 0,
+        openLegalCases: adminData.openLegalCases || 0,
+        expiryDocuments: adminData.expiryDocuments || 0
       },
       hse: {
         incidents: hseData.incidents || 0,
