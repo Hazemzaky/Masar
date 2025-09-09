@@ -7,6 +7,9 @@ import {
   getPnLAnalysis,
   updateManualPnLEntry,
   getManualPnLEntries,
+  createManualPnLEntry,
+  deleteManualPnLEntry,
+  getManualPnLEntry,
   updatePnLRealTime,
   receiveDashboardData,
   getVerticalPnLData,
@@ -54,7 +57,10 @@ router.get('/health/manual-entries', async (req, res) => {
 
 // Manual PnL Entry Management (without auth for testing)
 router.get('/manual-entries', getManualPnLEntries);
+router.get('/manual-entries/:itemId', getManualPnLEntry);
+router.post('/manual-entries', createManualPnLEntry);
 router.put('/manual-entries/:itemId', updateManualPnLEntry);
+router.delete('/manual-entries/:itemId', deleteManualPnLEntry);
 
 // Apply authentication middleware to all other P&L routes
 router.use(authenticate);

@@ -533,6 +533,121 @@ export const updateManualPnLEntry = async (req: Request, res: Response) => {
   }
 };
 
+// Create new manual entry
+export const createManualPnLEntry = async (req: Request, res: Response) => {
+  try {
+    const { itemId, description, amount, category, type, notes, period, startDate, endDate } = req.body;
+
+    console.log(`Creating new manual entry:`, { itemId, description, amount, category, type });
+
+    // Validate input
+    if (!itemId || !description || amount === undefined) {
+      res.status(400).json({ error: 'Item ID, description, and amount are required' });
+      return;
+    }
+
+    // Check if entry already exists
+    const existingEntry = await ManualPnLEntry.findOne({ itemId });
+    if (existingEntry) {
+      res.status(409).json({ error: 'Manual entry with this Item ID already exists' });
+      return;
+    }
+
+    // Create new entry
+    const newEntry = new ManualPnLEntry({
+      itemId,
+      description,
+      amount: Number(amount),
+      category: category || 'revenue',
+      type: type || 'revenue',
+      notes: notes || '',
+      period: period || 'monthly',
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      createdBy: (req as any).user?.id || 'system',
+      updatedBy: (req as any).user?.id || 'system',
+      isActive: true
+    });
+
+    await newEntry.save();
+
+    console.log(`Manual entry created successfully: ${itemId}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Manual entry created successfully',
+      data: newEntry
+    });
+  } catch (error: any) {
+    console.error('Error creating manual entry:', error);
+    res.status(500).json({ 
+      error: 'Failed to create manual entry', 
+      details: error?.message || 'Unknown error'
+    });
+  }
+};
+
+// Delete manual entry
+export const deleteManualPnLEntry = async (req: Request, res: Response) => {
+  try {
+    const { itemId } = req.params;
+
+    console.log(`Deleting manual entry: ${itemId}`);
+
+    // Find and delete the manual entry
+    const manualEntry = await ManualPnLEntry.findOne({ itemId });
+    
+    if (!manualEntry) {
+      res.status(404).json({ error: 'Manual entry not found' });
+      return;
+    }
+
+    // Soft delete by setting isActive to false
+    manualEntry.isActive = false;
+    manualEntry.updatedBy = (req as any).user?.id || 'system';
+    manualEntry.updatedAt = new Date();
+
+    await manualEntry.save();
+
+    console.log(`Manual entry deleted successfully: ${itemId}`);
+
+    res.json({
+      success: true,
+      message: 'Manual entry deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Error deleting manual entry:', error);
+    res.status(500).json({ 
+      error: 'Failed to delete manual entry', 
+      details: error?.message || 'Unknown error'
+    });
+  }
+};
+
+// Get single manual entry
+export const getManualPnLEntry = async (req: Request, res: Response) => {
+  try {
+    const { itemId } = req.params;
+
+    console.log(`Getting manual entry: ${itemId}`);
+
+    const manualEntry = await ManualPnLEntry.findOne({ itemId, isActive: true });
+    
+    if (!manualEntry) {
+      res.status(404).json({ error: 'Manual entry not found' });
+      return;
+    }
+
+    res.json(manualEntry);
+  } catch (error: any) {
+    console.error('Error getting manual entry:', error);
+    res.status(500).json({ 
+      error: 'Failed to get manual entry', 
+      details: error?.message || 'Unknown error'
+    });
+  }
+};
+
 // Endpoint to get all manual PnL entries - NOW WITH DATABASE PERSISTENCE
 // Fallback manual entries data (in case database fails)
 const getFallbackManualEntries = () => {
