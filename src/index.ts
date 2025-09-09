@@ -62,6 +62,7 @@ import goodsReceiptRoutes from './routes/goodsReceiptRoutes';
 import purchaseOrderRoutes from './routes/purchaseOrderRoutes';
 import businessTripRoutes from './routes/businessTripRoutes';
 import pnlRoutes from './routes/pnlRoutes';
+import manualEntriesRoutes from './routes/manualEntriesRoutes';
 import reconciliationRoutes from './routes/reconciliationRoutes';
 import contractRoutes from './routes/contractRoutes';
 import glRoutes from './routes/glRoutes';
@@ -107,17 +108,9 @@ import './models/DocumentAudit';
 const initializeManualEntries = async () => {
   try {
     console.log('=== INITIALIZING MANUAL ENTRIES ON SERVER START ===');
-    const ManualPnLEntry = require('./models/ManualPnLEntry').default;
-    const count = await ManualPnLEntry.countDocuments({ isActive: true });
-    
-    if (count === 0) {
-      console.log('No manual entries found, initializing...');
-      const { initializeDefaultManualEntries } = require('./controllers/pnlController');
-      await initializeDefaultManualEntries();
-      console.log('Manual entries initialized successfully');
-    } else {
-      console.log(`Found ${count} existing manual entries`);
-    }
+    const { initializeDefaultEntries } = require('./controllers/manualEntriesController');
+    await initializeDefaultEntries();
+    console.log('Manual entries initialized successfully');
   } catch (error) {
     console.error('Error initializing manual entries on server start:', error);
   }
@@ -180,6 +173,7 @@ app.get('/health', (req: Request, res: Response) => {
       '/api/leave',
       '/api/reimbursements',
       '/api/pnl',
+      '/api/manual-entries',
       '/api/gl',
       '/api/chart-of-accounts',
       '/api/attendance'
@@ -246,6 +240,7 @@ app.use('/api/goods-receipts', goodsReceiptRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/business-trips', businessTripRoutes);
 app.use('/api/pnl', pnlRoutes);
+app.use('/api/manual-entries', manualEntriesRoutes);
 app.use('/api/reconciliation', reconciliationRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/gl', glRoutes);
