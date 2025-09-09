@@ -329,79 +329,8 @@ export const updateManualPnLEntry = async (req: Request, res: Response): Promise
 export const getManualPnLEntries = async (req: Request, res: Response): Promise<void> => {
   try {
     // Return predefined manual entry items that can be configured
+    // Ordered according to user's preferred list
     const manualEntries = [
-      {
-        id: 'gain_selling_products',
-        itemId: 'gain_selling_products',
-        description: 'Gain Selling Products',
-        amount: 0,
-        category: 'other_income',
-        type: 'revenue',
-        notes: 'Gains from selling products',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'provision_credit_loss',
-        itemId: 'provision_credit_loss',
-        description: 'Provision Credit Loss',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Provision for credit losses',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'provision_impairment',
-        itemId: 'provision_impairment',
-        description: 'Provision Impairment',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Reversal of impairment provisions',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'provision_end_service',
-        itemId: 'provision_end_service',
-        description: 'Provision End Service',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Reversal of end of service provisions',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'rental_equipment_cost',
-        itemId: 'rental_equipment_cost',
-        description: 'Cost of Rental Equipment',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Costs associated with rental equipment',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'service_agreement_cost',
-        itemId: 'service_agreement_cost',
-        description: 'Cost of Service Agreement',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Costs for service agreements',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
       {
         id: 'rebate',
         itemId: 'rebate',
@@ -439,6 +368,30 @@ export const getManualPnLEntries = async (req: Request, res: Response): Promise<
         updatedAt: new Date()
       },
       {
+        id: 'provision_end_service',
+        itemId: 'provision_end_service',
+        description: 'Provision End Service',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Reversal of end of service provisions',
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'provision_impairment',
+        itemId: 'provision_impairment',
+        description: 'Provision Impairment',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Reversal of impairment provisions',
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
         id: 'ds_revenue',
         itemId: 'ds_revenue',
         description: 'DS Revenue',
@@ -446,6 +399,18 @@ export const getManualPnLEntries = async (req: Request, res: Response): Promise<
         category: 'revenue',
         type: 'revenue',
         notes: 'Direct sales revenue',
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'rental_equipment_cost',
+        itemId: 'rental_equipment_cost',
+        description: 'Rental Equipment Cost',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Costs associated with rental equipment',
         createdBy: 'system',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -470,6 +435,42 @@ export const getManualPnLEntries = async (req: Request, res: Response): Promise<
         category: 'expenses',
         type: 'expense',
         notes: 'General administrative expenses',
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'provision_credit_loss',
+        itemId: 'provision_credit_loss',
+        description: 'Provision Credit Loss',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Provision for credit losses',
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'service_agreement_cost',
+        itemId: 'service_agreement_cost',
+        description: 'Service Agreement Cost',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Costs for service agreements',
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'gain_selling_products',
+        itemId: 'gain_selling_products',
+        description: 'Gain Selling Products',
+        amount: 0,
+        category: 'other_income',
+        type: 'revenue',
+        notes: 'Gains from selling products',
         createdBy: 'system',
         createdAt: new Date(),
         updatedAt: new Date()
