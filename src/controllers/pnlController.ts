@@ -25,6 +25,7 @@ import Payroll from '../models/Payroll';
 import PurchaseOrder from '../models/PurchaseOrder';
 import PurchaseRequest from '../models/PurchaseRequest';
 import Incident from '../models/Incident';
+import ManualPnLEntry from '../models/ManualPnLEntry';
 
 // In-memory store for Cost Analysis Dashboard data
 interface DashboardData {
@@ -300,14 +301,161 @@ interface ManualPnLEntry {
 // Note: Manual entries are now handled through the database
 // All financial data comes from actual business transactions
 
-// Endpoint to update manual PnL entries
-// Note: This endpoint is now deprecated as all data comes from actual business transactions
+// Initialize default manual entries in the database
+const initializeDefaultManualEntries = async () => {
+  try {
+    console.log('Initializing default manual entries in database...');
+    
+    const defaultEntries = [
+      {
+        itemId: 'rebate',
+        description: 'Rebate',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Rebates received',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'sub_companies_revenue',
+        description: 'Sub Companies Revenue',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Revenue from subsidiary companies',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'other_revenue',
+        description: 'Other Revenue',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Other miscellaneous revenue',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'provision_end_service',
+        description: 'Provision End Service',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Reversal of end of service provisions',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'provision_impairment',
+        description: 'Provision Impairment',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Reversal of impairment provisions',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'ds_revenue',
+        description: 'DS Revenue',
+        amount: 0,
+        category: 'revenue',
+        type: 'revenue',
+        notes: 'Direct sales revenue',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'rental_equipment_cost',
+        description: 'Rental Equipment Cost',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Costs associated with rental equipment',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'ds_cost',
+        description: 'DS Cost',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Direct sales costs',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'general_admin_expenses',
+        description: 'General Admin Expenses',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'General administrative expenses',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'provision_credit_loss',
+        description: 'Provision Credit Loss',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Provision for credit losses',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'service_agreement_cost',
+        description: 'Service Agreement Cost',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Costs for service agreements',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'gain_selling_products',
+        description: 'Gain Selling Products',
+        amount: 0,
+        category: 'other_income',
+        type: 'revenue',
+        notes: 'Gains from selling products',
+        createdBy: 'system',
+        updatedBy: 'system'
+      },
+      {
+        itemId: 'finance_costs',
+        description: 'Finance Costs',
+        amount: 0,
+        category: 'expenses',
+        type: 'expense',
+        notes: 'Financial costs and interest',
+        createdBy: 'system',
+        updatedBy: 'system'
+      }
+    ];
+
+    // Insert all default entries
+    await ManualPnLEntry.insertMany(defaultEntries);
+    console.log(`Successfully initialized ${defaultEntries.length} default manual entries`);
+  } catch (error) {
+    console.error('Error initializing default manual entries:', error);
+    throw error;
+  }
+};
+
+// Endpoint to update manual PnL entries - NOW WITH DATABASE PERSISTENCE
 export const updateManualPnLEntry = async (req: Request, res: Response) => {
   try {
     const { itemId } = req.params;
     const { amount, notes } = req.body;
+    const updatedBy = (req as any).user?.id || 'system'; // Get user ID from auth middleware
 
-    console.log(`Manual entry update request:`, { itemId, amount, notes, body: req.body });
+    console.log(`Manual entry update request:`, { itemId, amount, notes, updatedBy });
 
     // Validate input
     if (!itemId) {
@@ -320,201 +468,87 @@ export const updateManualPnLEntry = async (req: Request, res: Response) => {
       return;
     }
 
-    // For now, we'll just return success since we're using predefined entries
-    // In a real implementation, you would store these in a database
-    console.log(`Manual entry updated successfully: ${itemId}, amount: ${amount}, notes: ${notes}`);
+    // Validate amount is a number
+    const numericAmount = Number(amount);
+    if (isNaN(numericAmount)) {
+      res.status(400).json({ error: 'Amount must be a valid number' });
+      return;
+    }
+
+    // Find and update the manual entry in the database
+    const manualEntry = await ManualPnLEntry.findOne({ itemId, isActive: true });
+    
+    if (!manualEntry) {
+      res.status(404).json({ error: 'Manual entry not found' });
+      return;
+    }
+
+    // Update the entry
+    manualEntry.amount = numericAmount;
+    if (notes !== undefined) {
+      manualEntry.notes = notes;
+    }
+    manualEntry.updatedBy = updatedBy;
+    
+    await manualEntry.save();
+
+    console.log(`Manual entry updated successfully in database: ${itemId}, amount: ${numericAmount}, notes: ${notes}`);
 
     res.json({ 
       success: true,
       message: 'Manual entry updated successfully',
       itemId,
-      amount: Number(amount),
-      notes: notes || ''
+      amount: numericAmount,
+      notes: notes || manualEntry.notes,
+      updatedAt: manualEntry.updatedAt
     });
   } catch (error: any) {
-    console.error('Error in manual PnL entry endpoint:', error);
-    res.status(500).json({ error: 'Failed to process request', details: error?.message || 'Unknown error' });
+    console.error('Error updating manual PnL entry:', error);
+    res.status(500).json({ 
+      error: 'Failed to update manual entry', 
+      details: error?.message || 'Unknown error' 
+    });
   }
 };
 
-// Endpoint to get all manual PnL entries
-// Note: This endpoint is now deprecated as all data comes from actual business transactions
+// Endpoint to get all manual PnL entries - NOW WITH DATABASE PERSISTENCE
 export const getManualPnLEntries = async (req: Request, res: Response) => {
   try {
-    console.log('Manual PnL entries endpoint called - UPDATED VERSION');
+    console.log('Manual PnL entries endpoint called - DATABASE VERSION');
     console.log('Request URL:', req.url);
     console.log('Request method:', req.method);
-    console.log('Request headers:', req.headers);
     
-    // Return predefined manual entry items that can be configured
-    // Ordered according to user's preferred list
-    const manualEntries = [
-      {
-        id: 'rebate',
-        itemId: 'rebate',
-        description: 'Rebate',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Rebates received',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'sub_companies_revenue',
-        itemId: 'sub_companies_revenue',
-        description: 'Sub Companies Revenue',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Revenue from subsidiary companies',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'other_revenue',
-        itemId: 'other_revenue',
-        description: 'Other Revenue',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Other miscellaneous revenue',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'provision_end_service',
-        itemId: 'provision_end_service',
-        description: 'Provision End Service',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Reversal of end of service provisions',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'provision_impairment',
-        itemId: 'provision_impairment',
-        description: 'Provision Impairment',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Reversal of impairment provisions',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'ds_revenue',
-        itemId: 'ds_revenue',
-        description: 'DS Revenue',
-        amount: 0,
-        category: 'revenue',
-        type: 'revenue',
-        notes: 'Direct sales revenue',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'rental_equipment_cost',
-        itemId: 'rental_equipment_cost',
-        description: 'Rental Equipment Cost',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Costs associated with rental equipment',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'ds_cost',
-        itemId: 'ds_cost',
-        description: 'DS Cost',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Direct sales costs',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'general_admin_expenses',
-        itemId: 'general_admin_expenses',
-        description: 'General Admin Expenses',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'General administrative expenses',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'provision_credit_loss',
-        itemId: 'provision_credit_loss',
-        description: 'Provision Credit Loss',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Provision for credit losses',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'service_agreement_cost',
-        itemId: 'service_agreement_cost',
-        description: 'Service Agreement Cost',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Costs for service agreements',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'gain_selling_products',
-        itemId: 'gain_selling_products',
-        description: 'Gain Selling Products',
-        amount: 0,
-        category: 'other_income',
-        type: 'revenue',
-        notes: 'Gains from selling products',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'finance_costs',
-        itemId: 'finance_costs',
-        description: 'Finance Costs',
-        amount: 0,
-        category: 'expenses',
-        type: 'expense',
-        notes: 'Financial costs and interest',
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
+    // Fetch manual entries from database
+    const manualEntries = await ManualPnLEntry.find({ isActive: true })
+      .sort({ itemId: 1 })
+      .lean(); // Use lean() for better performance
 
-    console.log('Returning manual entries:', manualEntries.length, 'entries');
+    console.log(`Found ${manualEntries.length} manual entries in database`);
+
+    // If no entries exist, initialize with default entries
+    if (manualEntries.length === 0) {
+      console.log('No manual entries found, initializing with default entries...');
+      await initializeDefaultManualEntries();
+      
+      // Fetch again after initialization
+      const initializedEntries = await ManualPnLEntry.find({ isActive: true })
+        .sort({ itemId: 1 })
+        .lean();
+      
+      console.log(`Initialized and returning ${initializedEntries.length} manual entries`);
+      res.json(initializedEntries);
+      return;
+    }
+
+    console.log('Returning manual entries from database:', manualEntries.length, 'entries');
     console.log('First entry sample:', manualEntries[0]);
-    console.log('Response headers being set...');
     res.json(manualEntries);
-    console.log('Response sent successfully');
   } catch (error) {
-    console.error('Error in manual PnL entries endpoint:', error);
-    res.status(500).json({ error: 'Failed to process request' });
+    console.error('Error fetching manual PnL entries from database:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch manual entries', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
@@ -606,12 +640,19 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     const rentalEquipmentRevenue = revenueData[1][0]?.rentalEquipmentRevenue || 0;
     const dsRevenue = revenueData[2][0]?.dsRevenue || 0;
     
-    // Real data from database - no more hardcoded values
-    const rebate = 0; // This should come from actual rebate data when available
-    const subCompaniesRevenue = 0; // This should come from actual sub-companies data when available
-    const otherRevenue = 0; // This should come from actual other revenue sources when available
-    const provisionEndService = 0; // This should come from actual provisions when available
-    const provisionImpairment = 0; // This should come from actual impairment data when available
+    // Get manual entries from database
+    const manualEntries = await ManualPnLEntry.find({ isActive: true }).lean();
+    const manualEntriesMap = manualEntries.reduce((acc, entry) => {
+      acc[entry.itemId] = entry.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Use actual manual entry values from database
+    const rebate = manualEntriesMap['rebate'] || 0;
+    const subCompaniesRevenue = manualEntriesMap['sub_companies_revenue'] || 0;
+    const otherRevenue = manualEntriesMap['other_revenue'] || 0;
+    const provisionEndService = manualEntriesMap['provision_end_service'] || 0;
+    const provisionImpairment = manualEntriesMap['provision_impairment'] || 0;
     
     // Calculate net operating revenue and total revenue
     const netOperatingRevenue = operatingRevenues + rebate;
@@ -882,19 +923,19 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     ]);
     const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
     
-    // Real data from database - no more hardcoded values
-    const serviceAgreementCost = 0; // This should come from actual service agreement costs when available
+    // Use manual entries from database for remaining values
+    const serviceAgreementCost = manualEntriesMap['service_agreement_cost'] || 0;
     
     // Calculate total expenses with ALL new integrations
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
                          staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
                          foodAllowanceCost + hseTrainingCost + serviceAgreementCost + procurementCost;
 
-    // 3. INCOME, EXPENSES AND OTHER ITEMS - Real data from database
-    const gainSellingProducts = 0; // This should come from actual gains when available
+    // 3. INCOME, EXPENSES AND OTHER ITEMS - Use manual entries from database
+    const gainSellingProducts = manualEntriesMap['gain_selling_products'] || 0;
 
-    // 4. EBITIDA - Real data from database
-    const financeCosts = 0; // This should come from actual finance costs when available
+    // 4. EBITIDA - Use manual entries from database
+    const financeCosts = manualEntriesMap['finance_costs'] || 0;
     
     // Calculate depreciation with amortization
     const depreciationData = await Asset.aggregate([

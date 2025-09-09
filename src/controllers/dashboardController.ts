@@ -257,6 +257,8 @@ async function getOperationsStats() {
       status: 'cancelled'
     });
     
+    console.log('Operations stats:', { totalCallouts, totalOrders, cancelledOrders });
+    
     return {
       totalCallouts,
       totalOrders,
@@ -380,6 +382,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getAssetStats(),
       getOperationsStats()
     ]);
+
+    console.log('Dashboard operations stats received:', operationsStats);
 
     // Calculate final totals
     const totalRevenue = salesRevenue + rentalRevenue + subCompaniesRevenue;
