@@ -4,6 +4,7 @@ import Invoice from '../models/Invoice';
 import User from '../models/User';
 import Employee from '../models/Employee';
 import Asset from '../models/Asset';
+import AssetPass from '../models/AssetPass';
 import Maintenance from '../models/Maintenance';
 import PurchaseRequest from '../models/PurchaseRequest';
 import PurchaseOrder from '../models/PurchaseOrder';
@@ -47,8 +48,6 @@ function getDateRange(req: Request) {
 interface HRData {
   payroll: number;
   headcount: number;
-  attrition: number;
-  attritionRate: number;
   activeEmployees: number;
   onLeaveEmployees: number;
 }
@@ -169,33 +168,75 @@ async function getHREmployeeStats() {
       status: 'on-leave' 
     });
     
-    // Get resigned employees in the last 30 days for attrition calculation
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const recentResignations = await Employee.countDocuments({
-      status: 'resigned',
-      terminationDate: { $gte: thirtyDaysAgo }
-    });
-    
-    // Calculate attrition rate (monthly)
-    const attritionRate = totalHeadcount > 0 ? (recentResignations / totalHeadcount) * 100 : 0;
+    // Note: Attrition rate calculation removed as requested
     
     return {
       headcount: totalHeadcount,
       activeEmployees,
-      onLeaveEmployees,
-      recentResignations,
-      attritionRate
+      onLeaveEmployees
     };
   } catch (error) {
     console.log('HR employee stats fetch failed:', error);
     return {
       headcount: 0,
       activeEmployees: 0,
-      onLeaveEmployees: 0,
-      recentResignations: 0,
-      attritionRate: 0
+      onLeaveEmployees: 0
+    };
+  }
+}
+
+async function getAssetStats() {
+  try {
+    // Get total number of assets
+    const totalAssets = await Asset.countDocuments();
+    
+    // Calculate total book value as of current date
+    const assets = await Asset.find({ status: 'active' });
+    const currentDate = new Date();
+    
+    let totalBookValue = 0;
+    
+    for (const asset of assets) {
+      // Calculate book value for current date
+      const purchaseDate = new Date(asset.purchaseDate);
+      const usefulLifeMonths = asset.usefulLifeMonths;
+      const purchaseValue = asset.purchaseValue;
+      const salvageValue = asset.salvageValue;
+      
+      // Calculate months since purchase
+      const monthsSincePurchase = (currentDate.getFullYear() - purchaseDate.getFullYear()) * 12 + 
+                                 (currentDate.getMonth() - purchaseDate.getMonth());
+      
+      // Calculate depreciation
+      const totalDepreciation = Math.min(monthsSincePurchase, usefulLifeMonths) * 
+                               (purchaseValue - salvageValue) / usefulLifeMonths;
+      
+      const bookValue = Math.max(purchaseValue - totalDepreciation, salvageValue);
+      totalBookValue += bookValue;
+    }
+    
+    // Get renewals required from AssetPass model (expiring within 30 days)
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    
+    const renewalsRequired = await AssetPass.countDocuments({
+      expiryDate: { 
+        $gte: currentDate, 
+        $lte: thirtyDaysFromNow 
+      }
+    });
+    
+    return {
+      totalAssets,
+      totalBookValue,
+      renewalsRequired
+    };
+  } catch (error) {
+    console.log('Asset stats fetch failed:', error);
+    return {
+      totalAssets: 0,
+      totalBookValue: 0,
+      renewalsRequired: 0
     };
   }
 }
@@ -291,7 +332,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       procurementExpense,
       adminExpense,
       subCompaniesRevenue,
-      hrStats
+      hrStats,
+      assetStats
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -302,7 +344,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getProcurementExpense(startDate, endDate),
       getAdminExpense(startDate, endDate),
       getSubCompaniesRevenue(startDate, endDate),
-      getHREmployeeStats()
+      getHREmployeeStats(),
+      getAssetStats()
     ]);
 
     // Calculate final totals
@@ -319,12 +362,14 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       hr: { 
         payroll: payrollExpense, 
         headcount: hrStats.headcount, 
-        attrition: hrStats.recentResignations,
-        attritionRate: hrStats.attritionRate,
         activeEmployees: hrStats.activeEmployees,
         onLeaveEmployees: hrStats.onLeaveEmployees
       },
-      assets: { bookValue: rentalRevenue / 0.02, utilization: 0, depreciation: 0, renewals: 0 },
+      assets: {
+        bookValue: assetStats.totalBookValue,
+        totalAssets: assetStats.totalAssets,
+        renewalsRequired: assetStats.renewalsRequired
+      },
       operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: operationsExpense, fleetUtilization: 0 },
       maintenance: { cost: maintenanceExpense, downtime: 0 },
       procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
@@ -361,12 +406,14 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       hr: { 
         payroll: 0, 
         headcount: 0, 
-        attrition: 0,
-        attritionRate: 0,
         activeEmployees: 0,
         onLeaveEmployees: 0
       },
-      assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
+      assets: { 
+        bookValue: 0, 
+        totalAssets: 0, 
+        renewalsRequired: 0
+      },
       operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
       maintenance: { cost: 0, downtime: 0 },
       procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
@@ -396,12 +443,15 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const hrData = pnlData.hr || { 
       payroll: 0, 
       headcount: 0, 
-      attrition: 0,
-      attritionRate: 0,
       activeEmployees: 0,
       onLeaveEmployees: 0
     };
-    const assetsData = pnlData.assets || { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
+    
+    const assetData = pnlData.assets || { 
+      bookValue: 0, 
+      totalAssets: 0, 
+      renewalsRequired: 0
+    };
     const operationsData = pnlData.operations || { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
     const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
     const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
@@ -512,16 +562,13 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       hr: {
         headcount: hrData.headcount || 0,
         payroll: hrData.payroll || 0,
-        attrition: hrData.attrition || 0,
-        attritionRate: hrData.attritionRate || 0,
         activeEmployees: hrData.activeEmployees || 0,
         onLeaveEmployees: hrData.onLeaveEmployees || 0
       },
       assets: {
-        bookValue: assetsData.bookValue || 0,
-        utilization: assetsData.utilization || 0,
-        depreciation: assetsData.depreciation || 0,
-        renewals: assetsData.renewals || 0
+        bookValue: assetData.bookValue || 0,
+        totalAssets: assetData.totalAssets || 0,
+        renewalsRequired: assetData.renewalsRequired || 0
       },
       operations: {
         deliveries: operationsData.deliveries || 0,
