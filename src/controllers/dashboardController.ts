@@ -74,7 +74,7 @@ interface OperationsData {
 
 interface MaintenanceData {
   cost: number;
-  downtime: number;
+  totalMaintenanceHours: number;
 }
 
 interface ProcurementData {
@@ -305,6 +305,20 @@ async function getMaintenanceExpense(startDate: Date, endDate: Date) {
   }
 }
 
+async function getTotalMaintenanceHours() {
+  try {
+    // Calculate total maintenance hours from completed maintenance records
+    const maintenanceHoursData = await Maintenance.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: null, totalHours: { $sum: '$totalMaintenanceTime' } } }
+    ]);
+    return maintenanceHoursData[0]?.totalHours || 0;
+  } catch (error) {
+    console.log('Total maintenance hours fetch failed:', error);
+    return 0;
+  }
+}
+
 async function getProcurementExpense(startDate: Date, endDate: Date) {
   try {
     const procurementData = await ProcurementInvoice.aggregate([
@@ -466,9 +480,12 @@ async function getTotalQuotationsCount() {
 
 async function getPendingQuotationsCount() {
   try {
-    // Count pending quotations
+    // Count pending quotations - using more common status values
     const pendingQuotations = await Quotation.countDocuments({
-      status: { $in: ['pending', 'draft', 'sent'] }
+      $or: [
+        { status: { $in: ['Draft', 'draft', 'Pending', 'pending', 'Sent', 'sent'] } },
+        { approvalStatus: { $in: ['pending', 'Pending', 'draft', 'Draft'] } }
+      ]
     });
     return pendingQuotations || 0;
   } catch (error) {
@@ -538,7 +555,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       totalVendors,
       totalQuotations,
       pendingQuotations,
-      totalClients
+      totalClients,
+      totalMaintenanceHours
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -563,7 +581,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getTotalVendorsCount(),
       getTotalQuotationsCount(),
       getPendingQuotationsCount(),
-      getTotalClientsCount()
+      getTotalClientsCount(),
+      getTotalMaintenanceHours()
     ]);
 
     console.log('Dashboard operations stats received:', operationsStats);
@@ -629,7 +648,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         deliveryCost: operationsExpense,
         fleetUtilization: operationsStats.cancelledOrders
       },
-      maintenance: { cost: maintenanceExpense, downtime: 0 },
+      maintenance: { cost: maintenanceExpense, totalMaintenanceHours: totalMaintenanceHours },
       procurement: { 
         totalPurchaseRequests: totalPurchaseRequests, 
         totalPurchaseOrders: totalPurchaseOrders, 
@@ -696,7 +715,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         deliveryCost: 0, 
         fleetUtilization: 0
       },
-      maintenance: { cost: 0, downtime: 0 },
+      maintenance: { cost: 0, totalMaintenanceHours: 0 },
       procurement: { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 },
       sales: { totalQuotations: 0, pendingQuotations: 0, totalClients: 0 },
       admin: { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 },
@@ -742,7 +761,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       deliveryCost: 0, 
       fleetUtilization: 0
     };
-    const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
+    const maintenanceData = pnlData.maintenance || { cost: 0, totalMaintenanceHours: 0 };
     const procurementData = pnlData.procurement || { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 };
     const salesData = pnlData.sales || { totalQuotations: 0, pendingQuotations: 0, totalClients: 0 };
     const adminData = pnlData.admin || { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 };
@@ -870,7 +889,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       maintenance: {
         cost: maintenanceData.cost || 0,
         preventiveVsCorrective: [],
-        downtime: maintenanceData.downtime || 0
+        totalMaintenanceHours: maintenanceData.totalMaintenanceHours || 0
       },
       procurement: {
         totalPurchaseRequests: procurementData.totalPurchaseRequests || 0,

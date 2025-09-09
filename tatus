@@ -1,0 +1,5 @@
+[33m7445a71[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Create dedicated Manual Entries Controller with comprehensive P&L integration
+[33mc6e283c[m feat: Create comprehensive Manual Entries management system
+[33md57ab01[m fix: Correct MongoDB validation error for manual entries
+[33m0754eea[m feat: Implement comprehensive manual P&L entries solution
+[33m2e03466[m debug: Add comprehensive debugging for manual entries endpoint
