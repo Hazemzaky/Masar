@@ -93,258 +93,207 @@ interface HSEData {
   openActions: number;
 }
 
-// Creative Solution: Aggregate module data directly for dashboard
-// This mirrors the approach used by the PnL page's verticalPnLMappingService
+// Individual Data Source Services - Clean Architecture Approach
+// Each service handles one specific data source for better maintainability
+
+async function getRevenueData(startDate: Date, endDate: Date) {
+  try {
+    const invoiceData = await Invoice.aggregate([
+      { $match: { invoiceDate: { $gte: startDate, $lte: endDate }, status: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    return invoiceData[0]?.total || 0;
+  } catch (error) {
+    console.log('Revenue data fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getExpenseData(startDate: Date, endDate: Date) {
+  try {
+    const expenseData = await Expense.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    return expenseData[0]?.total || 0;
+  } catch (error) {
+    console.log('Expense data fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getAssetRentalRevenue(startDate: Date, endDate: Date) {
+  try {
+    const assetData = await Asset.aggregate([
+      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, bookValue: { $sum: '$bookValue' } } }
+    ]);
+    // Calculate rental revenue as 2% of book value
+    const bookValue = assetData[0]?.bookValue || 0;
+    return bookValue * 0.02;
+  } catch (error) {
+    console.log('Asset rental revenue fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getPayrollExpense(startDate: Date, endDate: Date) {
+  try {
+    const payrollData = await Payroll.aggregate([
+      { $match: { runDate: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: '$netPay' } } }
+    ]);
+    return payrollData[0]?.total || 0;
+  } catch (error) {
+    console.log('Payroll expense fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getOperationsExpense(startDate: Date, endDate: Date) {
+  try {
+    const fuelLogs = await FuelLog.aggregate([
+      { $match: { dateTime: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: '$totalCost' } } }
+    ]);
+    return fuelLogs[0]?.total || 0;
+  } catch (error) {
+    console.log('Operations expense fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getMaintenanceExpense(startDate: Date, endDate: Date) {
+  try {
+    const maintenanceData = await Maintenance.aggregate([
+      { $match: { scheduledDate: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: '$totalCost' } } }
+    ]);
+    return maintenanceData[0]?.total || 0;
+  } catch (error) {
+    console.log('Maintenance expense fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getProcurementExpense(startDate: Date, endDate: Date) {
+  try {
+    const procurementData = await ProcurementInvoice.aggregate([
+      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    return procurementData[0]?.total || 0;
+  } catch (error) {
+    console.log('Procurement expense fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getAdminExpense(startDate: Date, endDate: Date) {
+  try {
+    const expenseData = await Expense.aggregate([
+      { $match: {
+        category: { $in: ['admin', 'overhead', 'general'] },
+        date: { $gte: startDate, $lte: endDate }
+      }},
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    return expenseData[0]?.total || 0;
+  } catch (error) {
+    console.log('Admin expense fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getSubCompaniesRevenue(startDate: Date, endDate: Date) {
+  try {
+    const { getManualPnLEntries } = await import('./pnlController');
+    const mockReq = { query: {} } as any;
+    let manualEntries: any[] = [];
+    const mockRes = {
+      json: (data: any) => { manualEntries = data; },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+
+    await getManualPnLEntries(mockReq, mockRes);
+    const subCompaniesEntry = manualEntries.find((entry: any) => entry.itemId === 'sub_companies_revenue');
+    return subCompaniesEntry?.amount || 0;
+  } catch (error) {
+    console.log('Sub companies revenue fetch failed:', error);
+    return 0;
+  }
+}
+
+// Main aggregation function using individual data services
 async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
   try {
-    console.log('🔄 Dashboard: Starting direct module data aggregation...', { startDate, endDate });
+    console.log('🎯 Dashboard: Fetching data from individual services...', { startDate, endDate });
 
-    // Aggregate data from all modules using the same logic as verticalPnLMappingService
-    const moduleData = await Promise.allSettled([
-      // HR Module Data
-      (async (): Promise<HRData> => {
-        try {
-          const payrollData = await Payroll.aggregate([
-            { $match: { runDate: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: null, total: { $sum: '$netPay' } } }
-          ]);
-          const employeeCount = await Employee.countDocuments();
-          const leaveData = await Leave.countDocuments({
-            startDate: { $gte: startDate, $lte: endDate },
-            status: 'approved'
-          });
-
-          return {
-            payroll: payrollData[0]?.total || 0,
-            headcount: employeeCount,
-            attrition: leaveData
-          };
-        } catch (err) {
-          console.log('HR data aggregation failed:', err);
-          return { payroll: 0, headcount: 0, attrition: 0 };
-        }
-      })(),
-
-      // Assets Module Data
-      (async (): Promise<AssetsData> => {
-        try {
-          const assetData = await Asset.aggregate([
-            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
-            {
-              $group: {
-                _id: null,
-                bookValue: { $sum: '$bookValue' },
-                count: { $sum: 1 }
-              }
-            }
-          ]);
-
-          return {
-            bookValue: assetData[0]?.bookValue || 0,
-            utilization: assetData[0]?.count ? 85 : 0, // Mock utilization
-            depreciation: 0, // Will be calculated from depreciation model if available
-            renewals: assetData[0]?.count || 0
-          };
-        } catch (err) {
-          console.log('Assets data aggregation failed:', err);
-          return { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
-        }
-      })(),
-
-      // Operations Module Data
-      (async (): Promise<OperationsData> => {
-        try {
-          const fuelLogs = await FuelLog.aggregate([
-            { $match: { dateTime: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: null, totalCost: { $sum: '$totalCost' }, count: { $sum: 1 } } }
-          ]);
-
-          return {
-            deliveries: fuelLogs[0]?.count || 0,
-            onTimePercentage: 92, // Mock on-time percentage
-            deliveryCost: fuelLogs[0]?.totalCost || 0,
-            fleetUtilization: 78 // Mock fleet utilization
-          };
-        } catch (err) {
-          console.log('Operations data aggregation failed:', err);
-          return { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
-        }
-      })(),
-
-      // Maintenance Module Data
-      (async (): Promise<MaintenanceData> => {
-        try {
-          const maintenanceData = await Maintenance.aggregate([
-            { $match: { scheduledDate: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: null, totalCost: { $sum: '$totalCost' }, count: { $sum: 1 } } }
-          ]);
-
-          return {
-            cost: maintenanceData[0]?.totalCost || 0,
-            downtime: maintenanceData[0]?.count * 2 || 0 // Mock downtime hours
-          };
-        } catch (err) {
-          console.log('Maintenance data aggregation failed:', err);
-          return { cost: 0, downtime: 0 };
-        }
-      })(),
-
-      // Procurement Module Data
-      (async (): Promise<ProcurementData> => {
-        try {
-          const procurementData = await ProcurementInvoice.aggregate([
-            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: null, totalSpend: { $sum: '$amount' }, count: { $sum: 1 } } }
-          ]);
-
-          const openPOs = await PurchaseOrder.countDocuments({
-            status: { $in: ['pending', 'approved'] }
-          });
-
-          return {
-            totalSpend: procurementData[0]?.totalSpend || 0,
-            openPOs: openPOs,
-            cycleTime: 14 // Mock cycle time in days
-          };
-        } catch (err) {
-          console.log('Procurement data aggregation failed:', err);
-          return { totalSpend: 0, openPOs: 0, cycleTime: 0 };
-        }
-      })(),
-
-      // Sales/Revenue Module Data
-      (async (): Promise<SalesData> => {
-        try {
-          const invoiceData = await Invoice.aggregate([
-            { $match: { invoiceDate: { $gte: startDate, $lte: endDate }, status: 'paid' } },
-            { $group: { _id: null, totalSales: { $sum: '$amount' }, count: { $sum: 1 } } }
-          ]);
-
-          return {
-            totalSales: invoiceData[0]?.totalSales || 0,
-            pipeline: invoiceData[0]?.count * 15000 || 0, // Mock pipeline
-            salesMargin: 25 // Mock margin percentage
-          };
-        } catch (err) {
-          console.log('Sales data aggregation failed:', err);
-          return { totalSales: 0, pipeline: 0, salesMargin: 0 };
-        }
-      })(),
-
-      // Admin Module Data
-      (async (): Promise<AdminData> => {
-        try {
-          const expenseData = await Expense.aggregate([
-            { $match: {
-              category: { $in: ['admin', 'overhead', 'general'] },
-              date: { $gte: startDate, $lte: endDate }
-            }},
-            { $group: { _id: null, totalCosts: { $sum: '$amount' } } }
-          ]);
-
-          return {
-            costs: expenseData[0]?.totalCosts || 0,
-            overheadPercentage: 15, // Mock percentage
-            pendingApprovals: 0
-          };
-        } catch (err) {
-          console.log('Admin data aggregation failed:', err);
-          return { costs: 0, overheadPercentage: 0, pendingApprovals: 0 };
-        }
-      })(),
-
-      // HSE Module Data
-      (async (): Promise<HSEData> => {
-        try {
-          const incidentCount = await Incident.countDocuments({
-            date: { $gte: startDate, $lte: endDate }
-          });
-
-          const trainingCount = await Training.countDocuments({
-            completionDate: { $gte: startDate, $lte: endDate }
-          });
-
-          return {
-            incidents: incidentCount,
-            trainingCompliance: trainingCount > 0 ? 95 : 0,
-            openActions: Math.floor(incidentCount * 0.3) // Mock open actions
-          };
-        } catch (err) {
-          console.log('HSE data aggregation failed:', err);
-          return { incidents: 0, trainingCompliance: 0, openActions: 0 };
-        }
-      })()
+    // Fetch data from each service in parallel
+    const [
+      salesRevenue,
+      totalExpenses,
+      rentalRevenue,
+      payrollExpense,
+      operationsExpense,
+      maintenanceExpense,
+      procurementExpense,
+      adminExpense,
+      subCompaniesRevenue
+    ] = await Promise.all([
+      getRevenueData(startDate, endDate),
+      getExpenseData(startDate, endDate),
+      getAssetRentalRevenue(startDate, endDate),
+      getPayrollExpense(startDate, endDate),
+      getOperationsExpense(startDate, endDate),
+      getMaintenanceExpense(startDate, endDate),
+      getProcurementExpense(startDate, endDate),
+      getAdminExpense(startDate, endDate),
+      getSubCompaniesRevenue(startDate, endDate)
     ]);
 
-    // Extract the results from Promise.allSettled with proper type assertions
-    const hrData: HRData = moduleData[0].status === 'fulfilled' ? moduleData[0].value : { payroll: 0, headcount: 0, attrition: 0 };
-    const assetsData: AssetsData = moduleData[1].status === 'fulfilled' ? moduleData[1].value : { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
-    const operationsData: OperationsData = moduleData[2].status === 'fulfilled' ? moduleData[2].value : { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
-    const maintenanceData: MaintenanceData = moduleData[3].status === 'fulfilled' ? moduleData[3].value : { cost: 0, downtime: 0 };
-    const procurementData: ProcurementData = moduleData[4].status === 'fulfilled' ? moduleData[4].value : { totalSpend: 0, openPOs: 0, cycleTime: 0 };
-    const salesData: SalesData = moduleData[5].status === 'fulfilled' ? moduleData[5].value : { totalSales: 0, pipeline: 0, salesMargin: 0 };
-    const adminData: AdminData = moduleData[6].status === 'fulfilled' ? moduleData[6].value : { costs: 0, overheadPercentage: 0, pendingApprovals: 0 };
-    const hseData: HSEData = moduleData[7].status === 'fulfilled' ? moduleData[7].value : { incidents: 0, trainingCompliance: 0, openActions: 0 };
-
-    // Calculate totals for revenue and expenses based on module data
-    const totalRevenue = (salesData.totalSales || 0) + (assetsData.bookValue ? assetsData.bookValue * 0.02 : 0); // Mock rental revenue
-    const totalExpenses = (hrData.payroll || 0) + (operationsData.deliveryCost || 0) + (maintenanceData.cost || 0) +
-                         (procurementData.totalSpend || 0) + (adminData.costs || 0);
+    // Calculate final totals
+    const totalRevenue = salesRevenue + rentalRevenue + subCompaniesRevenue;
+    const totalOperationalExpenses = payrollExpense + operationsExpense + maintenanceExpense +
+                                    procurementExpense + adminExpense;
+    const finalExpenses = totalExpenses + totalOperationalExpenses;
 
     const pnlData = {
       revenue: { total: totalRevenue },
-      expenses: { total: totalExpenses },
-      ebitda: { total: totalRevenue - totalExpenses },
-      subCompaniesRevenue: 0, // Will be set from manual entries below
-      hr: hrData,
-      assets: assetsData,
-      operations: operationsData,
-      maintenance: maintenanceData,
-      procurement: procurementData,
-      sales: salesData,
-      admin: adminData,
-      hse: hseData
+      expenses: { total: finalExpenses },
+      ebitda: { total: totalRevenue - finalExpenses },
+      subCompaniesRevenue: subCompaniesRevenue,
+      hr: { payroll: payrollExpense, headcount: 0, attrition: 0 },
+      assets: { bookValue: rentalRevenue / 0.02, utilization: 0, depreciation: 0, renewals: 0 },
+      operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: operationsExpense, fleetUtilization: 0 },
+      maintenance: { cost: maintenanceExpense, downtime: 0 },
+      procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
+      sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
+      admin: { costs: adminExpense, overheadPercentage: 0, pendingApprovals: 0 },
+      hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
     };
 
-    // Get Sub Companies Revenue from manual entries and update pnlData
-    try {
-      const { getManualPnLEntries } = await import('./pnlController');
-      const mockReq = { query: {} } as any;
-      let manualEntries: any[] = [];
-      const mockRes = {
-        json: (data: any) => { manualEntries = data; },
-        status: () => mockRes,
-        send: () => {}
-      } as any;
-
-      await getManualPnLEntries(mockReq, mockRes);
-      const subCompaniesEntry = manualEntries.find((entry: any) => entry.itemId === 'sub_companies_revenue');
-      pnlData.subCompaniesRevenue = subCompaniesEntry?.amount || 0;
-      console.log('✅ Updated pnlData with sub companies revenue:', pnlData.subCompaniesRevenue);
-    } catch (error) {
-      console.error('Error fetching manual entries for pnlData:', error);
-      pnlData.subCompaniesRevenue = 0;
-    }
-
-    console.log('✅ Dashboard: Module data aggregation completed:', {
+    console.log('✅ Dashboard: Individual services data aggregation completed:', {
       totalRevenue,
-      totalExpenses,
-      moduleBreakdown: {
-        hr: hrData.payroll,
-        assets: assetsData.bookValue,
-        operations: operationsData.deliveryCost,
-        maintenance: maintenanceData.cost,
-        procurement: procurementData.totalSpend,
-        sales: salesData.totalSales,
-        admin: adminData.costs
+      finalExpenses,
+      breakdown: {
+        salesRevenue,
+        rentalRevenue,
+        subCompaniesRevenue,
+        payrollExpense,
+        operationsExpense,
+        maintenanceExpense,
+        procurementExpense,
+        adminExpense,
+        totalExpenses
       }
     });
 
     return pnlData;
 
   } catch (error) {
-    console.error('❌ Error in dashboard module aggregation:', error);
-    // Return default values if aggregation fails
+    console.error('❌ Error in individual services aggregation:', error);
     return {
       revenue: { total: 0 },
       expenses: { total: 0 },
