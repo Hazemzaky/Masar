@@ -2,24 +2,64 @@ import { Request, Response } from 'express';
 import BudgetOpex from '../models/BudgetOpex';
 
 export const get = async (req: Request, res: Response) => {
-  const { year } = req.query;
-  const docs = await BudgetOpex.find({ year });
-  res.json(docs);
+  try {
+    const { year } = req.query;
+    const query = year ? { year: parseInt(year as string) } : {};
+    
+    const opexBudgets = await BudgetOpex.find(query).sort({ sr: 1 });
+    res.json(opexBudgets);
+  } catch (error) {
+    console.error('Error fetching OPEX budgets:', error);
+    res.status(500).json({ message: 'Failed to fetch OPEX budgets' });
+  }
 };
 
 export const save = async (req: Request, res: Response) => {
-  const { year, category, costs } = req.body;
-  const doc = await BudgetOpex.findOneAndUpdate(
-    { year, category },
-    { year, category, costs },
-    { upsert: true, new: true }
-  );
-  res.json(doc);
+  try {
+    const { year, opexBudgets } = req.body;
+    
+    if (!year || !Array.isArray(opexBudgets)) {
+      return res.status(400).json({ message: 'Year and OPEX budgets array are required' });
+    }
+
+    // Delete existing OPEX budgets for the year
+    await BudgetOpex.deleteMany({ year });
+
+    // Insert new OPEX budgets
+    const opexBudgetsWithYear = opexBudgets.map((opex: any) => ({
+      ...opex,
+      year
+    }));
+
+    const savedBudgets = await BudgetOpex.insertMany(opexBudgetsWithYear);
+    res.json(savedBudgets);
+  } catch (error) {
+    console.error('Error saving OPEX budgets:', error);
+    res.status(500).json({ message: 'Failed to save OPEX budgets' });
+  }
 };
 
 export const bulkSave = async (req: Request, res: Response) => {
-  const { year, categories } = req.body;
-  await BudgetOpex.deleteMany({ year });
-  const docs = await BudgetOpex.insertMany(categories.map((c: any) => ({ year, ...c })));
-  res.json(docs);
+  try {
+    const { year, opexBudgets } = req.body;
+    
+    if (!year || !Array.isArray(opexBudgets)) {
+      return res.status(400).json({ message: 'Year and OPEX budgets array are required' });
+    }
+
+    // Delete existing OPEX budgets for the year
+    await BudgetOpex.deleteMany({ year });
+
+    // Insert new OPEX budgets
+    const opexBudgetsWithYear = opexBudgets.map((opex: any) => ({
+      ...opex,
+      year
+    }));
+
+    const savedBudgets = await BudgetOpex.insertMany(opexBudgetsWithYear);
+    res.json(savedBudgets);
+  } catch (error) {
+    console.error('Error bulk saving OPEX budgets:', error);
+    res.status(500).json({ message: 'Failed to bulk save OPEX budgets' });
+  }
 }; 
