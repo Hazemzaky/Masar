@@ -95,7 +95,7 @@ interface AdminData {
 
 interface HSEData {
   totalIncidents: number;
-  auditInspectionAvgScore: number;
+  overdueInspections: number;
   nearMissLog: number;
 }
 
@@ -391,21 +391,18 @@ async function getTotalIncidentsCount() {
   }
 }
 
-async function getAuditInspectionAvgScore() {
+async function getOverdueInspectionsCount() {
   try {
-    // Calculate average score from SafetyInspection model
-    const avgScoreData = await SafetyInspection.aggregate([
-      { $match: { status: 'completed' } },
-      { $group: { _id: null, avgScore: { $avg: '$overallScore' } } }
-    ]);
+    // Count overdue inspections from SafetyInspection model
+    const currentDate = new Date();
+    const overdueInspections = await SafetyInspection.countDocuments({
+      status: 'overdue',
+      nextInspectionDate: { $lt: currentDate }
+    });
     
-    const avgScore = avgScoreData[0]?.avgScore;
-    if (avgScore === null || avgScore === undefined || isNaN(avgScore)) {
-      return 0;
-    }
-    return Math.round(avgScore * 100) / 100; // Round to 2 decimal places
+    return overdueInspections || 0;
   } catch (error) {
-    console.log('Audit inspection avg score fetch failed:', error);
+    console.log('Overdue inspections count fetch failed:', error);
     return 0;
   }
 }
@@ -464,7 +461,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       openLegalCases,
       expiryDocuments,
       totalIncidents,
-      auditInspectionAvgScore,
+      overdueInspections,
       nearMissLog
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
@@ -483,7 +480,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getOpenLegalCasesCount(),
       getExpiryDocumentsNext30Days(),
       getTotalIncidentsCount(),
-      getAuditInspectionAvgScore(),
+      getOverdueInspectionsCount(),
       getNearMissLogCount()
     ]);
 
@@ -560,7 +557,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       },
       hse: { 
         totalIncidents: totalIncidents, 
-        auditInspectionAvgScore: auditInspectionAvgScore, 
+        overdueInspections: overdueInspections, 
         nearMissLog: nearMissLog 
       }
     };
@@ -613,7 +610,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
       sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
       admin: { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 },
-      hse: { totalIncidents: 0, auditInspectionAvgScore: 0, nearMissLog: 0 }
+      hse: { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 }
     };
   }
 }
@@ -659,7 +656,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
     const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
     const adminData = pnlData.admin || { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 };
-    const hseData = pnlData.hse || { totalIncidents: 0, auditInspectionAvgScore: 0, nearMissLog: 0 };
+    const hseData = pnlData.hse || { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 };
 
     // Action Center Alerts
     const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = await Promise.all([
@@ -804,7 +801,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       },
       hse: {
         totalIncidents: hseData.totalIncidents || 0,
-        auditInspectionAvgScore: hseData.auditInspectionAvgScore || 0,
+        overdueInspections: hseData.overdueInspections || 0,
         nearMissLog: hseData.nearMissLog || 0
       },
       alerts: {
