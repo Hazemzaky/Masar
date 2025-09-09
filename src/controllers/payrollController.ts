@@ -366,7 +366,7 @@ export const populatePayrollEmployees = async (req: Request, res: Response): Pro
     
     console.log(`Found ${regularEmployees.length} active employees to populate`);
     
-    const payrollEmployees = regularEmployees.map(emp => ({
+    const payrollEmployees = regularEmployees.map((emp: any) => ({
       company: 'Masar',
       employeeCode: emp.employeeId || emp._id.toString().slice(-6),
       fullName: emp.name,
