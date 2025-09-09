@@ -341,6 +341,11 @@ export const updateManualPnLEntry = async (req: Request, res: Response) => {
 // Note: This endpoint is now deprecated as all data comes from actual business transactions
 export const getManualPnLEntries = async (req: Request, res: Response) => {
   try {
+    console.log('Manual PnL entries endpoint called - UPDATED VERSION');
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('Request headers:', req.headers);
+    
     // Return predefined manual entry items that can be configured
     // Ordered according to user's preferred list
     const manualEntries = [
@@ -502,7 +507,11 @@ export const getManualPnLEntries = async (req: Request, res: Response) => {
       }
     ];
 
+    console.log('Returning manual entries:', manualEntries.length, 'entries');
+    console.log('First entry sample:', manualEntries[0]);
+    console.log('Response headers being set...');
     res.json(manualEntries);
+    console.log('Response sent successfully');
   } catch (error) {
     console.error('Error in manual PnL entries endpoint:', error);
     res.status(500).json({ error: 'Failed to process request' });
@@ -1686,6 +1695,174 @@ export const receiveDashboardData = async (req: Request, res: Response) => {
 };
 
 // Get Vertical P&L Data for Dashboard
+// Individual Financial Metrics Endpoints - Get values from PnL vertical table
+export const getRevenue = async (req: Request, res: Response) => {
+  try {
+    const filters = getFilters(req);
+    const { startDate, endDate, period } = filters;
+
+    console.log('Revenue endpoint - Getting from PnL vertical table:', { period, startDate, endDate });
+
+    // Get data from PnL vertical table
+    const mockReq = {
+      query: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        period: 'monthly'
+      }
+    } as any;
+
+    let pnlVerticalData: any = null;
+    const mockRes = {
+      json: (data: any) => { pnlVerticalData = data; },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+
+    const { getVerticalPnLData } = await import('./pnlController');
+    await getVerticalPnLData(mockReq, mockRes);
+
+    const totalRevenue = pnlVerticalData?.summary?.revenue || 0;
+    const revenueBreakdown = pnlVerticalData?.revenue || {};
+
+    res.json({
+      totalRevenue,
+      breakdown: revenueBreakdown,
+      period,
+      startDate,
+      endDate
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getExpenses = async (req: Request, res: Response) => {
+  try {
+    const filters = getFilters(req);
+    const { startDate, endDate, period } = filters;
+
+    console.log('Expenses endpoint - Getting from PnL vertical table:', { period, startDate, endDate });
+
+    // Get data from PnL vertical table
+    const mockReq = {
+      query: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        period: 'monthly'
+      }
+    } as any;
+
+    let pnlVerticalData: any = null;
+    const mockRes = {
+      json: (data: any) => { pnlVerticalData = data; },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+
+    const { getVerticalPnLData } = await import('./pnlController');
+    await getVerticalPnLData(mockReq, mockRes);
+
+    const totalExpenses = pnlVerticalData?.summary?.operatingExpenses || 0;
+    const expensesBreakdown = pnlVerticalData?.expenses || {};
+
+    res.json({
+      totalExpenses,
+      breakdown: expensesBreakdown,
+      period,
+      startDate,
+      endDate
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getEBITDA = async (req: Request, res: Response) => {
+  try {
+    const filters = getFilters(req);
+    const { startDate, endDate, period } = filters;
+
+    console.log('EBITDA endpoint - Getting from PnL vertical table:', { period, startDate, endDate });
+
+    // Get data from PnL vertical table
+    const mockReq = {
+      query: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        period: 'monthly'
+      }
+    } as any;
+
+    let pnlVerticalData: any = null;
+    const mockRes = {
+      json: (data: any) => { pnlVerticalData = data; },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+
+    const { getVerticalPnLData } = await import('./pnlController');
+    await getVerticalPnLData(mockReq, mockRes);
+
+    const ebitda = pnlVerticalData?.summary?.ebitda || 0;
+    const revenue = pnlVerticalData?.summary?.revenue || 0;
+    const expenses = pnlVerticalData?.summary?.operatingExpenses || 0;
+    const ebitdaBreakdown = pnlVerticalData?.ebitida || {};
+
+    res.json({
+      ebitda,
+      revenue,
+      expenses,
+      breakdown: ebitdaBreakdown,
+      calculation: `${revenue} - ${expenses} = ${ebitda}`,
+      period,
+      startDate,
+      endDate
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getSubCompaniesRevenue = async (req: Request, res: Response) => {
+  try {
+    const filters = getFilters(req);
+    const { startDate, endDate, period } = filters;
+
+    console.log('Sub Companies Revenue endpoint - Getting from PnL vertical table:', { period, startDate, endDate });
+
+    // Get data from PnL vertical table
+    const mockReq = {
+      query: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        period: 'monthly'
+      }
+    } as any;
+
+    let pnlVerticalData: any = null;
+    const mockRes = {
+      json: (data: any) => { pnlVerticalData = data; },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+
+    const { getVerticalPnLData } = await import('./pnlController');
+    await getVerticalPnLData(mockReq, mockRes);
+
+    const subCompaniesRevenue = pnlVerticalData?.subCompaniesRevenue || 0;
+
+    res.json({
+      subCompaniesRevenue,
+      period,
+      startDate,
+      endDate
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 export const getVerticalPnLData = async (req: Request, res: Response) => {
   try {
     const filters = getFilters(req);

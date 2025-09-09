@@ -240,12 +240,122 @@ function getSubCompaniesRevenue(startDate, endDate) {
         }
     });
 }
-// Main aggregation function using individual data services
+// Main aggregation function using PnL vertical table data
 function getVerticalPnLDataForDashboard(startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6;
         try {
-            console.log('🎯 Dashboard: Fetching data from individual services...', { startDate, endDate });
-            // Fetch data from each service in parallel
+            console.log('🎯 Dashboard: Fetching data from PnL vertical table...', { startDate, endDate });
+            // Call the PnL vertical table function directly
+            const { getVerticalPnLData } = yield Promise.resolve().then(() => __importStar(require('./pnlController')));
+            // Create a proper request object
+            const mockReq = {
+                query: {
+                    start: startDate.toISOString(),
+                    end: endDate.toISOString(),
+                    period: 'monthly'
+                }
+            };
+            // Create a response object that captures the data
+            let pnlVerticalData = null;
+            const mockRes = {
+                json: (data) => {
+                    pnlVerticalData = data;
+                    console.log('✅ Dashboard: PnL vertical data received:', data);
+                },
+                status: (code) => mockRes,
+                send: (data) => {
+                    pnlVerticalData = data;
+                    console.log('✅ Dashboard: PnL vertical data sent:', data);
+                }
+            };
+            console.log('🎯 Dashboard: Calling PnL vertical table function...');
+            yield getVerticalPnLData(mockReq, mockRes);
+            if (!pnlVerticalData) {
+                console.error('❌ Dashboard: PnL vertical data is null, falling back to individual services');
+                throw new Error('Failed to fetch PnL vertical data');
+            }
+            console.log('✅ Dashboard: PnL vertical data fetched successfully:', {
+                revenue: (_a = pnlVerticalData.summary) === null || _a === void 0 ? void 0 : _a.revenue,
+                expenses: (_b = pnlVerticalData.summary) === null || _b === void 0 ? void 0 : _b.operatingExpenses,
+                ebitda: (_c = pnlVerticalData.summary) === null || _c === void 0 ? void 0 : _c.ebitda,
+                subCompaniesRevenue: pnlVerticalData.subCompaniesRevenue
+            });
+            // Extract data from PnL vertical table structure
+            const totalRevenue = ((_d = pnlVerticalData.summary) === null || _d === void 0 ? void 0 : _d.revenue) || 0;
+            const totalExpenses = ((_e = pnlVerticalData.summary) === null || _e === void 0 ? void 0 : _e.operatingExpenses) || 0;
+            const ebitda = ((_f = pnlVerticalData.summary) === null || _f === void 0 ? void 0 : _f.ebitda) || 0;
+            const subCompaniesRevenue = pnlVerticalData.subCompaniesRevenue || 0;
+            // Extract module-specific data from PnL vertical table
+            const pnlData = {
+                revenue: { total: totalRevenue },
+                expenses: { total: totalExpenses },
+                ebitda: { total: ebitda },
+                subCompaniesRevenue: subCompaniesRevenue,
+                hr: {
+                    payroll: ((_g = pnlVerticalData.hr) === null || _g === void 0 ? void 0 : _g.payroll) || 0,
+                    headcount: ((_h = pnlVerticalData.hr) === null || _h === void 0 ? void 0 : _h.headcount) || 0,
+                    attrition: ((_j = pnlVerticalData.hr) === null || _j === void 0 ? void 0 : _j.attrition) || 0
+                },
+                assets: {
+                    bookValue: ((_k = pnlVerticalData.assets) === null || _k === void 0 ? void 0 : _k.bookValue) || 0,
+                    utilization: ((_l = pnlVerticalData.assets) === null || _l === void 0 ? void 0 : _l.utilization) || 0,
+                    depreciation: ((_m = pnlVerticalData.assets) === null || _m === void 0 ? void 0 : _m.depreciation) || 0,
+                    renewals: ((_o = pnlVerticalData.assets) === null || _o === void 0 ? void 0 : _o.renewals) || 0
+                },
+                operations: {
+                    deliveries: ((_p = pnlVerticalData.operations) === null || _p === void 0 ? void 0 : _p.deliveries) || 0,
+                    onTimePercentage: ((_q = pnlVerticalData.operations) === null || _q === void 0 ? void 0 : _q.onTimePercentage) || 0,
+                    deliveryCost: ((_r = pnlVerticalData.operations) === null || _r === void 0 ? void 0 : _r.deliveryCost) || 0,
+                    fleetUtilization: ((_s = pnlVerticalData.operations) === null || _s === void 0 ? void 0 : _s.fleetUtilization) || 0
+                },
+                maintenance: {
+                    cost: ((_t = pnlVerticalData.maintenance) === null || _t === void 0 ? void 0 : _t.cost) || 0,
+                    downtime: ((_u = pnlVerticalData.maintenance) === null || _u === void 0 ? void 0 : _u.downtime) || 0
+                },
+                procurement: {
+                    totalSpend: ((_v = pnlVerticalData.procurement) === null || _v === void 0 ? void 0 : _v.totalSpend) || 0,
+                    openPOs: ((_w = pnlVerticalData.procurement) === null || _w === void 0 ? void 0 : _w.openPOs) || 0,
+                    cycleTime: ((_x = pnlVerticalData.procurement) === null || _x === void 0 ? void 0 : _x.cycleTime) || 0
+                },
+                sales: {
+                    totalSales: ((_y = pnlVerticalData.sales) === null || _y === void 0 ? void 0 : _y.totalSales) || 0,
+                    pipeline: ((_z = pnlVerticalData.sales) === null || _z === void 0 ? void 0 : _z.pipeline) || 0,
+                    salesMargin: ((_0 = pnlVerticalData.sales) === null || _0 === void 0 ? void 0 : _0.salesMargin) || 0
+                },
+                admin: {
+                    costs: ((_1 = pnlVerticalData.admin) === null || _1 === void 0 ? void 0 : _1.costs) || 0,
+                    overheadPercentage: ((_2 = pnlVerticalData.admin) === null || _2 === void 0 ? void 0 : _2.overheadPercentage) || 0,
+                    pendingApprovals: ((_3 = pnlVerticalData.admin) === null || _3 === void 0 ? void 0 : _3.pendingApprovals) || 0
+                },
+                hse: {
+                    incidents: ((_4 = pnlVerticalData.hse) === null || _4 === void 0 ? void 0 : _4.incidents) || 0,
+                    trainingCompliance: ((_5 = pnlVerticalData.hse) === null || _5 === void 0 ? void 0 : _5.trainingCompliance) || 0,
+                    openActions: ((_6 = pnlVerticalData.hse) === null || _6 === void 0 ? void 0 : _6.openActions) || 0
+                }
+            };
+            console.log('✅ Dashboard: PnL vertical data processing completed:', {
+                totalRevenue,
+                totalExpenses,
+                ebitda,
+                subCompaniesRevenue,
+                moduleData: {
+                    hr: pnlData.hr,
+                    assets: pnlData.assets,
+                    operations: pnlData.operations,
+                    maintenance: pnlData.maintenance,
+                    procurement: pnlData.procurement,
+                    sales: pnlData.sales,
+                    admin: pnlData.admin,
+                    hse: pnlData.hse
+                }
+            });
+            return pnlData;
+        }
+        catch (error) {
+            console.error('❌ Error in PnL vertical data aggregation:', error);
+            console.log('🔄 Dashboard: Falling back to individual services method...');
+            // Fallback to individual services method
             const [salesRevenue, totalExpenses, rentalRevenue, payrollExpense, operationsExpense, maintenanceExpense, procurementExpense, adminExpense, subCompaniesRevenue] = yield Promise.all([
                 getRevenueData(startDate, endDate),
                 getExpenseData(startDate, endDate),
@@ -262,7 +372,7 @@ function getVerticalPnLDataForDashboard(startDate, endDate) {
             const totalOperationalExpenses = payrollExpense + operationsExpense + maintenanceExpense +
                 procurementExpense + adminExpense;
             const finalExpenses = totalExpenses + totalOperationalExpenses;
-            const pnlData = {
+            return {
                 revenue: { total: totalRevenue },
                 expenses: { total: finalExpenses },
                 ebitda: { total: totalRevenue - finalExpenses },
@@ -274,39 +384,6 @@ function getVerticalPnLDataForDashboard(startDate, endDate) {
                 procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
                 sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
                 admin: { costs: adminExpense, overheadPercentage: 0, pendingApprovals: 0 },
-                hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
-            };
-            console.log('✅ Dashboard: Individual services data aggregation completed:', {
-                totalRevenue,
-                finalExpenses,
-                breakdown: {
-                    salesRevenue,
-                    rentalRevenue,
-                    subCompaniesRevenue,
-                    payrollExpense,
-                    operationsExpense,
-                    maintenanceExpense,
-                    procurementExpense,
-                    adminExpense,
-                    totalExpenses
-                }
-            });
-            return pnlData;
-        }
-        catch (error) {
-            console.error('❌ Error in individual services aggregation:', error);
-            return {
-                revenue: { total: 0 },
-                expenses: { total: 0 },
-                ebitda: { total: 0 },
-                subCompaniesRevenue: 0,
-                hr: { payroll: 0, headcount: 0, attrition: 0 },
-                assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
-                operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
-                maintenance: { cost: 0, downtime: 0 },
-                procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
-                sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
-                admin: { costs: 0, overheadPercentage: 0, pendingApprovals: 0 },
                 hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
             };
         }

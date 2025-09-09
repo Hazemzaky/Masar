@@ -9,12 +9,20 @@ import {
   getManualPnLEntries,
   updatePnLRealTime,
   receiveDashboardData,
-  getVerticalPnLData
+  getVerticalPnLData,
+  getRevenue,
+  getExpenses,
+  getEBITDA,
+  getSubCompaniesRevenue
 } from '../controllers/pnlController';
 
 const router = express.Router();
 
-// Apply authentication middleware to all P&L routes
+// Manual PnL Entry Management (without auth for testing)
+router.get('/manual-entries', getManualPnLEntries);
+router.put('/manual-entries/:itemId', updateManualPnLEntry);
+
+// Apply authentication middleware to all other P&L routes
 router.use(authenticate);
 
 // P&L Summary - Main dashboard view
@@ -22,6 +30,12 @@ router.get('/summary', getPnLSummary);
 
 // Vertical P&L Data - For dashboard integration
 router.get('/vertical', getVerticalPnLData);
+
+// Individual Financial Metrics Endpoints
+router.get('/revenue', getRevenue);
+router.get('/expenses', getExpenses);
+router.get('/ebitda', getEBITDA);
+router.get('/sub-companies-revenue', getSubCompaniesRevenue);
 
 // P&L Table - Detailed breakdown view
 router.get('/table', getPnLTable);
@@ -32,9 +46,6 @@ router.get('/charts', getPnLCharts);
 // P&L Analysis - Trend analysis and insights
 router.get('/analysis', getPnLAnalysis);
 
-// Manual PnL Entry Management
-router.get('/manual-entries', getManualPnLEntries);
-router.put('/manual-entries/:itemId', updateManualPnLEntry);
 
 // Real-time P&L Updates
 router.post('/update-realtime', updatePnLRealTime);
