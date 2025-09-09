@@ -6,6 +6,7 @@ import {
   updatePayroll,
   processPayroll,
   deleteAllPayrolls,
+  populatePayrollEmployees,
   // New payroll employee management
   createPayrollEmployee,
   getPayrollEmployees,
@@ -52,6 +53,9 @@ router.get('/history/:employeeId', getEmployeePayrollHistory);
 
 // Monthly Payroll Update Route
 router.post('/update-monthly', updateMonthlyPayroll);
+
+// Populate payroll employees from regular employees
+router.post('/populate-employees', populatePayrollEmployees);
 
 // Legacy Payroll Routes (for backward compatibility)
 router.post('/', createPayroll);

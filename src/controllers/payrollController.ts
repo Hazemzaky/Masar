@@ -354,6 +354,54 @@ export const deleteAllPayrolls = async (req: Request, res: Response): Promise<vo
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// Function to populate payroll employees from regular employees
+export const populatePayrollEmployees = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const Employee = require('../models/Employee').default;
+    const regularEmployees = await Employee.find({ status: 'active' });
+    
+    const payrollEmployees = regularEmployees.map(emp => ({
+      company: 'Masar',
+      employeeCode: emp.employeeId || emp._id.toString().slice(-6),
+      fullName: emp.name,
+      position: emp.position || 'Employee',
+      department: emp.department || 'General',
+      totalSalary: emp.salary || 0,
+      days: 30, // Default working days
+      basicSalary: emp.salary || 0,
+      fixedAllowance: 0,
+      temporaryAllowance: 0,
+      overtime: 0,
+      leave: 0,
+      leaveDays: 0,
+      grossSalary: emp.salary || 0,
+      absent: 0,
+      absentDays: 0,
+      sickLeave: 0,
+      sickLeaveDays: 0,
+      loan: 0,
+      fixedDeduction: 0,
+      temporaryDeduction: 0,
+      grossNetSalary: emp.salary || 0,
+      sponsor: 'Company',
+      remark: 'Auto-created from employee data'
+    }));
+
+    // Clear existing payroll employees first
+    await PayrollEmployee.deleteMany({});
+    
+    // Create new payroll employees
+    const createdEmployees = await PayrollEmployee.insertMany(payrollEmployees);
+    
+    res.json({ 
+      message: `Successfully created ${createdEmployees.length} payroll employees`,
+      employees: createdEmployees
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 }; 
 
 // New function to get available employees (not assigned to any project)
