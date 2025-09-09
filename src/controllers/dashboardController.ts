@@ -117,11 +117,40 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     
     // Financial KPIs - Get data from PnL Vertical Table
     const pnlData = await getVerticalPnLDataForDashboard(startDate, endDate);
-    
+
     const revenue = pnlData.revenue?.total || 0;
     const expenses = pnlData.expenses?.total || 0;
-    const ebitda = pnlData.ebitida?.total || 0;
-    const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;
+    const ebitda = pnlData.ebitda?.total || 0;
+
+    // Get Sub Companies Revenue from manual entries
+    let subCompaniesRevenue = 0;
+    try {
+      // Import the PnL controller to get manual entries
+      const { getManualPnLEntries } = await import('./pnlController');
+
+      // Create a mock request/response to get manual entries
+      const mockReq = { query: {} } as any;
+      let manualEntries: any[] = [];
+
+      const mockRes = {
+        json: (data: any) => {
+          manualEntries = data;
+        },
+        status: () => mockRes,
+        send: () => {}
+      } as any;
+
+      // Call the function to get manual entries
+      await getManualPnLEntries(mockReq, mockRes);
+
+      // Find sub companies revenue entry
+      const subCompaniesEntry = manualEntries.find((entry: any) => entry.itemId === 'sub_companies_revenue');
+      subCompaniesRevenue = subCompaniesEntry?.amount || 0;
+
+      console.log('Found sub companies revenue from manual entries:', subCompaniesRevenue);
+    } catch (error) {
+      console.error('Error fetching manual entries for sub companies revenue:', error);
+    }
     
     console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
 
@@ -233,7 +262,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         expenses: expenses,
         ebitda: ebitda,
         subCompaniesRevenue: subCompaniesRevenue,
-        margin: revenue ? (subCompaniesRevenue / revenue * 100) : 0
+        margin: revenue ? ((revenue - expenses) / revenue * 100) : 0
       },
       hr: {
         headcount: hrData.headcount || 0,
