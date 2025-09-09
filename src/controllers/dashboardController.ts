@@ -12,6 +12,7 @@ import PurchaseOrder from '../models/PurchaseOrder';
 import ProcurementInvoice from '../models/ProcurementInvoice';
 import Vendor from '../models/Vendor';
 import Client from '../models/Client';
+import Quotation from '../models/Quotation';
 import BusinessTrip from '../models/BusinessTrip';
 import Incident from '../models/Incident';
 import Training from '../models/Training';
@@ -83,9 +84,9 @@ interface ProcurementData {
 }
 
 interface SalesData {
-  totalSales: number;
-  pipeline: number;
-  salesMargin: number;
+  totalQuotations: number;
+  pendingQuotations: number;
+  totalClients: number;
 }
 
 interface AdminData {
@@ -452,6 +453,41 @@ async function getTotalVendorsCount() {
   }
 }
 
+async function getTotalQuotationsCount() {
+  try {
+    // Count total quotations
+    const totalQuotations = await Quotation.countDocuments();
+    return totalQuotations || 0;
+  } catch (error) {
+    console.log('Total quotations count fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getPendingQuotationsCount() {
+  try {
+    // Count pending quotations
+    const pendingQuotations = await Quotation.countDocuments({
+      status: { $in: ['pending', 'draft', 'sent'] }
+    });
+    return pendingQuotations || 0;
+  } catch (error) {
+    console.log('Pending quotations count fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getTotalClientsCount() {
+  try {
+    // Count total clients
+    const totalClients = await Client.countDocuments();
+    return totalClients || 0;
+  } catch (error) {
+    console.log('Total clients count fetch failed:', error);
+    return 0;
+  }
+}
+
 async function getSubCompaniesRevenue(startDate: Date, endDate: Date) {
   try {
     const { getManualPnLEntries } = await import('./pnlController');
@@ -499,7 +535,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       nearMissLog,
       totalPurchaseRequests,
       totalPurchaseOrders,
-      totalVendors
+      totalVendors,
+      totalQuotations,
+      pendingQuotations,
+      totalClients
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -521,7 +560,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getNearMissLogCount(),
       getTotalPurchaseRequestsCount(),
       getTotalPurchaseOrdersCount(),
-      getTotalVendorsCount()
+      getTotalVendorsCount(),
+      getTotalQuotationsCount(),
+      getPendingQuotationsCount(),
+      getTotalClientsCount()
     ]);
 
     console.log('Dashboard operations stats received:', operationsStats);
@@ -593,7 +635,11 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         totalPurchaseOrders: totalPurchaseOrders, 
         totalVendors: totalVendors 
       },
-      sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
+      sales: { 
+        totalQuotations: totalQuotations, 
+        pendingQuotations: pendingQuotations, 
+        totalClients: totalClients 
+      },
       admin: { 
         activeDocuments: activeDocuments, 
         openLegalCases: openLegalCases, 
@@ -652,7 +698,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       },
       maintenance: { cost: 0, downtime: 0 },
       procurement: { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 },
-      sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
+      sales: { totalQuotations: 0, pendingQuotations: 0, totalClients: 0 },
       admin: { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 },
       hse: { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 }
     };
@@ -698,7 +744,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     };
     const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
     const procurementData = pnlData.procurement || { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 };
-    const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
+    const salesData = pnlData.sales || { totalQuotations: 0, pendingQuotations: 0, totalClients: 0 };
     const adminData = pnlData.admin || { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 };
     const hseData = pnlData.hse || { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 };
 
@@ -832,10 +878,9 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         totalVendors: procurementData.totalVendors || 0
       },
       sales: {
-        totalSales: salesData.totalSales || 0,
-        pipeline: salesData.pipeline || 0,
-        topCustomers: [],
-        salesMargin: salesData.salesMargin || 0
+        totalQuotations: salesData.totalQuotations || 0,
+        pendingQuotations: salesData.pendingQuotations || 0,
+        totalClients: salesData.totalClients || 0
       },
       admin: {
         activeDocuments: adminData.activeDocuments || 0,
