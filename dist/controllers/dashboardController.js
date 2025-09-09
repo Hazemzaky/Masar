@@ -49,18 +49,14 @@ exports.debugExpiringContracts = exports.getCashFlowStatement = exports.getBalan
 const Expense_1 = __importDefault(require("../models/Expense"));
 const Invoice_1 = __importDefault(require("../models/Invoice"));
 const User_1 = __importDefault(require("../models/User"));
-const Employee_1 = __importDefault(require("../models/Employee"));
 const Asset_1 = __importDefault(require("../models/Asset"));
 const Maintenance_1 = __importDefault(require("../models/Maintenance"));
 const PurchaseRequest_1 = __importDefault(require("../models/PurchaseRequest"));
-const PurchaseOrder_1 = __importDefault(require("../models/PurchaseOrder"));
 const ProcurementInvoice_1 = __importDefault(require("../models/ProcurementInvoice"));
 const Client_1 = __importDefault(require("../models/Client"));
 const BusinessTrip_1 = __importDefault(require("../models/BusinessTrip"));
-const Incident_1 = __importDefault(require("../models/Incident"));
 const Training_1 = __importDefault(require("../models/Training"));
 const Payroll_1 = __importDefault(require("../models/Payroll"));
-const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const GeneralLedgerEntry_1 = __importDefault(require("../models/GeneralLedgerEntry"));
 const ReconciliationSession_1 = __importDefault(require("../models/ReconciliationSession"));
 const Leave_1 = __importDefault(require("../models/Leave"));
@@ -87,8 +83,8 @@ function getDateRange(req) {
     }
     return { startDate, endDate };
 }
-// Helper function to get P&L data for a specific period
-function getPnLDataForPeriod(startDate, endDate) {
+// Helper function to get PnL Vertical Table data for dashboard
+function getVerticalPnLDataForDashboard(startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // Import the P&L controller functions
@@ -118,146 +114,60 @@ function getPnLDataForPeriod(startDate, endDate) {
                 revenue: { total: 0 },
                 expenses: { total: 0 },
                 ebitida: { total: 0 },
-                netProfit: 0
+                subCompaniesRevenue: 0,
+                // Module-specific data
+                hr: { payroll: 0, headcount: 0, attrition: 0 },
+                assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
+                operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
+                maintenance: { cost: 0, downtime: 0 },
+                procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
+                sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
+                admin: { costs: 0, overheadPercentage: 0, pendingApprovals: 0 },
+                hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
             };
         }
         catch (error) {
-            console.error('Error fetching vertical P&L data:', error);
+            console.error('Error fetching vertical P&L data for dashboard:', error);
             // Return default values if P&L data is not available
             return {
                 revenue: { total: 0 },
                 expenses: { total: 0 },
                 ebitida: { total: 0 },
-                netProfit: 0
+                subCompaniesRevenue: 0,
+                // Module-specific data
+                hr: { payroll: 0, headcount: 0, attrition: 0 },
+                assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
+                operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
+                maintenance: { cost: 0, downtime: 0 },
+                procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
+                sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
+                admin: { costs: 0, overheadPercentage: 0, pendingApprovals: 0 },
+                hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
             };
         }
     });
 }
 // Enhanced Dashboard Summary with all module KPIs
 const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
+    var _a, _b, _c;
     try {
         const { startDate, endDate } = getDateRange(req);
-        // Financial KPIs - Get data from Vertical P&L system
-        const pnlData = yield getPnLDataForPeriod(startDate, endDate);
-        console.log('Dashboard - Vertical P&L Data received:', JSON.stringify(pnlData, null, 2));
-        // Extract values from vertical P&L structure to match vertical P&L table cards
-        const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0; // From Revenue card in vertical P&L table
-        const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0; // From Expenses card in vertical P&L table
-        const ebitda = ((_c = pnlData.ebitida) === null || _c === void 0 ? void 0 : _c.total) || 0; // From EBITDA card in vertical P&L table
-        const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0; // From manual entries Revenue From Sub Companies
+        // Financial KPIs - Get data from PnL Vertical Table
+        const pnlData = yield getVerticalPnLDataForDashboard(startDate, endDate);
+        const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0;
+        const ebitda = ((_c = pnlData.ebitida) === null || _c === void 0 ? void 0 : _c.total) || 0;
+        const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;
         console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
-        // HR KPIs
-        const [headcount, payroll, attrition] = yield Promise.all([
-            Employee_1.default.countDocuments({ status: 'active' }),
-            Payroll_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-            ]),
-            Employee_1.default.countDocuments({ status: 'terminated' })
-        ]);
-        // Assets KPIs
-        const [bookValue, utilization, depreciation, renewals] = yield Promise.all([
-            Asset_1.default.aggregate([
-                { $group: { _id: null, total: { $sum: '$bookValue' } } }
-            ]),
-            Asset_1.default.aggregate([
-                { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
-            ]),
-            Asset_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$depreciationAmount' } } }
-            ]),
-            Asset_1.default.countDocuments({ status: 'renewal_required' })
-        ]);
-        // Operations KPIs
-        const [deliveries, onTimePercentage, deliveryCost, fleetUtilization] = yield Promise.all([
-            BusinessTrip_1.default.countDocuments({ status: 'Completed', date: { $gte: startDate, $lte: endDate } }),
-            BusinessTrip_1.default.aggregate([
-                { $match: { status: 'Completed', date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, onTime: { $sum: { $cond: [{ $lte: ['$actualReturnDate', '$returnDate'] }, 1, 0] } }, total: { $sum: 1 } } }
-            ]),
-            FuelLog_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$cost' } } }
-            ]),
-            Asset_1.default.aggregate([
-                { $match: { type: 'vehicle' } },
-                { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
-            ])
-        ]);
-        // Maintenance KPIs
-        const [maintenanceCost, preventiveVsCorrective, downtime] = yield Promise.all([
-            Maintenance_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$cost' } } }
-            ]),
-            Maintenance_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: '$type', count: { $sum: 1 } } }
-            ]),
-            Maintenance_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$downtimeHours' } } }
-            ])
-        ]);
-        // Procurement KPIs
-        const [totalSpend, topVendors, openPOs, cycleTime] = yield Promise.all([
-            ProcurementInvoice_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]),
-            ProcurementInvoice_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: '$vendor', total: { $sum: '$amount' } } },
-                { $sort: { total: -1 } },
-                { $limit: 5 }
-            ]),
-            PurchaseOrder_1.default.countDocuments({ status: 'open' }),
-            PurchaseRequest_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, avgCycleTime: { $avg: { $subtract: ['$approvedDate', '$date'] } } } }
-            ])
-        ]);
-        // Sales KPIs
-        const [totalSales, pipeline, topCustomers, salesMargin] = yield Promise.all([
-            Invoice_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]),
-            Invoice_1.default.countDocuments({ status: 'pending' }),
-            Invoice_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: '$client', total: { $sum: '$amount' } } },
-                { $sort: { total: -1 } },
-                { $limit: 5 }
-            ]),
-            Invoice_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, avgMargin: { $avg: '$margin' } } }
-            ])
-        ]);
-        // Admin KPIs
-        const [adminCosts, overheadPercentage, pendingApprovals] = yield Promise.all([
-            Expense_1.default.aggregate([
-                { $match: { category: 'admin', date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]),
-            Expense_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]),
-            PurchaseRequest_1.default.countDocuments({ status: 'pending' })
-        ]);
-        // HSE KPIs
-        const [incidents, trainingCompliance, openActions] = yield Promise.all([
-            Incident_1.default.countDocuments({ date: { $gte: startDate, $lte: endDate } }),
-            Training_1.default.aggregate([
-                { $match: { date: { $gte: startDate, $lte: endDate } } },
-                { $group: { _id: null, compliance: { $avg: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } } } }
-            ]),
-            Incident_1.default.countDocuments({ status: 'open' })
-        ]);
+        // Extract module data from PnL vertical table
+        const hrData = pnlData.hr || { payroll: 0, headcount: 0, attrition: 0 };
+        const assetsData = pnlData.assets || { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
+        const operationsData = pnlData.operations || { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
+        const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
+        const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
+        const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
+        const adminData = pnlData.admin || { costs: 0, overheadPercentage: 0, pendingApprovals: 0 };
+        const hseData = pnlData.hse || { incidents: 0, trainingCompliance: 0, openActions: 0 };
         // Action Center Alerts
         const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = yield Promise.all([
             // Overdue Invoices: Check for invoices with paymentStatus='overdue' or dueDate < now and status='pending'
@@ -340,49 +250,49 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
                 margin: revenue ? (subCompaniesRevenue / revenue * 100) : 0
             },
             hr: {
-                headcount: headcount || 0,
-                payroll: ((_d = payroll[0]) === null || _d === void 0 ? void 0 : _d.total) || 0,
-                attrition: attrition || 0,
-                attritionRate: headcount ? (attrition / headcount * 100) : 0
+                headcount: hrData.headcount || 0,
+                payroll: hrData.payroll || 0,
+                attrition: hrData.attrition || 0,
+                attritionRate: hrData.headcount ? (hrData.attrition / hrData.headcount * 100) : 0
             },
             assets: {
-                bookValue: ((_e = bookValue[0]) === null || _e === void 0 ? void 0 : _e.total) || 0,
-                utilization: ((_f = utilization[0]) === null || _f === void 0 ? void 0 : _f.avgUtilization) || 0,
-                depreciation: ((_g = depreciation[0]) === null || _g === void 0 ? void 0 : _g.total) || 0,
-                renewals: renewals || 0
+                bookValue: assetsData.bookValue || 0,
+                utilization: assetsData.utilization || 0,
+                depreciation: assetsData.depreciation || 0,
+                renewals: assetsData.renewals || 0
             },
             operations: {
-                deliveries: deliveries || 0,
-                onTimePercentage: ((_h = onTimePercentage[0]) === null || _h === void 0 ? void 0 : _h.total) ? (onTimePercentage[0].onTime / onTimePercentage[0].total * 100) : 0,
-                deliveryCost: ((_j = deliveryCost[0]) === null || _j === void 0 ? void 0 : _j.total) || 0,
-                fleetUtilization: ((_k = fleetUtilization[0]) === null || _k === void 0 ? void 0 : _k.avgUtilization) || 0
+                deliveries: operationsData.deliveries || 0,
+                onTimePercentage: operationsData.onTimePercentage || 0,
+                deliveryCost: operationsData.deliveryCost || 0,
+                fleetUtilization: operationsData.fleetUtilization || 0
             },
             maintenance: {
-                cost: ((_l = maintenanceCost[0]) === null || _l === void 0 ? void 0 : _l.total) || 0,
-                preventiveVsCorrective: preventiveVsCorrective || [],
-                downtime: ((_m = downtime[0]) === null || _m === void 0 ? void 0 : _m.total) || 0
+                cost: maintenanceData.cost || 0,
+                preventiveVsCorrective: [],
+                downtime: maintenanceData.downtime || 0
             },
             procurement: {
-                totalSpend: ((_o = totalSpend[0]) === null || _o === void 0 ? void 0 : _o.total) || 0,
-                topVendors: topVendors || [],
-                openPOs: openPOs || 0,
-                cycleTime: ((_p = cycleTime[0]) === null || _p === void 0 ? void 0 : _p.avgCycleTime) || 0
+                totalSpend: procurementData.totalSpend || 0,
+                topVendors: [],
+                openPOs: procurementData.openPOs || 0,
+                cycleTime: procurementData.cycleTime || 0
             },
             sales: {
-                totalSales: ((_q = totalSales[0]) === null || _q === void 0 ? void 0 : _q.total) || 0,
-                pipeline: pipeline || 0,
-                topCustomers: topCustomers || [],
-                salesMargin: ((_r = salesMargin[0]) === null || _r === void 0 ? void 0 : _r.avgMargin) || 0
+                totalSales: salesData.totalSales || 0,
+                pipeline: salesData.pipeline || 0,
+                topCustomers: [],
+                salesMargin: salesData.salesMargin || 0
             },
             admin: {
-                costs: ((_s = adminCosts[0]) === null || _s === void 0 ? void 0 : _s.total) || 0,
-                overheadPercentage: ((_t = adminCosts[0]) === null || _t === void 0 ? void 0 : _t.total) && ((_u = expenses[0]) === null || _u === void 0 ? void 0 : _u.total) ? (adminCosts[0].total / expenses[0].total * 100) : 0,
-                pendingApprovals: pendingApprovals || 0
+                costs: adminData.costs || 0,
+                overheadPercentage: adminData.overheadPercentage || 0,
+                pendingApprovals: adminData.pendingApprovals || 0
             },
             hse: {
-                incidents: incidents || 0,
-                trainingCompliance: ((_v = trainingCompliance[0]) === null || _v === void 0 ? void 0 : _v.compliance) || 0,
-                openActions: openActions || 0
+                incidents: hseData.incidents || 0,
+                trainingCompliance: hseData.trainingCompliance || 0,
+                openActions: hseData.openActions || 0
             },
             alerts: {
                 overdueInvoices: overdueInvoices || 0,

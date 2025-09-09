@@ -22,6 +22,9 @@ import InventoryTransaction from '../models/InventoryTransaction';
 import Project from '../models/Project';
 import Client from '../models/Client';
 import Payroll from '../models/Payroll';
+import PurchaseOrder from '../models/PurchaseOrder';
+import PurchaseRequest from '../models/PurchaseRequest';
+import Incident from '../models/Incident';
 
 // In-memory store for Cost Analysis Dashboard data
 interface DashboardData {
@@ -1734,7 +1737,102 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
 
     console.log('Final calculations:', { totalRevenue, totalExpenses, ebitda, netProfit, subCompaniesRevenue });
 
-    // Return vertical P&L structure
+    // Get additional module-specific data for dashboard
+    const [hrData, assetsData, operationsData, maintenanceData, procurementData, salesData, adminData, hseData] = await Promise.all([
+      // HR Data
+      Promise.all([
+        Employee.countDocuments({ status: 'active' }),
+        Payroll.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+        ]),
+        Employee.countDocuments({ status: 'terminated' })
+      ]),
+      // Assets Data
+      Promise.all([
+        Asset.aggregate([
+          { $group: { _id: null, total: { $sum: '$bookValue' } } }
+        ]),
+        Asset.aggregate([
+          { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
+        ]),
+        Asset.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$depreciationAmount' } } }
+        ]),
+        Asset.countDocuments({ status: 'renewal_required' })
+      ]),
+      // Operations Data
+      Promise.all([
+        BusinessTrip.countDocuments({ status: 'Completed', date: { $gte: startDate, $lte: endDate } }),
+        BusinessTrip.aggregate([
+          { $match: { status: 'Completed', date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, onTime: { $sum: { $cond: [{ $lte: ['$actualReturnDate', '$returnDate'] }, 1, 0] } }, total: { $sum: 1 } } }
+        ]),
+        FuelLog.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$cost' } } }
+        ]),
+        Asset.aggregate([
+          { $match: { type: 'vehicle' } },
+          { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
+        ])
+      ]),
+      // Maintenance Data
+      Promise.all([
+        Maintenance.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$cost' } } }
+        ]),
+        Maintenance.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$downtimeHours' } } }
+        ])
+      ]),
+      // Procurement Data
+      Promise.all([
+        ProcurementInvoice.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]),
+        PurchaseOrder.countDocuments({ status: 'open' }),
+        PurchaseRequest.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, avgCycleTime: { $avg: { $subtract: ['$approvedDate', '$date'] } } } }
+        ])
+      ]),
+      // Sales Data
+      Promise.all([
+        Invoice.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]),
+        Invoice.countDocuments({ status: 'pending' }),
+        Invoice.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, avgMargin: { $avg: '$margin' } } }
+        ])
+      ]),
+      // Admin Data
+      Promise.all([
+        Expense.aggregate([
+          { $match: { category: 'admin', date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]),
+        PurchaseRequest.countDocuments({ status: 'pending' })
+      ]),
+      // HSE Data
+      Promise.all([
+        Incident.countDocuments({ date: { $gte: startDate, $lte: endDate } }),
+        Training.aggregate([
+          { $match: { date: { $gte: startDate, $lte: endDate } } },
+          { $group: { _id: null, compliance: { $avg: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } } } }
+        ]),
+        Incident.countDocuments({ status: 'open' })
+      ])
+    ]);
+
+    // Return vertical P&L structure with module data
     res.json({
       summary: {
         revenue: totalRevenue,
@@ -1777,7 +1875,49 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
         depreciation
       },
       subCompaniesRevenue: subCompaniesRevenue,
-      netProfit: netProfit
+      netProfit: netProfit,
+      // Module-specific data for dashboard
+      hr: {
+        headcount: hrData[0] || 0,
+        payroll: hrData[1][0]?.total || 0,
+        attrition: hrData[2] || 0
+      },
+      assets: {
+        bookValue: assetsData[0][0]?.total || 0,
+        utilization: assetsData[1][0]?.avgUtilization || 0,
+        depreciation: assetsData[2][0]?.total || 0,
+        renewals: assetsData[3] || 0
+      },
+      operations: {
+        deliveries: operationsData[0] || 0,
+        onTimePercentage: operationsData[1][0]?.total ? (operationsData[1][0].onTime / operationsData[1][0].total * 100) : 0,
+        deliveryCost: operationsData[2][0]?.total || 0,
+        fleetUtilization: operationsData[3][0]?.avgUtilization || 0
+      },
+      maintenance: {
+        cost: maintenanceData[0][0]?.total || 0,
+        downtime: maintenanceData[1][0]?.total || 0
+      },
+      procurement: {
+        totalSpend: procurementData[0][0]?.total || 0,
+        openPOs: procurementData[1] || 0,
+        cycleTime: procurementData[2][0]?.avgCycleTime || 0
+      },
+      sales: {
+        totalSales: salesData[0][0]?.total || 0,
+        pipeline: salesData[1] || 0,
+        salesMargin: salesData[2][0]?.avgMargin || 0
+      },
+      admin: {
+        costs: adminData[0][0]?.total || 0,
+        overheadPercentage: adminData[0][0]?.total && totalExpenses ? (adminData[0][0].total / totalExpenses * 100) : 0,
+        pendingApprovals: adminData[1] || 0
+      },
+      hse: {
+        incidents: hseData[0] || 0,
+        trainingCompliance: hseData[1][0]?.compliance || 0,
+        openActions: hseData[2] || 0
+      }
     });
   } catch (error) {
     console.error('Error in getVerticalPnLData:', error);

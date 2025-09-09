@@ -43,150 +43,97 @@ function getDateRange(req: Request) {
   return { startDate, endDate };
 }
 
+// Helper function to get PnL Vertical Table data for dashboard
+async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
+  try {
+    // Import the P&L controller functions
+    const { getVerticalPnLData } = await import('./pnlController');
+    
+    // Create a mock request object with the date range
+    const mockReq = {
+      query: {
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0],
+        period: 'monthly'
+      }
+    } as any;
+    
+    // Create a mock response object to capture the data
+    let pnlData: any = null;
+    const mockRes = {
+      json: (data: any) => {
+        pnlData = data;
+      },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+    
+    // Call the vertical P&L data function
+    await getVerticalPnLData(mockReq, mockRes);
+    
+    console.log('Vertical P&L Data fetched for dashboard:', JSON.stringify(pnlData, null, 2));
+    
+    // Return the P&L data or default values if not available
+    return pnlData || {
+      revenue: { total: 0 },
+      expenses: { total: 0 },
+      ebitida: { total: 0 },
+      subCompaniesRevenue: 0,
+      // Module-specific data
+      hr: { payroll: 0, headcount: 0, attrition: 0 },
+      assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
+      operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
+      maintenance: { cost: 0, downtime: 0 },
+      procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
+      sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
+      admin: { costs: 0, overheadPercentage: 0, pendingApprovals: 0 },
+      hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
+    };
+  } catch (error) {
+    console.error('Error fetching vertical P&L data for dashboard:', error);
+    // Return default values if P&L data is not available
+    return {
+      revenue: { total: 0 },
+      expenses: { total: 0 },
+      ebitida: { total: 0 },
+      subCompaniesRevenue: 0,
+      // Module-specific data
+      hr: { payroll: 0, headcount: 0, attrition: 0 },
+      assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
+      operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
+      maintenance: { cost: 0, downtime: 0 },
+      procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
+      sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
+      admin: { costs: 0, overheadPercentage: 0, pendingApprovals: 0 },
+      hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
+    };
+  }
+}
+
 // Enhanced Dashboard Summary with all module KPIs
 export const getDashboardSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const { startDate, endDate } = getDateRange(req);
     
-    // Financial KPIs - Calculate real data from actual modules
-    const [revenueData, expensesData] = await Promise.all([
-      // Calculate total revenue from invoices
-      Invoice.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate }, status: { $in: ['approved', 'sent', 'paid'] } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      // Calculate total expenses from all expense sources
-      Expense.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ])
-    ]);
-
-    const revenue = revenueData[0]?.total || 0;
-    const expenses = expensesData[0]?.total || 0;
-    const ebitda = revenue - expenses; // Simple EBITDA calculation
-    const subCompaniesRevenue = 0; // This should come from actual sub-companies data when available
+    // Financial KPIs - Get data from PnL Vertical Table
+    const pnlData = await getVerticalPnLDataForDashboard(startDate, endDate);
+    
+    const revenue = pnlData.revenue?.total || 0;
+    const expenses = pnlData.expenses?.total || 0;
+    const ebitda = pnlData.ebitida?.total || 0;
+    const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;
     
     console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
 
-    // HR KPIs
-    const [headcount, payroll, attrition] = await Promise.all([
-      Employee.countDocuments({ status: 'active' }),
-      Payroll.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-      ]),
-      Employee.countDocuments({ status: 'terminated' })
-    ]);
-
-    // Assets KPIs
-    const [bookValue, utilization, depreciation, renewals] = await Promise.all([
-      Asset.aggregate([
-        { $group: { _id: null, total: { $sum: '$bookValue' } } }
-      ]),
-      Asset.aggregate([
-        { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
-      ]),
-      Asset.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$depreciationAmount' } } }
-      ]),
-      Asset.countDocuments({ status: 'renewal_required' })
-    ]);
-
-    // Operations KPIs
-    const [deliveries, onTimePercentage, deliveryCost, fleetUtilization] = await Promise.all([
-      BusinessTrip.countDocuments({ status: 'Completed', date: { $gte: startDate, $lte: endDate } }),
-      BusinessTrip.aggregate([
-        { $match: { status: 'Completed', date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, onTime: { $sum: { $cond: [{ $lte: ['$actualReturnDate', '$returnDate'] }, 1, 0] } }, total: { $sum: 1 } } }
-      ]),
-      FuelLog.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$cost' } } }
-      ]),
-      Asset.aggregate([
-        { $match: { type: 'vehicle' } },
-        { $group: { _id: null, avgUtilization: { $avg: '$utilizationRate' } } }
-      ])
-    ]);
-
-    // Maintenance KPIs
-    const [maintenanceCost, preventiveVsCorrective, downtime] = await Promise.all([
-      Maintenance.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$cost' } } }
-      ]),
-      Maintenance.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: '$type', count: { $sum: 1 } } }
-      ]),
-      Maintenance.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$downtimeHours' } } }
-      ])
-    ]);
-
-    // Procurement KPIs
-    const [totalSpend, topVendors, openPOs, cycleTime] = await Promise.all([
-      ProcurementInvoice.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      ProcurementInvoice.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: '$vendor', total: { $sum: '$amount' } } },
-        { $sort: { total: -1 } },
-        { $limit: 5 }
-      ]),
-      PurchaseOrder.countDocuments({ status: 'open' }),
-      PurchaseRequest.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, avgCycleTime: { $avg: { $subtract: ['$approvedDate', '$date'] } } } }
-      ])
-    ]);
-
-    // Sales KPIs
-    const [totalSales, pipeline, topCustomers, salesMargin] = await Promise.all([
-      Invoice.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      Invoice.countDocuments({ status: 'pending' }),
-      Invoice.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: '$client', total: { $sum: '$amount' } } },
-        { $sort: { total: -1 } },
-        { $limit: 5 }
-      ]),
-      Invoice.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, avgMargin: { $avg: '$margin' } } }
-      ])
-    ]);
-
-    // Admin KPIs
-    const [adminCosts, overheadPercentage, pendingApprovals] = await Promise.all([
-      Expense.aggregate([
-        { $match: { category: 'admin', date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      Expense.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      PurchaseRequest.countDocuments({ status: 'pending' })
-    ]);
-
-    // HSE KPIs
-    const [incidents, trainingCompliance, openActions] = await Promise.all([
-      Incident.countDocuments({ date: { $gte: startDate, $lte: endDate } }),
-      Training.aggregate([
-        { $match: { date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, compliance: { $avg: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } } } }
-      ]),
-      Incident.countDocuments({ status: 'open' })
-    ]);
+    // Extract module data from PnL vertical table
+    const hrData = pnlData.hr || { payroll: 0, headcount: 0, attrition: 0 };
+    const assetsData = pnlData.assets || { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
+    const operationsData = pnlData.operations || { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
+    const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
+    const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
+    const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
+    const adminData = pnlData.admin || { costs: 0, overheadPercentage: 0, pendingApprovals: 0 };
+    const hseData = pnlData.hse || { incidents: 0, trainingCompliance: 0, openActions: 0 };
 
     // Action Center Alerts
     const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = await Promise.all([
@@ -289,49 +236,49 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         margin: revenue ? (subCompaniesRevenue / revenue * 100) : 0
       },
       hr: {
-        headcount: headcount || 0,
-        payroll: payroll[0]?.total || 0,
-        attrition: attrition || 0,
-        attritionRate: headcount ? (attrition / headcount * 100) : 0
+        headcount: hrData.headcount || 0,
+        payroll: hrData.payroll || 0,
+        attrition: hrData.attrition || 0,
+        attritionRate: hrData.headcount ? (hrData.attrition / hrData.headcount * 100) : 0
       },
       assets: {
-        bookValue: bookValue[0]?.total || 0,
-        utilization: utilization[0]?.avgUtilization || 0,
-        depreciation: depreciation[0]?.total || 0,
-        renewals: renewals || 0
+        bookValue: assetsData.bookValue || 0,
+        utilization: assetsData.utilization || 0,
+        depreciation: assetsData.depreciation || 0,
+        renewals: assetsData.renewals || 0
       },
       operations: {
-        deliveries: deliveries || 0,
-        onTimePercentage: onTimePercentage[0]?.total ? (onTimePercentage[0].onTime / onTimePercentage[0].total * 100) : 0,
-        deliveryCost: deliveryCost[0]?.total || 0,
-        fleetUtilization: fleetUtilization[0]?.avgUtilization || 0
+        deliveries: operationsData.deliveries || 0,
+        onTimePercentage: operationsData.onTimePercentage || 0,
+        deliveryCost: operationsData.deliveryCost || 0,
+        fleetUtilization: operationsData.fleetUtilization || 0
       },
       maintenance: {
-        cost: maintenanceCost[0]?.total || 0,
-        preventiveVsCorrective: preventiveVsCorrective || [],
-        downtime: downtime[0]?.total || 0
+        cost: maintenanceData.cost || 0,
+        preventiveVsCorrective: [],
+        downtime: maintenanceData.downtime || 0
       },
       procurement: {
-        totalSpend: totalSpend[0]?.total || 0,
-        topVendors: topVendors || [],
-        openPOs: openPOs || 0,
-        cycleTime: cycleTime[0]?.avgCycleTime || 0
+        totalSpend: procurementData.totalSpend || 0,
+        topVendors: [],
+        openPOs: procurementData.openPOs || 0,
+        cycleTime: procurementData.cycleTime || 0
       },
       sales: {
-        totalSales: totalSales[0]?.total || 0,
-        pipeline: pipeline || 0,
-        topCustomers: topCustomers || [],
-        salesMargin: salesMargin[0]?.avgMargin || 0
+        totalSales: salesData.totalSales || 0,
+        pipeline: salesData.pipeline || 0,
+        topCustomers: [],
+        salesMargin: salesData.salesMargin || 0
       },
       admin: {
-        costs: adminCosts[0]?.total || 0,
-        overheadPercentage: adminCosts[0]?.total && expenses[0]?.total ? (adminCosts[0].total / expenses[0].total * 100) : 0,
-        pendingApprovals: pendingApprovals || 0
+        costs: adminData.costs || 0,
+        overheadPercentage: adminData.overheadPercentage || 0,
+        pendingApprovals: adminData.pendingApprovals || 0
       },
       hse: {
-        incidents: incidents || 0,
-        trainingCompliance: trainingCompliance[0]?.compliance || 0,
-        openActions: openActions || 0
+        incidents: hseData.incidents || 0,
+        trainingCompliance: hseData.trainingCompliance || 0,
+        openActions: hseData.openActions || 0
       },
       alerts: {
         overdueInvoices: overdueInvoices || 0,
