@@ -48,6 +48,9 @@ interface HRData {
   payroll: number;
   headcount: number;
   attrition: number;
+  attritionRate: number;
+  activeEmployees: number;
+  onLeaveEmployees: number;
 }
 
 interface AssetsData {
@@ -150,6 +153,53 @@ async function getPayrollExpense(startDate: Date, endDate: Date) {
   }
 }
 
+async function getHREmployeeStats() {
+  try {
+    // Get total headcount
+    const totalHeadcount = await Employee.countDocuments();
+    
+    // Get active employees
+    const activeEmployees = await Employee.countDocuments({ 
+      active: true, 
+      status: 'active' 
+    });
+    
+    // Get employees on leave
+    const onLeaveEmployees = await Employee.countDocuments({ 
+      status: 'on-leave' 
+    });
+    
+    // Get resigned employees in the last 30 days for attrition calculation
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const recentResignations = await Employee.countDocuments({
+      status: 'resigned',
+      terminationDate: { $gte: thirtyDaysAgo }
+    });
+    
+    // Calculate attrition rate (monthly)
+    const attritionRate = totalHeadcount > 0 ? (recentResignations / totalHeadcount) * 100 : 0;
+    
+    return {
+      headcount: totalHeadcount,
+      activeEmployees,
+      onLeaveEmployees,
+      recentResignations,
+      attritionRate
+    };
+  } catch (error) {
+    console.log('HR employee stats fetch failed:', error);
+    return {
+      headcount: 0,
+      activeEmployees: 0,
+      onLeaveEmployees: 0,
+      recentResignations: 0,
+      attritionRate: 0
+    };
+  }
+}
+
 async function getOperationsExpense(startDate: Date, endDate: Date) {
   try {
     const fuelLogs = await FuelLog.aggregate([
@@ -240,7 +290,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       maintenanceExpense,
       procurementExpense,
       adminExpense,
-      subCompaniesRevenue
+      subCompaniesRevenue,
+      hrStats
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -250,7 +301,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getMaintenanceExpense(startDate, endDate),
       getProcurementExpense(startDate, endDate),
       getAdminExpense(startDate, endDate),
-      getSubCompaniesRevenue(startDate, endDate)
+      getSubCompaniesRevenue(startDate, endDate),
+      getHREmployeeStats()
     ]);
 
     // Calculate final totals
@@ -264,7 +316,14 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       expenses: { total: finalExpenses },
       ebitda: { total: totalRevenue - finalExpenses },
       subCompaniesRevenue: subCompaniesRevenue,
-      hr: { payroll: payrollExpense, headcount: 0, attrition: 0 },
+      hr: { 
+        payroll: payrollExpense, 
+        headcount: hrStats.headcount, 
+        attrition: hrStats.recentResignations,
+        attritionRate: hrStats.attritionRate,
+        activeEmployees: hrStats.activeEmployees,
+        onLeaveEmployees: hrStats.onLeaveEmployees
+      },
       assets: { bookValue: rentalRevenue / 0.02, utilization: 0, depreciation: 0, renewals: 0 },
       operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: operationsExpense, fleetUtilization: 0 },
       maintenance: { cost: maintenanceExpense, downtime: 0 },
@@ -299,7 +358,14 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       expenses: { total: 0 },
       ebitda: { total: 0 },
       subCompaniesRevenue: 0,
-      hr: { payroll: 0, headcount: 0, attrition: 0 },
+      hr: { 
+        payroll: 0, 
+        headcount: 0, 
+        attrition: 0,
+        attritionRate: 0,
+        activeEmployees: 0,
+        onLeaveEmployees: 0
+      },
       assets: { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 },
       operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 },
       maintenance: { cost: 0, downtime: 0 },
@@ -327,7 +393,14 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
 
     // Extract module data from PnL vertical table
-    const hrData = pnlData.hr || { payroll: 0, headcount: 0, attrition: 0 };
+    const hrData = pnlData.hr || { 
+      payroll: 0, 
+      headcount: 0, 
+      attrition: 0,
+      attritionRate: 0,
+      activeEmployees: 0,
+      onLeaveEmployees: 0
+    };
     const assetsData = pnlData.assets || { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
     const operationsData = pnlData.operations || { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
     const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
@@ -440,7 +513,9 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         headcount: hrData.headcount || 0,
         payroll: hrData.payroll || 0,
         attrition: hrData.attrition || 0,
-        attritionRate: hrData.headcount ? (hrData.attrition / hrData.headcount * 100) : 0
+        attritionRate: hrData.attritionRate || 0,
+        activeEmployees: hrData.activeEmployees || 0,
+        onLeaveEmployees: hrData.onLeaveEmployees || 0
       },
       assets: {
         bookValue: assetsData.bookValue || 0,
