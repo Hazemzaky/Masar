@@ -14,6 +14,9 @@ import Client from '../models/Client';
 import BusinessTrip from '../models/BusinessTrip';
 import Incident from '../models/Incident';
 import Training from '../models/Training';
+import Accident from '../models/Accident';
+import NearMiss from '../models/NearMiss';
+import SafetyInspection from '../models/SafetyInspection';
 import Payroll from '../models/Payroll';
 import FuelLog from '../models/FuelLog';
 import GeneralLedgerEntry from '../models/GeneralLedgerEntry';
@@ -91,9 +94,9 @@ interface AdminData {
 }
 
 interface HSEData {
-  incidents: number;
-  trainingCompliance: number;
-  openActions: number;
+  totalIncidents: number;
+  auditInspectionAvgScore: number;
+  nearMissLog: number;
 }
 
 // Individual Data Source Services - Clean Architecture Approach
@@ -377,6 +380,47 @@ async function getExpiryDocumentsNext30Days() {
   }
 }
 
+async function getTotalIncidentsCount() {
+  try {
+    // Count total incidents from Accident model
+    const totalIncidents = await Accident.countDocuments();
+    return totalIncidents || 0;
+  } catch (error) {
+    console.log('Total incidents count fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getAuditInspectionAvgScore() {
+  try {
+    // Calculate average score from SafetyInspection model
+    const avgScoreData = await SafetyInspection.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: null, avgScore: { $avg: '$overallScore' } } }
+    ]);
+    
+    const avgScore = avgScoreData[0]?.avgScore;
+    if (avgScore === null || avgScore === undefined || isNaN(avgScore)) {
+      return 0;
+    }
+    return Math.round(avgScore * 100) / 100; // Round to 2 decimal places
+  } catch (error) {
+    console.log('Audit inspection avg score fetch failed:', error);
+    return 0;
+  }
+}
+
+async function getNearMissLogCount() {
+  try {
+    // Count near miss logs from NearMiss model
+    const nearMissCount = await NearMiss.countDocuments();
+    return nearMissCount || 0;
+  } catch (error) {
+    console.log('Near miss log count fetch failed:', error);
+    return 0;
+  }
+}
+
 async function getSubCompaniesRevenue(startDate: Date, endDate: Date) {
   try {
     const { getManualPnLEntries } = await import('./pnlController');
@@ -418,7 +462,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       operationsStats,
       activeDocuments,
       openLegalCases,
-      expiryDocuments
+      expiryDocuments,
+      totalIncidents,
+      auditInspectionAvgScore,
+      nearMissLog
     ] = await Promise.all([
       getRevenueData(startDate, endDate),
       getExpenseData(startDate, endDate),
@@ -434,7 +481,10 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       getOperationsStats(),
       getActiveDocumentsCount(),
       getOpenLegalCasesCount(),
-      getExpiryDocumentsNext30Days()
+      getExpiryDocumentsNext30Days(),
+      getTotalIncidentsCount(),
+      getAuditInspectionAvgScore(),
+      getNearMissLogCount()
     ]);
 
     console.log('Dashboard operations stats received:', operationsStats);
@@ -508,7 +558,11 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
         openLegalCases: openLegalCases, 
         expiryDocuments: expiryDocuments 
       },
-      hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
+      hse: { 
+        totalIncidents: totalIncidents, 
+        auditInspectionAvgScore: auditInspectionAvgScore, 
+        nearMissLog: nearMissLog 
+      }
     };
 
     console.log('✅ Dashboard: Individual services data aggregation completed:', {
@@ -559,7 +613,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       procurement: { totalSpend: 0, openPOs: 0, cycleTime: 0 },
       sales: { totalSales: 0, pipeline: 0, salesMargin: 0 },
       admin: { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 },
-      hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
+      hse: { totalIncidents: 0, auditInspectionAvgScore: 0, nearMissLog: 0 }
     };
   }
 }
@@ -605,7 +659,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
     const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
     const adminData = pnlData.admin || { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 };
-    const hseData = pnlData.hse || { incidents: 0, trainingCompliance: 0, openActions: 0 };
+    const hseData = pnlData.hse || { totalIncidents: 0, auditInspectionAvgScore: 0, nearMissLog: 0 };
 
     // Action Center Alerts
     const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = await Promise.all([
@@ -749,9 +803,9 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         expiryDocuments: adminData.expiryDocuments || 0
       },
       hse: {
-        incidents: hseData.incidents || 0,
-        trainingCompliance: hseData.trainingCompliance || 0,
-        openActions: hseData.openActions || 0
+        totalIncidents: hseData.totalIncidents || 0,
+        auditInspectionAvgScore: hseData.auditInspectionAvgScore || 0,
+        nearMissLog: hseData.nearMissLog || 0
       },
       alerts: {
         overdueInvoices: overdueInvoices || 0,
