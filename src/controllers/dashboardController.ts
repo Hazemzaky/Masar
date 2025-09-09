@@ -105,8 +105,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       (async (): Promise<HRData> => {
         try {
           const payrollData = await Payroll.aggregate([
-            { $match: { date: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
+            { $match: { runDate: { $gte: startDate, $lte: endDate } } },
+            { $group: { _id: null, total: { $sum: '$netPay' } } }
           ]);
           const employeeCount = await Employee.countDocuments();
           const leaveData = await Leave.countDocuments({
@@ -138,15 +138,11 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
               }
             }
           ]);
-          const depreciationData = await Asset.aggregate([
-            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: null, depreciation: { $sum: '$depreciation' } } }
-          ]);
 
           return {
             bookValue: assetData[0]?.bookValue || 0,
             utilization: assetData[0]?.count ? 85 : 0, // Mock utilization
-            depreciation: depreciationData[0]?.depreciation || 0,
+            depreciation: 0, // Will be calculated from depreciation model if available
             renewals: assetData[0]?.count || 0
           };
         } catch (err) {
@@ -159,7 +155,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       (async (): Promise<OperationsData> => {
         try {
           const fuelLogs = await FuelLog.aggregate([
-            { $match: { date: { $gte: startDate, $lte: endDate } } },
+            { $match: { dateTime: { $gte: startDate, $lte: endDate } } },
             { $group: { _id: null, totalCost: { $sum: '$totalCost' }, count: { $sum: 1 } } }
           ]);
 
@@ -179,8 +175,8 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       (async (): Promise<MaintenanceData> => {
         try {
           const maintenanceData = await Maintenance.aggregate([
-            { $match: { date: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: null, totalCost: { $sum: '$cost' }, count: { $sum: 1 } } }
+            { $match: { scheduledDate: { $gte: startDate, $lte: endDate } } },
+            { $group: { _id: null, totalCost: { $sum: '$totalCost' }, count: { $sum: 1 } } }
           ]);
 
           return {
@@ -197,7 +193,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       (async (): Promise<ProcurementData> => {
         try {
           const procurementData = await ProcurementInvoice.aggregate([
-            { $match: { date: { $gte: startDate, $lte: endDate } } },
+            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
             { $group: { _id: null, totalSpend: { $sum: '$amount' }, count: { $sum: 1 } } }
           ]);
 
@@ -220,7 +216,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       (async (): Promise<SalesData> => {
         try {
           const invoiceData = await Invoice.aggregate([
-            { $match: { date: { $gte: startDate, $lte: endDate }, status: 'paid' } },
+            { $match: { invoiceDate: { $gte: startDate, $lte: endDate }, status: 'paid' } },
             { $group: { _id: null, totalSales: { $sum: '$amount' }, count: { $sum: 1 } } }
           ]);
 
