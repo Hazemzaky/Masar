@@ -43,6 +43,56 @@ function getDateRange(req: Request) {
   return { startDate, endDate };
 }
 
+// Type definitions for module data
+interface HRData {
+  payroll: number;
+  headcount: number;
+  attrition: number;
+}
+
+interface AssetsData {
+  bookValue: number;
+  utilization: number;
+  depreciation: number;
+  renewals: number;
+}
+
+interface OperationsData {
+  deliveries: number;
+  onTimePercentage: number;
+  deliveryCost: number;
+  fleetUtilization: number;
+}
+
+interface MaintenanceData {
+  cost: number;
+  downtime: number;
+}
+
+interface ProcurementData {
+  totalSpend: number;
+  openPOs: number;
+  cycleTime: number;
+}
+
+interface SalesData {
+  totalSales: number;
+  pipeline: number;
+  salesMargin: number;
+}
+
+interface AdminData {
+  costs: number;
+  overheadPercentage: number;
+  pendingApprovals: number;
+}
+
+interface HSEData {
+  incidents: number;
+  trainingCompliance: number;
+  openActions: number;
+}
+
 // Creative Solution: Aggregate module data directly for dashboard
 // This mirrors the approach used by the PnL page's verticalPnLMappingService
 async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
@@ -52,7 +102,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
     // Aggregate data from all modules using the same logic as verticalPnLMappingService
     const moduleData = await Promise.allSettled([
       // HR Module Data
-      (async () => {
+      (async (): Promise<HRData> => {
         try {
           const payrollData = await Payroll.aggregate([
             { $match: { date: { $gte: startDate, $lte: endDate } } },
@@ -76,7 +126,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })(),
 
       // Assets Module Data
-      (async () => {
+      (async (): Promise<AssetsData> => {
         try {
           const assetData = await Asset.aggregate([
             { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
@@ -106,7 +156,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })(),
 
       // Operations Module Data
-      (async () => {
+      (async (): Promise<OperationsData> => {
         try {
           const fuelLogs = await FuelLog.aggregate([
             { $match: { date: { $gte: startDate, $lte: endDate } } },
@@ -126,7 +176,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })(),
 
       // Maintenance Module Data
-      (async () => {
+      (async (): Promise<MaintenanceData> => {
         try {
           const maintenanceData = await Maintenance.aggregate([
             { $match: { date: { $gte: startDate, $lte: endDate } } },
@@ -144,7 +194,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })(),
 
       // Procurement Module Data
-      (async () => {
+      (async (): Promise<ProcurementData> => {
         try {
           const procurementData = await ProcurementInvoice.aggregate([
             { $match: { date: { $gte: startDate, $lte: endDate } } },
@@ -167,7 +217,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })(),
 
       // Sales/Revenue Module Data
-      (async () => {
+      (async (): Promise<SalesData> => {
         try {
           const invoiceData = await Invoice.aggregate([
             { $match: { date: { $gte: startDate, $lte: endDate }, status: 'paid' } },
@@ -186,7 +236,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })(),
 
       // Admin Module Data
-      (async () => {
+      (async (): Promise<AdminData> => {
         try {
           const expenseData = await Expense.aggregate([
             { $match: {
@@ -208,7 +258,7 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })(),
 
       // HSE Module Data
-      (async () => {
+      (async (): Promise<HSEData> => {
         try {
           const incidentCount = await Incident.countDocuments({
             date: { $gte: startDate, $lte: endDate }
@@ -230,10 +280,15 @@ async function getVerticalPnLDataForDashboard(startDate: Date, endDate: Date) {
       })()
     ]);
 
-    // Extract the results from Promise.allSettled
-    const [hrData, assetsData, operationsData, maintenanceData, procurementData, salesData, adminData, hseData] = moduleData.map(
-      result => result.status === 'fulfilled' ? result.value : {}
-    );
+    // Extract the results from Promise.allSettled with proper type assertions
+    const hrData: HRData = moduleData[0].status === 'fulfilled' ? moduleData[0].value : { payroll: 0, headcount: 0, attrition: 0 };
+    const assetsData: AssetsData = moduleData[1].status === 'fulfilled' ? moduleData[1].value : { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
+    const operationsData: OperationsData = moduleData[2].status === 'fulfilled' ? moduleData[2].value : { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
+    const maintenanceData: MaintenanceData = moduleData[3].status === 'fulfilled' ? moduleData[3].value : { cost: 0, downtime: 0 };
+    const procurementData: ProcurementData = moduleData[4].status === 'fulfilled' ? moduleData[4].value : { totalSpend: 0, openPOs: 0, cycleTime: 0 };
+    const salesData: SalesData = moduleData[5].status === 'fulfilled' ? moduleData[5].value : { totalSales: 0, pipeline: 0, salesMargin: 0 };
+    const adminData: AdminData = moduleData[6].status === 'fulfilled' ? moduleData[6].value : { costs: 0, overheadPercentage: 0, pendingApprovals: 0 };
+    const hseData: HSEData = moduleData[7].status === 'fulfilled' ? moduleData[7].value : { incidents: 0, trainingCompliance: 0, openActions: 0 };
 
     // Calculate totals for revenue and expenses based on module data
     const totalRevenue = (salesData.totalSales || 0) + (assetsData.bookValue ? assetsData.bookValue * 0.02 : 0); // Mock rental revenue
