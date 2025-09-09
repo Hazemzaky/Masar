@@ -21,8 +21,10 @@ export const createPayrollEmployee = async (req: Request, res: Response): Promis
 export const getPayrollEmployees = async (req: Request, res: Response): Promise<void> => {
   try {
     const employees = await PayrollEmployee.find().sort({ fullName: 1 });
+    console.log(`Found ${employees.length} payroll employees`);
     res.json(employees);
   } catch (error: any) {
+    console.error('Error fetching payroll employees:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -359,8 +361,10 @@ export const deleteAllPayrolls = async (req: Request, res: Response): Promise<vo
 // Function to populate payroll employees from regular employees
 export const populatePayrollEmployees = async (req: Request, res: Response): Promise<void> => {
   try {
-    const Employee = require('../models/Employee').default;
+    const Employee = (await import('../models/Employee')).default;
     const regularEmployees = await Employee.find({ status: 'active' });
+    
+    console.log(`Found ${regularEmployees.length} active employees to populate`);
     
     const payrollEmployees = regularEmployees.map(emp => ({
       company: 'Masar',
