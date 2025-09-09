@@ -307,12 +307,38 @@ async function getMaintenanceExpense(startDate: Date, endDate: Date) {
 
 async function getTotalMaintenanceHours() {
   try {
-    // Calculate total maintenance hours from completed maintenance records
+    // Calculate total maintenance hours from all maintenance records (not just completed)
+    // Include scheduled, in_progress, and completed statuses
     const maintenanceHoursData = await Maintenance.aggregate([
-      { $match: { status: 'completed' } },
+      { 
+        $match: { 
+          status: { $in: ['scheduled', 'in_progress', 'completed'] },
+          totalMaintenanceTime: { $gt: 0 } // Only include records with actual time
+        } 
+      },
       { $group: { _id: null, totalHours: { $sum: '$totalMaintenanceTime' } } }
     ]);
-    return maintenanceHoursData[0]?.totalHours || 0;
+    
+    const totalHours = maintenanceHoursData[0]?.totalHours || 0;
+    
+    // Debug: Get breakdown by status
+    const statusBreakdown = await Maintenance.aggregate([
+      { 
+        $match: { 
+          status: { $in: ['scheduled', 'in_progress', 'completed'] },
+          totalMaintenanceTime: { $gt: 0 }
+        } 
+      },
+      { $group: { _id: '$status', totalHours: { $sum: '$totalMaintenanceTime' }, count: { $sum: 1 } } }
+    ]);
+    
+    console.log('Maintenance hours calculation:', {
+      totalHours,
+      statusBreakdown,
+      totalRecords: statusBreakdown.reduce((sum, item) => sum + item.count, 0)
+    });
+    
+    return totalHours;
   } catch (error) {
     console.log('Total maintenance hours fetch failed:', error);
     return 0;
@@ -409,11 +435,20 @@ async function getTotalIncidentsCount() {
 
 async function getOverdueInspectionsCount() {
   try {
-    // Count overdue inspections from SafetyInspection model
+    // Count overdue inspections using same logic as HSE page
     const currentDate = new Date();
-    const overdueInspections = await SafetyInspection.countDocuments({
-      status: 'overdue',
-      nextInspectionDate: { $lt: currentDate }
+    const inspections = await SafetyInspection.find({});
+    
+    // Filter inspections that are overdue (same logic as HSE page)
+    const overdueInspections = inspections.filter(i => 
+      i.status === 'overdue' || 
+      (i.nextInspectionDate && new Date(i.nextInspectionDate) < currentDate)
+    ).length;
+    
+    console.log('Overdue inspections calculation:', {
+      totalInspections: inspections.length,
+      overdueCount: overdueInspections,
+      currentDate: currentDate.toISOString()
     });
     
     return overdueInspections || 0;
