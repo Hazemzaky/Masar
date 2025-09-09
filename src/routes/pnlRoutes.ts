@@ -18,6 +18,15 @@ import {
 
 const router = express.Router();
 
+// Test endpoint to verify P&L routes are working
+router.get('/test', (req, res) => {
+  res.json({ 
+    message: 'P&L routes are working!', 
+    timestamp: new Date().toISOString(),
+    endpoint: '/api/pnl/test'
+  });
+});
+
 // Manual PnL Entry Management (without auth for testing)
 router.get('/manual-entries', getManualPnLEntries);
 router.put('/manual-entries/:itemId', updateManualPnLEntry);

@@ -514,9 +514,11 @@ export const updateManualPnLEntry = async (req: Request, res: Response) => {
 // Endpoint to get all manual PnL entries - NOW WITH DATABASE PERSISTENCE
 export const getManualPnLEntries = async (req: Request, res: Response) => {
   try {
-    console.log('Manual PnL entries endpoint called - DATABASE VERSION');
+    console.log('=== MANUAL P&L ENTRIES ENDPOINT CALLED ===');
     console.log('Request URL:', req.url);
     console.log('Request method:', req.method);
+    console.log('Request headers:', req.headers);
+    console.log('Request query:', req.query);
     
     // Fetch manual entries from database
     const manualEntries = await ManualPnLEntry.find({ isActive: true })
@@ -536,15 +538,21 @@ export const getManualPnLEntries = async (req: Request, res: Response) => {
         .lean();
       
       console.log(`Initialized and returning ${initializedEntries.length} manual entries`);
+      console.log('Sample initialized entry:', initializedEntries[0]);
       res.json(initializedEntries);
       return;
     }
 
     console.log('Returning manual entries from database:', manualEntries.length, 'entries');
     console.log('First entry sample:', manualEntries[0]);
+    console.log('=== END MANUAL P&L ENTRIES RESPONSE ===');
     res.json(manualEntries);
   } catch (error) {
-    console.error('Error fetching manual PnL entries from database:', error);
+    console.error('=== ERROR IN MANUAL P&L ENTRIES ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('=== END ERROR ===');
     res.status(500).json({ 
       error: 'Failed to fetch manual entries', 
       details: error instanceof Error ? error.message : 'Unknown error'

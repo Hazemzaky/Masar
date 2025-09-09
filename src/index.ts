@@ -92,6 +92,7 @@ import './models/HSEDocumentFolder';
 import './models/HSEDocument';
 // Import P&L related models
 import './models/PnLStatement';
+import './models/ManualPnLEntry';
 import './models/Expense';
 import './models/Invoice';
 import './models/AccountMapping';
