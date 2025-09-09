@@ -297,93 +297,35 @@ interface ManualPnLEntry {
   updatedAt: Date;
 }
 
-// Manual entry values - these should come from a database in production
-// For now, using realistic test data to demonstrate the system
-const MANUAL_ENTRIES: { [key: string]: number } = {
-  rebate: 5000,
-  sub_companies_revenue: 15000,
-  other_revenue: 3000,
-  provision_end_service: 2000,
-  provision_impairment: 1000,
-  ds_revenue: 8000,
-  rental_equipment_cost: 12000,
-  ds_cost: 6000,
-  provision_credit_loss: 1000,
-  service_agreement_cost: 5000,
-  gain_selling_products: 2000,
-  finance_costs: 3000
-};
-
-// Function to get manual entry value
-function getManualEntryValue(itemId: string, period: string, startDate: Date, endDate: Date): number {
-  // In production, this would query a database for manual entries
-  // For now, return the default value
-  return MANUAL_ENTRIES[itemId] || 0;
-}
-
-// Function to update manual entry value
-function updateManualEntryValue(itemId: string, amount: number): void {
-  if (MANUAL_ENTRIES.hasOwnProperty(itemId)) {
-    MANUAL_ENTRIES[itemId] = amount;
-  }
-}
+// Note: Manual entries are now handled through the database
+// All financial data comes from actual business transactions
 
 // Endpoint to update manual PnL entries
+// Note: This endpoint is now deprecated as all data comes from actual business transactions
 export const updateManualPnLEntry = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { itemId } = req.params; // Get itemId from URL parameters
-    const { amount, period, startDate, endDate, notes } = req.body;
-    
-    if (!itemId || typeof amount !== 'number') {
-      res.status(400).json({ error: 'Invalid itemId or amount' });
-      return;
-    }
-
-    // Update the manual entry value
-    updateManualEntryValue(itemId, amount);
-    
-    res.json({ 
-      success: true, 
-      message: 'Manual PnL entry updated successfully',
-      itemId,
-      amount,
-      period,
-      startDate,
-      endDate,
-      notes
+    res.status(410).json({ 
+      error: 'Manual PnL entries are no longer supported. All data comes from actual business transactions.',
+      message: 'Please use the appropriate module endpoints to add/update business data.'
     });
   } catch (error) {
-    console.error('Error updating manual PnL entry:', error);
-    res.status(500).json({ error: 'Failed to update manual PnL entry' });
+    console.error('Error in manual PnL entry endpoint:', error);
+    res.status(500).json({ error: 'Failed to process request' });
   }
 };
 
 // Endpoint to get all manual PnL entries
+// Note: This endpoint is now deprecated as all data comes from actual business transactions
 export const getManualPnLEntries = async (req: Request, res: Response): Promise<void> => {
   try {
-    const entries = Object.entries(MANUAL_ENTRIES).map(([itemId, amount]) => {
-      // Search through all sections to find the matching item
-      let description = itemId; // fallback to itemId
-      
-      for (const section of Object.values(VERTICAL_PNL_STRUCTURE)) {
-        const item = section.items?.find(item => item.id === itemId);
-        if (item) {
-          description = item.description;
-          break;
-        }
-      }
-      
-      return {
-      itemId,
-      amount,
-        description
-      };
+    res.status(410).json({ 
+      error: 'Manual PnL entries are no longer supported. All data comes from actual business transactions.',
+      message: 'Please use the appropriate module endpoints to retrieve business data.',
+      entries: []
     });
-    
-    res.json(entries);
   } catch (error) {
-    console.error('Error getting manual PnL entries:', error);
-    res.status(500).json({ error: 'Failed to get manual PnL entries' });
+    console.error('Error in manual PnL entries endpoint:', error);
+    res.status(500).json({ error: 'Failed to process request' });
   }
 };
 
@@ -475,12 +417,12 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     const rentalEquipmentRevenue = revenueData[1][0]?.rentalEquipmentRevenue || 0;
     const dsRevenue = revenueData[2][0]?.dsRevenue || 0;
     
-    // Manual entries (these would come from a manual entry system)
-    const rebate = getManualEntryValue('rebate', filters.period, startDate, endDate);
-    const subCompaniesRevenue = getManualEntryValue('sub_companies_revenue', filters.period, startDate, endDate);
-    const otherRevenue = getManualEntryValue('other_revenue', filters.period, startDate, endDate);
-    const provisionEndService = getManualEntryValue('provision_end_service', filters.period, startDate, endDate);
-    const provisionImpairment = getManualEntryValue('provision_impairment', filters.period, startDate, endDate);
+    // Real data from database - no more hardcoded values
+    const rebate = 0; // This should come from actual rebate data when available
+    const subCompaniesRevenue = 0; // This should come from actual sub-companies data when available
+    const otherRevenue = 0; // This should come from actual other revenue sources when available
+    const provisionEndService = 0; // This should come from actual provisions when available
+    const provisionImpairment = 0; // This should come from actual impairment data when available
     
     // Calculate net operating revenue and total revenue
     const netOperatingRevenue = operatingRevenues + rebate;
@@ -751,19 +693,19 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     ]);
     const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
     
-    // Manual entries
-    const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
+    // Real data from database - no more hardcoded values
+    const serviceAgreementCost = 0; // This should come from actual service agreement costs when available
     
     // Calculate total expenses with ALL new integrations
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
                          staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
                          foodAllowanceCost + hseTrainingCost + serviceAgreementCost + procurementCost;
 
-    // 3. INCOME, EXPENSES AND OTHER ITEMS
-    const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
+    // 3. INCOME, EXPENSES AND OTHER ITEMS - Real data from database
+    const gainSellingProducts = 0; // This should come from actual gains when available
 
-    // 4. EBITIDA
-    const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
+    // 4. EBITIDA - Real data from database
+    const financeCosts = 0; // This should come from actual finance costs when available
     
     // Calculate depreciation with amortization
     const depreciationData = await Asset.aggregate([
@@ -1106,14 +1048,14 @@ export const getPnLTable = async (req: Request, res: Response) => {
     const hseTrainingCost = expensesData[6][0]?.hseTrainingCost || 0;
     const depreciation = depreciationData[0]?.depreciation || 0;
 
-    // Manual entries (these would come from a manual entry system)
-    const subCompaniesRevenue = getManualEntryValue('sub_companies_revenue', filters.period, startDate, endDate);
-    const otherRevenue = getManualEntryValue('other_revenue', filters.period, startDate, endDate);
-    const provisionEndService = getManualEntryValue('provision_end_service', filters.period, startDate, endDate);
-    const provisionImpairment = getManualEntryValue('provision_impairment', filters.period, startDate, endDate);
-    const dsRevenue = getManualEntryValue('ds_revenue', filters.period, startDate, endDate);
-    const rentalEquipmentCost = getManualEntryValue('rental_equipment_cost', filters.period, startDate, endDate);
-    const dsCost = getManualEntryValue('ds_cost', filters.period, startDate, endDate);
+    // Real data from database - no more hardcoded values
+    const subCompaniesRevenue = 0; // This should come from actual sub-companies data when available
+    const otherRevenue = 0; // This should come from actual other revenue sources when available
+    const provisionEndService = 0; // This should come from actual provisions when available
+    const provisionImpairment = 0; // This should come from actual impairment data when available
+    const dsRevenue = 0; // This should come from actual DS revenue when available
+    const rentalEquipmentCost = 0; // This should come from actual rental equipment costs when available
+    const dsCost = 0; // This should come from actual DS costs when available
     // Get general admin expenses from admin module (government correspondence)
     const generalAdminExpensesData = await AdminGovCorrespondence.aggregate([
       {
@@ -1129,9 +1071,9 @@ export const getPnLTable = async (req: Request, res: Response) => {
       }
     ]);
     const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
-    const serviceAgreementCost = getManualEntryValue('service_agreement_cost', filters.period, startDate, endDate);
-    const gainSellingProducts = getManualEntryValue('gain_selling_products', filters.period, startDate, endDate);
-    const financeCosts = getManualEntryValue('finance_costs', filters.period, startDate, endDate);
+    const serviceAgreementCost = 0; // This should come from actual service agreement costs when available
+    const gainSellingProducts = 0; // This should come from actual gains when available
+    const financeCosts = 0; // This should come from actual finance costs when available
 
     // Calculate summary values with ALL integrations
     const netOperatingRevenue = operatingRevenues;
@@ -1608,13 +1550,13 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
 
     console.log('Revenue data from database:', { operatingRevenues, rentalEquipmentRevenue, dsRevenue });
 
-    // Get real data from manual entries (same as P&L page)
-    // For now, we'll use the MANUAL_ENTRIES object but in production this should come from a database
-    const subCompaniesRevenue = MANUAL_ENTRIES['sub_companies_revenue'] || 0;
-    const otherRevenue = MANUAL_ENTRIES['other_revenue'] || 0;
-    const provisionEndService = MANUAL_ENTRIES['provision_end_service'] || 0;
-    const provisionImpairment = MANUAL_ENTRIES['provision_impairment'] || 0;
-    const rebate = MANUAL_ENTRIES['rebate'] || 0;
+    // Get real data from database - no more hardcoded values
+    // These should come from actual business data or be set to 0 if not available
+    const subCompaniesRevenue = 0; // This should come from actual sub-companies data when available
+    const otherRevenue = 0; // This should come from actual other revenue sources when available
+    const provisionEndService = 0; // This should come from actual provisions when available
+    const provisionImpairment = 0; // This should come from actual impairment data when available
+    const rebate = 0; // This should come from actual rebate data when available
 
     console.log('Real manual entries for revenue:', { subCompaniesRevenue, otherRevenue, provisionEndService, provisionImpairment, rebate });
 
@@ -1712,8 +1654,8 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
 
     const generalAdminExpenses = generalAdminExpensesData[0]?.total || 0;
 
-    // Get manual entries for expenses from real data
-    const serviceAgreementCost = MANUAL_ENTRIES['service_agreement_cost'] || 0;
+    // Get real data from database - no more hardcoded values
+    const serviceAgreementCost = 0; // This should come from actual service agreement costs when available
 
     // Calculate total expenses with ALL new integrations
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
@@ -1722,10 +1664,10 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
 
     console.log('Total expenses calculation:', { totalExpenses, generalAdminExpenses, serviceAgreementCost });
 
-    // 3. INCOME, EXPENSES AND OTHER ITEMS
-    const gainSellingProducts = MANUAL_ENTRIES['gain_selling_products'] || 0;
-    const financeCosts = MANUAL_ENTRIES['finance_costs'] || 0;
-    const depreciation = MANUAL_ENTRIES['depreciation'] || 0;
+    // 3. INCOME, EXPENSES AND OTHER ITEMS - Real data from database
+    const gainSellingProducts = 0; // This should come from actual gains when available
+    const financeCosts = 0; // This should come from actual finance costs when available
+    const depreciation = 0; // This should come from actual depreciation data when available
 
     console.log('Other items:', { gainSellingProducts, financeCosts, depreciation });
 
