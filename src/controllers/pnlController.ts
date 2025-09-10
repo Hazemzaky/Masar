@@ -2856,6 +2856,67 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
 };
 
 // Helper function to get P&L table data for export
+// Optimized aggregation pipeline for PnL data
+async function getOptimizedPnLData(filters: any) {
+  const { startDate, endDate, department } = filters;
+  const departmentFilter = buildDepartmentFilter(department);
+
+  // Single optimized aggregation pipeline with $facet for parallel processing
+  const pipeline = [
+    { $match: departmentFilter },
+    {
+      $facet: {
+        // Revenue data from multiple sources
+        revenue: [
+          { $match: { 
+            invoiceDate: { $gte: startDate, $lte: endDate },
+            status: { $in: ['approved', 'sent', 'paid'] }
+          }},
+          { $group: { 
+            _id: null, 
+            total: { $sum: '$totalAmount' },
+            count: { $sum: 1 },
+            items: { $push: { 
+              id: '$_id', 
+              description: '$description', 
+              amount: '$totalAmount',
+              module: 'invoices'
+            }}
+          }}
+        ],
+        // Expenses from multiple modules
+        expenses: [
+          { $match: { 
+            date: { $gte: startDate, $lte: endDate },
+            status: { $ne: 'cancelled' }
+          }},
+          { $group: { 
+            _id: null, 
+            total: { $sum: '$amount' },
+            count: { $sum: 1 },
+            items: { $push: { 
+              id: '$_id', 
+              description: '$description', 
+              amount: '$amount',
+              module: 'expenses'
+            }}
+          }}
+        ],
+        // Module breakdown for performance analysis
+        moduleBreakdown: [
+          { $group: { 
+            _id: '$module', 
+            total: { $sum: '$amount' },
+            count: { $sum: 1 }
+          }}
+        ]
+      }
+    }
+  ];
+
+  return await Invoice.aggregate(pipeline);
+}
+
 async function getPnLTableDataInternal(period: string, startDate?: string, endDate?: string, department?: string, site?: string, branch?: string, operationType?: string) {
   try {
     // Create a mock request object with the same structure as the actual API

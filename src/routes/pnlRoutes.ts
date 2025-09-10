@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth';
+import { performanceMiddleware } from '../middleware/performance';
 import {
   getPnLSummary,
   getPnLTable,
@@ -22,6 +23,9 @@ import {
 } from '../controllers/pnlController';
 
 const router = express.Router();
+
+// Apply performance monitoring to all PnL routes
+router.use(performanceMiddleware);
 
 // Test endpoint to verify P&L routes are working
 router.get('/test', (req, res) => {
@@ -108,6 +112,18 @@ router.get('/check-updates', (req, res) => {
 // Export routes
 router.get('/export/pdf', exportPnLToPDF);
 router.get('/export/excel', exportPnLToExcel);
+
+// Performance metrics endpoint
+router.get('/performance', (req, res) => {
+  const { getPerformanceStats, getPnLPerformanceMetrics, getSlowQueries } = require('../middleware/performance');
+  
+  res.json({
+    status: 'success',
+    performance: getPerformanceStats(),
+    pnLPerformance: getPnLPerformanceMetrics().slice(-10), // Last 10 PnL requests
+    slowQueries: getSlowQueries().slice(-5) // Last 5 slow queries
+  });
+});
 
 // Health check for P&L system
 router.get('/health', (req, res) => {

@@ -98,12 +98,38 @@ const ManualPnLEntrySchema = new Schema<IManualPnLEntry>({
   collection: 'manualpnlentries'
 });
 
-// Indexes for better query performance
+// Indexes for better query performance - Optimized for PnL queries
 ManualPnLEntrySchema.index({ itemId: 1 });
 ManualPnLEntrySchema.index({ category: 1 });
 ManualPnLEntrySchema.index({ type: 1 });
 ManualPnLEntrySchema.index({ isActive: 1 });
 ManualPnLEntrySchema.index({ createdAt: -1 });
+
+// Composite indexes for common query patterns
+ManualPnLEntrySchema.index({ 
+  category: 1, 
+  type: 1, 
+  isActive: 1 
+}, { name: 'category_type_active' });
+
+ManualPnLEntrySchema.index({ 
+  itemId: 1, 
+  isActive: 1 
+}, { name: 'item_active' });
+
+ManualPnLEntrySchema.index({ 
+  createdAt: -1, 
+  updatedAt: -1 
+}, { name: 'temporal_sorting' });
+
+// Sparse index for active entries only
+ManualPnLEntrySchema.index(
+  { category: 1, type: 1, createdAt: -1 },
+  { 
+    partialFilterExpression: { isActive: true },
+    name: 'active_entries_by_category'
+  }
+);
 
 // Pre-save middleware to update updatedBy field
 ManualPnLEntrySchema.pre('save', function(next) {

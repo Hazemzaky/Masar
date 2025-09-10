@@ -272,9 +272,36 @@ PnLStatementSchema.pre('save', function(next) {
   next();
 });
 
-// Index for efficient querying
+// Indexes for efficient querying - Optimized for common query patterns
 PnLStatementSchema.index({ reportingPeriod: 1, startDate: 1, endDate: 1 });
 PnLStatementSchema.index({ status: 1, reportingDate: 1 });
 PnLStatementSchema.index({ preparedBy: 1, reportingDate: 1 });
+
+// Additional performance indexes for PnL queries
+PnLStatementSchema.index({ 
+  reportingPeriod: 1, 
+  startDate: 1, 
+  endDate: 1, 
+  status: 1 
+}, { name: 'period_status_composite' });
+
+PnLStatementSchema.index({ 
+  'revenue.total': 1, 
+  'costOfSales.total': 1 
+}, { name: 'financial_metrics_composite' });
+
+PnLStatementSchema.index({ 
+  createdAt: -1, 
+  updatedAt: -1 
+}, { name: 'temporal_sorting' });
+
+// Sparse index for active statements only
+PnLStatementSchema.index(
+  { status: 1, reportingDate: -1 },
+  { 
+    partialFilterExpression: { status: { $in: ['draft', 'reviewed', 'approved'] } },
+    name: 'active_statements'
+  }
+);
 
 export default mongoose.model<IPnLStatement>('PnLStatement', PnLStatementSchema); 
