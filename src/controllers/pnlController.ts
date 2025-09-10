@@ -134,6 +134,13 @@ const VERTICAL_PNL_STRUCTURE = {
       { id: 'finance_costs', description: 'Finance Costs (Manual Entry)', type: 'expense', module: 'finance' },
       { id: 'depreciation', description: 'Depreciation', type: 'expense', module: 'assets' }
     ]
+  },
+  NET_PROFIT: {
+    id: 'net_profit',
+    category: 'Net Profit',
+    items: [
+      { id: 'net_profit', description: 'Net Profit (EBITDA - Depreciation)', type: 'summary', module: 'finance' }
+    ]
   }
 };
 
@@ -246,6 +253,12 @@ function getFilters(req: Request) {
     vsBudget: vsBudget === 'true',
     vsLastYear: vsLastYear === 'true'
   };
+}
+
+// Helper function to build department filter for MongoDB queries
+function buildDepartmentFilter(department?: string) {
+  if (!department) return {};
+  return { department: { $regex: department, $options: 'i' } };
 }
 
 // Calculate period breakdown for amortization
@@ -914,9 +927,9 @@ export const getManualPnLEntries = async (req: Request, res: Response) => {
 export const getPnLSummary = async (req: Request, res: Response) => {
   try {
     const filters = getFilters(req);
-    const { startDate, endDate, period } = filters;
+    const { startDate, endDate, period, department } = filters;
 
-    console.log('P&L Summary - Using integrated data sources:', { period, startDate, endDate });
+    console.log('P&L Summary - Using integrated data sources:', { period, startDate, endDate, department });
 
     // Get dashboard data from Cost Analysis Dashboards
     const allDashboardData = getAllDashboardData();
@@ -1269,7 +1282,8 @@ export const getPnLSummary = async (req: Request, res: Response) => {
     const generalAdminExpensesData = await AdminGovCorrespondence.aggregate([
       {
         $match: {
-          submissionDate: { $gte: startDate, $lte: endDate }
+          submissionDate: { $gte: startDate, $lte: endDate },
+          ...buildDepartmentFilter(department)
         }
       },
       {
@@ -1411,9 +1425,9 @@ export const getPnLSummary = async (req: Request, res: Response) => {
 export const getPnLTable = async (req: Request, res: Response) => {
   try {
     const filters = getFilters(req);
-    const { startDate, endDate } = filters;
+    const { startDate, endDate, department } = filters;
 
-    console.log('P&L Table - Using integrated data sources:', { period: filters.period, startDate, endDate });
+    console.log('P&L Table - Using integrated data sources:', { period: filters.period, startDate, endDate, department });
 
     // Get account mappings
     const accountMappings = await AccountMapping.find({ isActive: true });
@@ -1426,7 +1440,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
           {
             $match: {
               invoiceDate: { $gte: startDate, $lte: endDate },
-              status: { $in: ['approved', 'sent', 'paid'] }
+              status: { $in: ['approved', 'sent', 'paid'] },
+              ...buildDepartmentFilter(department)
             }
           },
           {
@@ -1488,7 +1503,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
         Employee.aggregate([
           {
             $match: {
-              hireDate: { $lte: endDate }
+              hireDate: { $lte: endDate },
+              ...buildDepartmentFilter(department)
             }
           },
           {
@@ -1515,7 +1531,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
           {
             $match: {
               departureDate: { $gte: startDate, $lte: endDate },
-              status: { $in: ['Approved', 'Completed', 'Reimbursed'] }
+              status: { $in: ['Approved', 'Completed', 'Reimbursed'] },
+              ...buildDepartmentFilter(department)
             }
           },
           {
@@ -1648,7 +1665,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
     const generalAdminExpensesData = await AdminGovCorrespondence.aggregate([
       {
         $match: {
-          submissionDate: { $gte: startDate, $lte: endDate }
+          submissionDate: { $gte: startDate, $lte: endDate },
+          ...buildDepartmentFilter(department)
         }
       },
       {
@@ -1671,6 +1689,9 @@ export const getPnLTable = async (req: Request, res: Response) => {
                          staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
                          foodAllowanceCost + hseTrainingCost + serviceAgreementCost;
     const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
+    
+    // Calculate Net Profit: EBITDA - Depreciation
+    const netProfit = ebitida - depreciation;
 
     // Calculate rebate: (Income, Expenses and Other Items + Total Expenses - Total Revenue)
     const incomeExpensesOther = gainSellingProducts;
@@ -1798,6 +1819,11 @@ export const getPnLTable = async (req: Request, res: Response) => {
               amount = depreciation;
               trend = 'down';
               break;
+            case 'net_profit':
+              amount = netProfit;
+              trend = netProfit >= 0 ? 'up' : 'down';
+              expandable = true;
+              break;
           }
 
           return {
@@ -1811,7 +1837,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
           };
         }),
         subtotal: 0,
-        type: section.id === 'revenue' ? 'revenue' : section.id === 'ebitda' ? 'ebitda' : 'expense'
+        type: section.id === 'revenue' ? 'revenue' : section.id === 'ebitda' ? 'ebitda' : section.id === 'net_profit' ? 'net_profit' : 'expense'
       };
 
       // Calculate section subtotal
@@ -1824,6 +1850,9 @@ export const getPnLTable = async (req: Request, res: Response) => {
       } else if (section.id === 'ebitda') {
         // EBITDA value is the calculated formula, not the sum of items underneath
         sectionData.subtotal = totalRevenue + gainSellingProducts - totalExpenses;
+      } else if (section.id === 'net_profit') {
+        // Net Profit value is EBITDA - Depreciation
+        sectionData.subtotal = netProfit;
       }
 
       return sectionData;
@@ -2626,10 +2655,10 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
 // Export P&L data to Excel
 export const exportPnLToExcel = async (req: Request, res: Response) => {
   try {
-    const { period, startDate, endDate } = req.query;
+    const { period, startDate, endDate, department, site, branch, operationType } = req.query;
     
     // Get detailed P&L table data (not just summary)
-    const tableData = await getPnLTableDataInternal(period as string, startDate as string, endDate as string);
+    const tableData = await getPnLTableDataInternal(period as string, startDate as string, endDate as string, department as string, site as string, branch as string, operationType as string);
     
     // Create workbook
     const workbook = XLSX.utils.book_new();
@@ -2717,10 +2746,10 @@ export const exportPnLToExcel = async (req: Request, res: Response) => {
 // Export P&L data to PDF (HTML format for browser printing)
 export const exportPnLToPDF = async (req: Request, res: Response) => {
   try {
-    const { period, startDate, endDate } = req.query;
+    const { period, startDate, endDate, department, site, branch, operationType } = req.query;
     
     // Get detailed P&L table data (not just summary)
-    const tableData = await getPnLTableDataInternal(period as string, startDate as string, endDate as string);
+    const tableData = await getPnLTableDataInternal(period as string, startDate as string, endDate as string, department as string, site as string, branch as string, operationType as string);
     
     // Create HTML template
     const html = `
@@ -2822,14 +2851,18 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
 };
 
 // Helper function to get P&L table data for export
-async function getPnLTableDataInternal(period: string, startDate?: string, endDate?: string) {
+async function getPnLTableDataInternal(period: string, startDate?: string, endDate?: string, department?: string, site?: string, branch?: string, operationType?: string) {
   try {
     // Create a mock request object with the same structure as the actual API
     const mockReq = {
       query: {
         period,
         ...(startDate && { start: startDate }),
-        ...(endDate && { end: endDate })
+        ...(endDate && { end: endDate }),
+        ...(department && { department }),
+        ...(site && { site }),
+        ...(branch && { branch }),
+        ...(operationType && { operationType })
       }
     } as any;
 
