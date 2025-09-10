@@ -1688,7 +1688,8 @@ export const getPnLTable = async (req: Request, res: Response) => {
     const totalExpenses = operationCost + rentalEquipmentCost + dsCost + generalAdminExpenses + 
                          staffCost + businessTripCost + overtimeCost + tripAllowanceCost + 
                          foodAllowanceCost + hseTrainingCost + serviceAgreementCost;
-    const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts - depreciation;
+    // Calculate EBITDA: Revenue - Operating Expenses + Other Income - Finance Costs (excluding depreciation)
+    const ebitida = totalRevenue - totalExpenses + gainSellingProducts - financeCosts;
     
     // Calculate Net Profit: EBITDA - Depreciation
     const netProfit = ebitida - depreciation;
@@ -1851,7 +1852,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
         sectionData.subtotal = gainSellingProducts;
       } else if (section.id === 'ebitda') {
         // EBITDA value is the calculated formula, not the sum of items underneath
-        sectionData.subtotal = totalRevenue + gainSellingProducts - totalExpenses;
+        sectionData.subtotal = ebitida;
       } else if (section.id === 'net_profit') {
         // Net Profit value is EBITDA - Depreciation
         console.log('Processing Net Profit section:', { sectionId: section.id, netProfit });
@@ -1861,6 +1862,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
       return sectionData;
     });
 
+    console.log('Final PnL table sections:', pnlTable.map(s => ({ id: s.id, category: s.category, type: s.type, subtotal: s.subtotal })));
     res.json(pnlTable);
   } catch (error) {
     console.error('Error in getPnLTable:', error);
