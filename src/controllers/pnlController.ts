@@ -1692,12 +1692,14 @@ export const getPnLTable = async (req: Request, res: Response) => {
     
     // Calculate Net Profit: EBITDA - Depreciation
     const netProfit = ebitida - depreciation;
+    console.log('Net Profit calculation:', { ebitida, depreciation, netProfit });
 
     // Calculate rebate: (Income, Expenses and Other Items + Total Expenses - Total Revenue)
     const incomeExpensesOther = gainSellingProducts;
     const rebate = incomeExpensesOther + totalExpenses - totalRevenue;
 
     // Build P&L table structure using VERTICAL_PNL_STRUCTURE with ALL integrations
+    console.log('Available sections in VERTICAL_PNL_STRUCTURE:', Object.keys(VERTICAL_PNL_STRUCTURE));
     const pnlTable = Object.values(VERTICAL_PNL_STRUCTURE).map(section => {
       const sectionData = {
         id: section.id,
@@ -1852,6 +1854,7 @@ export const getPnLTable = async (req: Request, res: Response) => {
         sectionData.subtotal = totalRevenue + gainSellingProducts - totalExpenses;
       } else if (section.id === 'net_profit') {
         // Net Profit value is EBITDA - Depreciation
+        console.log('Processing Net Profit section:', { sectionId: section.id, netProfit });
         sectionData.subtotal = netProfit;
       }
 
