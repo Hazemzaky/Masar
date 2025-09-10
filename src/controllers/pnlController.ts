@@ -148,34 +148,44 @@ function getPeriodDates(period: string, startDate?: string, endDate?: string) {
     end = new Date(endDate);
   } else {
     // Calculate based on period
+    const currentYear = now.getFullYear();
+    
     switch (period) {
-      case 'monthly':
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      case 'q1':
+        // Q1 (Apr-Jun) - Current year
+        start = new Date(currentYear, 3, 1); // April 1st
+        end = new Date(currentYear, 5, 30); // June 30th
         break;
-      case 'quarterly':
-        const quarter = Math.floor(now.getMonth() / 3);
-        start = new Date(now.getFullYear(), quarter * 3, 1);
-        end = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
+      case 'q2':
+        // Q2 (Jul-Sep) - Current year
+        start = new Date(currentYear, 6, 1); // July 1st
+        end = new Date(currentYear, 8, 30); // September 30th
         break;
-      case 'half_yearly':
-        const half = Math.floor(now.getMonth() / 6);
-        start = new Date(now.getFullYear(), half * 6, 1);
-        end = new Date(now.getFullYear(), (half + 1) * 6, 0);
+      case 'q3':
+        // Q3 (Oct-Dec) - Current year
+        start = new Date(currentYear, 9, 1); // October 1st
+        end = new Date(currentYear, 11, 31); // December 31st
         break;
-      case 'yearly':
+      case 'q4':
+        // Q4 (Jan-Mar) - Next year
+        start = new Date(currentYear + 1, 0, 1); // January 1st of next year
+        end = new Date(currentYear + 1, 2, 31); // March 31st of next year
+        break;
+      case 'h1':
+        // H1 (Apr-Sep) - Current year
+        start = new Date(currentYear, 3, 1); // April 1st
+        end = new Date(currentYear, 8, 30); // September 30th
+        break;
+      case 'h2':
+        // H2 (Oct-Mar) - Current year to next year
+        start = new Date(currentYear, 9, 1); // October 1st
+        end = new Date(currentYear + 1, 2, 31); // March 31st of next year
+        break;
+      case 'fiscal_year':
       default:
-        // Financial year (Apr 1 - Mar 31)
-        const currentYear = now.getFullYear();
-        if (now.getMonth() >= 3) {
-          // Current date is April or later, so we're in the current fiscal year
-          start = new Date(currentYear, 3, 1); // April 1st of current year
-          end = new Date(currentYear + 1, 2, 31); // March 31st of next year
-        } else {
-          // Current date is before April, so we're in the previous fiscal year
-          start = new Date(currentYear - 1, 3, 1); // April 1st of previous year
-          end = new Date(currentYear, 2, 31); // March 31st of current year
-        }
+        // Fiscal Year (Apr 1 - Mar 31) - Current year to next year
+        start = new Date(currentYear, 3, 1); // April 1st of current year
+        end = new Date(currentYear + 1, 2, 31); // March 31st of next year
         break;
     }
   }
@@ -2618,8 +2628,8 @@ export const exportPnLToExcel = async (req: Request, res: Response) => {
   try {
     const { period, startDate, endDate } = req.query;
     
-    // Get P&L data
-    const pnlData = await getVerticalPnLDataInternal(period as string, startDate as string, endDate as string);
+    // Get detailed P&L table data (not just summary)
+    const tableData = await getPnLTableDataInternal(period as string, startDate as string, endDate as string);
     
     // Create workbook
     const workbook = XLSX.utils.book_new();
@@ -2630,39 +2640,71 @@ export const exportPnLToExcel = async (req: Request, res: Response) => {
       ['Period', `${startDate} to ${endDate}`],
       ['Generated', new Date().toLocaleString()],
       [''],
-      ['Item', 'Amount (KD)', 'Percentage of Revenue'],
-      ...pnlData.map(section => [
+      ['Section', 'Amount (KD)', 'Percentage of Revenue', 'Items Count'],
+      ...tableData.map((section: any) => [
         section.category,
         section.subtotal?.toLocaleString() || '0',
-        section.percentageOfRevenue ? `${section.percentageOfRevenue.toFixed(2)}%` : '0%'
+        section.percentageOfRevenue ? `${section.percentageOfRevenue.toFixed(2)}%` : '0%',
+        section.items?.length || 0
       ])
     ];
     
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'P&L Summary');
     
-    // Detailed breakdown sheet
-    const detailedData = [
-      ['Description', 'Amount (KD)', 'Source Module', 'Type'],
-      ...pnlData.flatMap(section => 
-        section.items?.map(item => [
-          item.description,
+    // Detailed P&L Table sheet (the main detailed view)
+    const detailedTableData = [
+      ['Description', 'Amount (KD)', '% of Revenue', 'Source Module', 'Type', 'Expandable'],
+      ...tableData.flatMap((section: any) => [
+        // Section header row
+        [section.category, section.subtotal?.toLocaleString() || '0', 
+         section.percentageOfRevenue ? `${section.percentageOfRevenue.toFixed(2)}%` : '0%', 
+         `${section.items?.length || 0} Sources`, section.type || 'section', 'No'],
+        // Section items
+        ...(section.items?.map((item: any) => [
+          `  ${item.description}`,
           item.amount?.toLocaleString() || '0',
+          item.percentageOfRevenue ? `${item.percentageOfRevenue.toFixed(2)}%` : '0%',
           item.module?.toUpperCase() || 'MANUAL',
-          item.type || 'expense'
-        ]) || []
-      )
+          item.type || 'item',
+          item.expandable ? 'Yes' : 'No'
+        ]) || [])
+      ])
     ];
     
-    const detailedSheet = XLSX.utils.aoa_to_sheet(detailedData);
-    XLSX.utils.book_append_sheet(workbook, detailedSheet, 'Detailed Breakdown');
+    const detailedSheet = XLSX.utils.aoa_to_sheet(detailedTableData);
+    XLSX.utils.book_append_sheet(workbook, detailedSheet, 'Detailed P&L Table');
+    
+    // Module breakdown sheet
+    const moduleBreakdown = [];
+    const moduleTotals = new Map();
+    
+    tableData.forEach((section: any) => {
+      section.items?.forEach((item: any) => {
+        const module = item.module || 'MANUAL';
+        if (!moduleTotals.has(module)) {
+          moduleTotals.set(module, 0);
+        }
+        moduleTotals.set(module, moduleTotals.get(module) + (item.amount || 0));
+      });
+    });
+    
+    moduleBreakdown.push(['Module', 'Total Amount (KD)', 'Item Count']);
+    moduleTotals.forEach((total, module) => {
+      const itemCount = tableData.flatMap((s: any) => s.items || [])
+        .filter((item: any) => (item.module || 'MANUAL') === module).length;
+      moduleBreakdown.push([module, total.toLocaleString(), itemCount]);
+    });
+    
+    const moduleSheet = XLSX.utils.aoa_to_sheet(moduleBreakdown);
+    XLSX.utils.book_append_sheet(workbook, moduleSheet, 'Module Breakdown');
     
     // Generate Excel buffer
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="PnL_Report_${period}_${new Date().toISOString().split('T')[0]}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="PnL_Detailed_Table_${period}_${new Date().toISOString().split('T')[0]}.xlsx"`);
     res.setHeader('Content-Length', excelBuffer.length);
     
     res.send(excelBuffer);
@@ -2677,8 +2719,8 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
   try {
     const { period, startDate, endDate } = req.query;
     
-    // Get P&L data
-    const pnlData = await getVerticalPnLDataInternal(period as string, startDate as string, endDate as string);
+    // Get detailed P&L table data (not just summary)
+    const tableData = await getPnLTableDataInternal(period as string, startDate as string, endDate as string);
     
     // Create HTML template
     const html = `
@@ -2686,7 +2728,7 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Profit & Loss Statement</title>
+      <title>Profit & Loss Statement - Detailed Table</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .header { text-align: center; margin-bottom: 30px; }
@@ -2697,9 +2739,18 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
         .summary-table th { background-color: #3498db; color: white; font-weight: bold; }
         .summary-table tr:nth-child(even) { background-color: #f2f2f2; }
         .section-header { background-color: #34495e !important; color: white !important; font-weight: bold; }
+        .item-row { background-color: #f9f9f9; }
         .amount { text-align: right; font-weight: bold; }
         .positive { color: #27ae60; }
         .negative { color: #e74c3c; }
+        .module-badge { 
+          background-color: #e3f2fd; 
+          color: #1976d2; 
+          padding: 2px 8px; 
+          border-radius: 12px; 
+          font-size: 11px; 
+          font-weight: bold;
+        }
         .footer { margin-top: 50px; text-align: center; color: #7f8c8d; font-size: 12px; }
         @media print {
           body { margin: 0; }
@@ -2709,7 +2760,7 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
     </head>
     <body>
       <div class="header">
-        <h1>Profit & Loss Statement</h1>
+        <h1>Profit & Loss Statement - Detailed Table</h1>
         <p><strong>Period:</strong> ${startDate} to ${endDate}</p>
         <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
       </div>
@@ -2719,25 +2770,31 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
           <tr>
             <th>Description</th>
             <th>Amount (KD)</th>
-            <th>Percentage of Revenue</th>
+            <th>% of Revenue</th>
+            <th>Source Module</th>
+            <th>Type</th>
           </tr>
         </thead>
         <tbody>
-          ${pnlData.map(section => `
-            <tr class="${section.type === 'revenue' ? 'section-header' : ''}">
+          ${tableData.map((section: any) => `
+            <tr class="section-header">
               <td><strong>${section.category}</strong></td>
               <td class="amount ${section.subtotal >= 0 ? 'positive' : 'negative'}">
                 ${section.subtotal?.toLocaleString() || '0'}
               </td>
-              <td class="amount">${section.percentageOfRevenue || 0}%</td>
+              <td class="amount">${section.percentageOfRevenue ? section.percentageOfRevenue.toFixed(2) : '0'}%</td>
+              <td><span class="module-badge">${section.items?.length || 0} Sources</span></td>
+              <td>${section.type || 'section'}</td>
             </tr>
-            ${section.items?.map(item => `
-              <tr>
+            ${section.items?.map((item: any) => `
+              <tr class="item-row">
                 <td style="padding-left: 20px;">${item.description}</td>
                 <td class="amount ${item.amount >= 0 ? 'positive' : 'negative'}">
                   ${item.amount?.toLocaleString() || '0'}
                 </td>
-                <td class="amount">${item.module?.toUpperCase() || 'MANUAL'}</td>
+                <td class="amount">${item.percentageOfRevenue ? item.percentageOfRevenue.toFixed(2) : '0'}%</td>
+                <td><span class="module-badge">${item.module?.toUpperCase() || 'MANUAL'}</span></td>
+                <td>${item.type || 'item'}</td>
               </tr>
             `).join('') || ''}
           `).join('')}
@@ -2745,7 +2802,7 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
       </table>
       
       <div class="footer">
-        <p>This report was generated automatically by the Financial Management System</p>
+        <p>This detailed P&L table was generated automatically by the Financial Management System</p>
         <p>For questions or clarifications, please contact the Finance Department</p>
         <p class="no-print"><strong>To print as PDF:</strong> Press Ctrl+P (or Cmd+P on Mac) and select "Save as PDF"</p>
       </div>
@@ -2755,7 +2812,7 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
     
     // Set response headers for HTML
     res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Content-Disposition', `inline; filename="PnL_Report_${period}_${new Date().toISOString().split('T')[0]}.html"`);
+    res.setHeader('Content-Disposition', `inline; filename="PnL_Detailed_Table_${period}_${new Date().toISOString().split('T')[0]}.html"`);
     
     res.send(html);
   } catch (error) {
@@ -2763,6 +2820,71 @@ export const exportPnLToPDF = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to export P&L data to PDF' });
   }
 };
+
+// Helper function to get P&L table data for export
+async function getPnLTableDataInternal(period: string, startDate?: string, endDate?: string) {
+  try {
+    // Create a mock request object with the same structure as the actual API
+    const mockReq = {
+      query: {
+        period,
+        ...(startDate && { start: startDate }),
+        ...(endDate && { end: endDate })
+      }
+    } as any;
+
+    // Create a mock response object to capture the data
+    let tableData: any = null;
+    const mockRes = {
+      json: (data: any) => { tableData = data; },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+
+    // Call the actual getPnLTable function
+    await getPnLTable(mockReq, mockRes);
+
+    if (!tableData) {
+      throw new Error('Failed to retrieve P&L table data');
+    }
+
+    // Calculate percentage of revenue for each section and item
+    const totalRevenue = tableData.find((section: any) => section.type === 'revenue')?.subtotal || 0;
+    
+    // Add percentage calculations to each section and item
+    const enhancedTableData = tableData.map((section: any) => ({
+      ...section,
+      percentageOfRevenue: totalRevenue > 0 ? (Math.abs(section.subtotal || 0) / totalRevenue) * 100 : 0,
+      items: section.items?.map((item: any) => ({
+        ...item,
+        percentageOfRevenue: totalRevenue > 0 ? (Math.abs(item.amount || 0) / totalRevenue) * 100 : 0
+      })) || []
+    }));
+
+    return enhancedTableData;
+  } catch (error) {
+    console.error('Error in getPnLTableDataInternal:', error);
+    // Return fallback data if there's an error
+    return [
+      {
+        id: 'revenue',
+        category: 'REVENUE',
+        type: 'revenue',
+        subtotal: 0,
+        percentageOfRevenue: 0,
+        items: []
+      },
+      {
+        id: 'expenses',
+        category: 'EXPENSES',
+        type: 'expenses',
+        subtotal: 0,
+        percentageOfRevenue: 0,
+        items: []
+      }
+    ];
+  }
+}
 
 // Helper function to get P&L data for export
 async function getVerticalPnLDataInternal(period: string, startDate?: string, endDate?: string) {
