@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import * as XLSX from 'xlsx';
 import Expense from '../models/Expense';
 import Invoice from '../models/Invoice';
 import AccountMapping from '../models/AccountMapping';
@@ -164,8 +165,17 @@ function getPeriodDates(period: string, startDate?: string, endDate?: string) {
         break;
       case 'yearly':
       default:
-        start = new Date(now.getFullYear(), 0, 1);
-        end = new Date(now.getFullYear(), 11, 31);
+        // Financial year (Apr 1 - Mar 31)
+        const currentYear = now.getFullYear();
+        if (now.getMonth() >= 3) {
+          // Current date is April or later, so we're in the current fiscal year
+          start = new Date(currentYear, 3, 1); // April 1st of current year
+          end = new Date(currentYear + 1, 2, 31); // March 31st of next year
+        } else {
+          // Current date is before April, so we're in the previous fiscal year
+          start = new Date(currentYear - 1, 3, 1); // April 1st of previous year
+          end = new Date(currentYear, 2, 31); // March 31st of current year
+        }
         break;
     }
   }
@@ -2602,3 +2612,459 @@ export const getVerticalPnLData = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to generate vertical P&L data' });
   }
 };
+
+// Export P&L data to Excel
+export const exportPnLToExcel = async (req: Request, res: Response) => {
+  try {
+    const { period, startDate, endDate } = req.query;
+    
+    // Get P&L data
+    const pnlData = await getVerticalPnLDataInternal(period as string, startDate as string, endDate as string);
+    
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    
+    // Summary sheet
+    const summaryData = [
+      ['Profit & Loss Statement', ''],
+      ['Period', `${startDate} to ${endDate}`],
+      ['Generated', new Date().toLocaleString()],
+      [''],
+      ['Item', 'Amount (KD)', 'Percentage of Revenue'],
+      ...pnlData.map(section => [
+        section.category,
+        section.subtotal?.toLocaleString() || '0',
+        section.percentageOfRevenue ? `${section.percentageOfRevenue.toFixed(2)}%` : '0%'
+      ])
+    ];
+    
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'P&L Summary');
+    
+    // Detailed breakdown sheet
+    const detailedData = [
+      ['Description', 'Amount (KD)', 'Source Module', 'Type'],
+      ...pnlData.flatMap(section => 
+        section.items?.map(item => [
+          item.description,
+          item.amount?.toLocaleString() || '0',
+          item.module?.toUpperCase() || 'MANUAL',
+          item.type || 'expense'
+        ]) || []
+      )
+    ];
+    
+    const detailedSheet = XLSX.utils.aoa_to_sheet(detailedData);
+    XLSX.utils.book_append_sheet(workbook, detailedSheet, 'Detailed Breakdown');
+    
+    // Generate Excel buffer
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="PnL_Report_${period}_${new Date().toISOString().split('T')[0]}.xlsx"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+    
+    res.send(excelBuffer);
+  } catch (error) {
+    console.error('Error exporting P&L to Excel:', error);
+    res.status(500).json({ error: 'Failed to export P&L data to Excel' });
+  }
+};
+
+// Export P&L data to PDF (HTML format for browser printing)
+export const exportPnLToPDF = async (req: Request, res: Response) => {
+  try {
+    const { period, startDate, endDate } = req.query;
+    
+    // Get P&L data
+    const pnlData = await getVerticalPnLDataInternal(period as string, startDate as string, endDate as string);
+    
+    // Create HTML template
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Profit & Loss Statement</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #2c3e50; margin-bottom: 10px; }
+        .header p { color: #7f8c8d; margin: 5px 0; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .summary-table th, .summary-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .summary-table th { background-color: #3498db; color: white; font-weight: bold; }
+        .summary-table tr:nth-child(even) { background-color: #f2f2f2; }
+        .section-header { background-color: #34495e !important; color: white !important; font-weight: bold; }
+        .amount { text-align: right; font-weight: bold; }
+        .positive { color: #27ae60; }
+        .negative { color: #e74c3c; }
+        .footer { margin-top: 50px; text-align: center; color: #7f8c8d; font-size: 12px; }
+        @media print {
+          body { margin: 0; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Profit & Loss Statement</h1>
+        <p><strong>Period:</strong> ${startDate} to ${endDate}</p>
+        <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+      
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Amount (KD)</th>
+            <th>Percentage of Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pnlData.map(section => `
+            <tr class="${section.type === 'revenue' ? 'section-header' : ''}">
+              <td><strong>${section.category}</strong></td>
+              <td class="amount ${section.subtotal >= 0 ? 'positive' : 'negative'}">
+                ${section.subtotal?.toLocaleString() || '0'}
+              </td>
+              <td class="amount">${section.percentageOfRevenue || 0}%</td>
+            </tr>
+            ${section.items?.map(item => `
+              <tr>
+                <td style="padding-left: 20px;">${item.description}</td>
+                <td class="amount ${item.amount >= 0 ? 'positive' : 'negative'}">
+                  ${item.amount?.toLocaleString() || '0'}
+                </td>
+                <td class="amount">${item.module?.toUpperCase() || 'MANUAL'}</td>
+              </tr>
+            `).join('') || ''}
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div class="footer">
+        <p>This report was generated automatically by the Financial Management System</p>
+        <p>For questions or clarifications, please contact the Finance Department</p>
+        <p class="no-print"><strong>To print as PDF:</strong> Press Ctrl+P (or Cmd+P on Mac) and select "Save as PDF"</p>
+      </div>
+    </body>
+    </html>
+    `;
+    
+    // Set response headers for HTML
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `inline; filename="PnL_Report_${period}_${new Date().toISOString().split('T')[0]}.html"`);
+    
+    res.send(html);
+  } catch (error) {
+    console.error('Error exporting P&L to PDF:', error);
+    res.status(500).json({ error: 'Failed to export P&L data to PDF' });
+  }
+};
+
+// Helper function to get P&L data for export
+async function getVerticalPnLDataInternal(period: string, startDate?: string, endDate?: string) {
+  try {
+    // Create a mock request object with the same structure as the actual API
+    const mockReq = {
+      query: {
+        period,
+        ...(startDate && { start: startDate }),
+        ...(endDate && { end: endDate })
+      }
+    } as any;
+
+    // Create a mock response object to capture the data
+    let pnlData: any = null;
+    const mockRes = {
+      json: (data: any) => { pnlData = data; },
+      status: () => mockRes,
+      send: () => {}
+    } as any;
+
+    // Call the actual getVerticalPnLData function
+    await getVerticalPnLData(mockReq, mockRes);
+
+    if (!pnlData) {
+      throw new Error('Failed to retrieve P&L data');
+    }
+
+    // Transform the data to match the export format
+    const { start, end } = getPeriodDates(period, startDate, endDate);
+    
+    // Calculate percentage of revenue for each section
+    const totalRevenue = pnlData.summary?.revenue || 0;
+    
+    // Build the export data structure
+    const exportData = [];
+    
+    // Revenue section
+    if (pnlData.revenue) {
+      const revenueItems = [];
+      
+      // Add individual revenue items
+      if (pnlData.revenue.operatingRevenues > 0) {
+        revenueItems.push({
+          description: 'Operating Revenues',
+          amount: pnlData.revenue.operatingRevenues,
+          module: 'sales',
+          type: 'revenue'
+        });
+      }
+      
+      if (pnlData.revenue.rentalEquipmentRevenue > 0) {
+        revenueItems.push({
+          description: 'Rental Equipment Revenue',
+          amount: pnlData.revenue.rentalEquipmentRevenue,
+          module: 'assets',
+          type: 'revenue'
+        });
+      }
+      
+      if (pnlData.revenue.dsRevenue > 0) {
+        revenueItems.push({
+          description: 'DS Revenue',
+          amount: pnlData.revenue.dsRevenue,
+          module: 'operations',
+          type: 'revenue'
+        });
+      }
+      
+      if (pnlData.revenue.subCompaniesRevenue > 0) {
+        revenueItems.push({
+          description: 'Sub Companies Revenue',
+          amount: pnlData.revenue.subCompaniesRevenue,
+          module: 'sales',
+          type: 'revenue'
+        });
+      }
+      
+      if (pnlData.revenue.otherRevenue > 0) {
+        revenueItems.push({
+          description: 'Other Revenue',
+          amount: pnlData.revenue.otherRevenue,
+          module: 'sales',
+          type: 'revenue'
+        });
+      }
+      
+      if (pnlData.revenue.provisionEndService > 0) {
+        revenueItems.push({
+          description: 'Provision End Service',
+          amount: pnlData.revenue.provisionEndService,
+          module: 'hr',
+          type: 'revenue'
+        });
+      }
+      
+      if (pnlData.revenue.provisionImpairment > 0) {
+        revenueItems.push({
+          description: 'Provision Impairment',
+          amount: pnlData.revenue.provisionImpairment,
+          module: 'assets',
+          type: 'revenue'
+        });
+      }
+      
+      if (pnlData.revenue.rebate > 0) {
+        revenueItems.push({
+          description: 'Rebate',
+          amount: pnlData.revenue.rebate,
+          module: 'sales',
+          type: 'revenue'
+        });
+      }
+
+      exportData.push({
+        id: 'revenue',
+        category: 'REVENUE',
+        type: 'revenue',
+        subtotal: totalRevenue,
+        percentageOfRevenue: 100,
+        items: revenueItems
+      });
+    }
+
+    // Expenses section
+    if (pnlData.expenses) {
+      const expenseItems = [];
+      
+      // Add individual expense items
+      if (pnlData.expenses.operationCost > 0) {
+        expenseItems.push({
+          description: 'Operation Cost',
+          amount: -pnlData.expenses.operationCost,
+          module: 'operations',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.rentalEquipmentCost > 0) {
+        expenseItems.push({
+          description: 'Rental Equipment Cost',
+          amount: -pnlData.expenses.rentalEquipmentCost,
+          module: 'assets',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.dsCost > 0) {
+        expenseItems.push({
+          description: 'DS Cost',
+          amount: -pnlData.expenses.dsCost,
+          module: 'operations',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.generalAdminExpenses > 0) {
+        expenseItems.push({
+          description: 'General Admin Expenses',
+          amount: -pnlData.expenses.generalAdminExpenses,
+          module: 'admin',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.staffCost > 0) {
+        expenseItems.push({
+          description: 'Staff Costs',
+          amount: -pnlData.expenses.staffCost,
+          module: 'hr',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.businessTripCost > 0) {
+        expenseItems.push({
+          description: 'Business Trip Costs',
+          amount: -pnlData.expenses.businessTripCost,
+          module: 'hr',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.overtimeCost > 0) {
+        expenseItems.push({
+          description: 'Overtime Costs',
+          amount: -pnlData.expenses.overtimeCost,
+          module: 'hr',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.tripAllowanceCost > 0) {
+        expenseItems.push({
+          description: 'Trip Allowance Costs',
+          amount: -pnlData.expenses.tripAllowanceCost,
+          module: 'hr',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.foodAllowanceCost > 0) {
+        expenseItems.push({
+          description: 'Food Allowance Costs',
+          amount: -pnlData.expenses.foodAllowanceCost,
+          module: 'hr',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.hseTrainingCost > 0) {
+        expenseItems.push({
+          description: 'HSE & Training Costs',
+          amount: -pnlData.expenses.hseTrainingCost,
+          module: 'hse',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.procurementCost > 0) {
+        expenseItems.push({
+          description: 'Procurement Costs',
+          amount: -pnlData.expenses.procurementCost,
+          module: 'procurement',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.expenses.serviceAgreementCost > 0) {
+        expenseItems.push({
+          description: 'Service Agreement Cost',
+          amount: -pnlData.expenses.serviceAgreementCost,
+          module: 'operations',
+          type: 'expense'
+        });
+      }
+
+      const totalExpenses = pnlData.expenses.total || 0;
+      exportData.push({
+        id: 'expenses',
+        category: 'EXPENSES',
+        type: 'expenses',
+        subtotal: -totalExpenses,
+        percentageOfRevenue: totalRevenue > 0 ? (totalExpenses / totalRevenue * 100) : 0,
+        items: expenseItems
+      });
+    }
+
+    // EBITDA section
+    if (pnlData.ebitida) {
+      const ebitidaItems = [];
+      
+      if (pnlData.ebitida.financeCosts > 0) {
+        ebitidaItems.push({
+          description: 'Finance Costs',
+          amount: -pnlData.ebitida.financeCosts,
+          module: 'finance',
+          type: 'expense'
+        });
+      }
+      
+      if (pnlData.ebitida.depreciation > 0) {
+        ebitidaItems.push({
+          description: 'Depreciation',
+          amount: -pnlData.ebitida.depreciation,
+          module: 'assets',
+          type: 'expense'
+        });
+      }
+
+      const ebitidaTotal = pnlData.ebitida.total || 0;
+      exportData.push({
+        id: 'ebitida',
+        category: 'EBITDA',
+        type: 'ebitida',
+        subtotal: ebitidaTotal,
+        percentageOfRevenue: totalRevenue > 0 ? (ebitidaTotal / totalRevenue * 100) : 0,
+        items: ebitidaItems
+      });
+    }
+
+    return exportData;
+  } catch (error) {
+    console.error('Error in getVerticalPnLDataInternal:', error);
+    // Return fallback data if there's an error
+    return [
+      {
+        id: 'revenue',
+        category: 'REVENUE',
+        type: 'revenue',
+        subtotal: 0,
+        percentageOfRevenue: 0,
+        items: []
+      },
+      {
+        id: 'expenses',
+        category: 'EXPENSES',
+        type: 'expenses',
+        subtotal: 0,
+        percentageOfRevenue: 0,
+        items: []
+      }
+    ];
+  }
+}

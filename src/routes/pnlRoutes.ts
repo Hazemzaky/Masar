@@ -16,7 +16,9 @@ import {
   getRevenue,
   getExpenses,
   getEBITDA,
-  getSubCompaniesRevenue
+  getSubCompaniesRevenue,
+  exportPnLToExcel,
+  exportPnLToPDF
 } from '../controllers/pnlController';
 
 const router = express.Router();
@@ -103,16 +105,9 @@ router.get('/check-updates', (req, res) => {
   });
 });
 
-// Export routes (to be implemented)
-router.get('/export/pdf', (req, res) => {
-  // TODO: Implement PDF export
-  res.status(501).json({ message: 'PDF export not yet implemented' });
-});
-
-router.get('/export/excel', (req, res) => {
-  // TODO: Implement Excel export
-  res.status(501).json({ message: 'Excel export not yet implemented' });
-});
+// Export routes
+router.get('/export/pdf', exportPnLToPDF);
+router.get('/export/excel', exportPnLToExcel);
 
 // Health check for P&L system
 router.get('/health', (req, res) => {
