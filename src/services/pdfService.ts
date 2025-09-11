@@ -142,7 +142,6 @@ export class PDFService {
     };
 
     // Use safeInvoice for all template references
-    const invoice = safeInvoice;
 
     return `
 <!DOCTYPE html>
@@ -150,7 +149,7 @@ export class PDFService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice ${invoice.invoiceNumber}</title>
+    <title>Invoice ${safeInvoice.invoiceNumber}</title>
     <style>
         * {
             margin: 0;
@@ -217,7 +216,7 @@ export class PDFService {
             font-weight: bold;
             text-transform: uppercase;
             color: white;
-            background-color: ${getStatusColor(invoice.paymentStatus)};
+            background-color: ${getStatusColor(safeInvoice.paymentStatus)};
         }
         
         .invoice-info {
@@ -389,8 +388,8 @@ export class PDFService {
             </div>
             <div class="invoice-details">
                 <div class="invoice-title">INVOICE</div>
-                <div class="invoice-number">#${invoice.invoiceNumber}</div>
-                <div class="status-badge">${invoice.paymentStatus}</div>
+                <div class="invoice-number">#${safeInvoice.invoiceNumber}</div>
+                <div class="status-badge">${safeInvoice.paymentStatus}</div>
             </div>
         </div>
 
@@ -398,27 +397,27 @@ export class PDFService {
         <div class="invoice-info">
             <div class="bill-to">
                 <div class="section-title">Bill To</div>
-                <div class="customer-name">${invoice.customerName || 'N/A'}</div>
-                <div>${invoice.customerReference || 'N/A'}</div>
+                <div class="customer-name">${safeInvoice.customerName || 'N/A'}</div>
+                <div>${safeInvoice.customerReference || 'N/A'}</div>
             </div>
             <div class="invoice-meta">
                 <div class="section-title">Invoice Details</div>
                 <div class="meta-row">
                     <span class="meta-label">Invoice Date:</span>
-                    <span class="meta-value">${formatDate(invoice.invoiceDate)}</span>
+                    <span class="meta-value">${formatDate(safeInvoice.invoiceDate)}</span>
                 </div>
                 <div class="meta-row">
                     <span class="meta-label">Due Date:</span>
-                    <span class="meta-value">${formatDate(invoice.dueDate)}</span>
+                    <span class="meta-value">${formatDate(safeInvoice.dueDate)}</span>
                 </div>
                 <div class="meta-row">
                     <span class="meta-label">Currency:</span>
-                    <span class="meta-value">${invoice.currency}</span>
+                    <span class="meta-value">${safeInvoice.currency}</span>
                 </div>
-                ${invoice.contractNumber ? `
+                ${safeInvoice.contractNumber ? `
                 <div class="meta-row">
                     <span class="meta-label">Contract #:</span>
-                    <span class="meta-value">${invoice.contractNumber}</span>
+                    <span class="meta-value">${safeInvoice.contractNumber}</span>
                 </div>
                 ` : ''}
             </div>
@@ -443,7 +442,7 @@ export class PDFService {
                     </tr>
                 </thead>
                 <tbody>
-                    ${invoice.lineItems?.map(item => `
+                    ${safeInvoice.lineItems?.map(item => `
                         <tr>
                             <td>${item.description}</td>
                             <td class="text-center">${item.quantity}</td>
@@ -460,31 +459,31 @@ export class PDFService {
             <table class="totals-table">
                 <tr>
                     <td>Subtotal:</td>
-                    <td class="text-right">${formatCurrency(invoice.netAmount)}</td>
+                    <td class="text-right">${formatCurrency(safeInvoice.netAmount)}</td>
                 </tr>
                 <tr>
-                    <td>Tax (${invoice.taxRate}%):</td>
-                    <td class="text-right">${formatCurrency(invoice.taxAmount)}</td>
+                    <td>Tax (${safeInvoice.taxRate}%):</td>
+                    <td class="text-right">${formatCurrency(safeInvoice.taxAmount)}</td>
                 </tr>
                 <tr>
                     <td>Total Amount:</td>
-                    <td class="text-right">${formatCurrency(invoice.amount)}</td>
+                    <td class="text-right">${formatCurrency(safeInvoice.amount)}</td>
                 </tr>
             </table>
         </div>
 
         <!-- Notes -->
-        ${invoice.ifrsNotes ? `
+        ${safeInvoice.ifrsNotes ? `
         <div class="notes">
             <h4>Notes</h4>
-            <p>${invoice.ifrsNotes}</p>
+            <p>${safeInvoice.ifrsNotes}</p>
         </div>
         ` : ''}
 
         <!-- Footer -->
         <div class="footer">
             <p>Thank you for your business! If you have any questions about this invoice, please contact us.</p>
-            <p>Generated on ${formatDate(new Date())} | Invoice #${invoice.invoiceNumber}</p>
+            <p>Generated on ${formatDate(new Date())} | Invoice #${safeInvoice.invoiceNumber}</p>
         </div>
     </div>
 </body>
