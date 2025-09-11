@@ -49,13 +49,22 @@ exports.debugExpiringContracts = exports.getCashFlowStatement = exports.getBalan
 const Expense_1 = __importDefault(require("../models/Expense"));
 const Invoice_1 = __importDefault(require("../models/Invoice"));
 const User_1 = __importDefault(require("../models/User"));
+const Employee_1 = __importDefault(require("../models/Employee"));
 const Asset_1 = __importDefault(require("../models/Asset"));
+const AssetPass_1 = __importDefault(require("../models/AssetPass"));
+const Project_1 = __importDefault(require("../models/Project"));
 const Maintenance_1 = __importDefault(require("../models/Maintenance"));
 const PurchaseRequest_1 = __importDefault(require("../models/PurchaseRequest"));
+const PurchaseOrder_1 = __importDefault(require("../models/PurchaseOrder"));
 const ProcurementInvoice_1 = __importDefault(require("../models/ProcurementInvoice"));
+const Vendor_1 = __importDefault(require("../models/Vendor"));
 const Client_1 = __importDefault(require("../models/Client"));
+const Quotation_1 = __importDefault(require("../models/Quotation"));
 const BusinessTrip_1 = __importDefault(require("../models/BusinessTrip"));
 const Training_1 = __importDefault(require("../models/Training"));
+const Accident_1 = __importDefault(require("../models/Accident"));
+const NearMiss_1 = __importDefault(require("../models/NearMiss"));
+const SafetyInspection_1 = __importDefault(require("../models/SafetyInspection"));
 const Payroll_1 = __importDefault(require("../models/Payroll"));
 const FuelLog_1 = __importDefault(require("../models/FuelLog"));
 const GeneralLedgerEntry_1 = __importDefault(require("../models/GeneralLedgerEntry"));
@@ -152,6 +161,116 @@ function getPayrollExpense(startDate, endDate) {
         }
     });
 }
+function getHREmployeeStats() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Get total headcount
+            const totalHeadcount = yield Employee_1.default.countDocuments();
+            // Get active employees
+            const activeEmployees = yield Employee_1.default.countDocuments({
+                active: true,
+                status: 'active'
+            });
+            // Get employees on leave
+            const onLeaveEmployees = yield Employee_1.default.countDocuments({
+                status: 'on-leave'
+            });
+            // Note: Attrition rate calculation removed as requested
+            return {
+                headcount: totalHeadcount,
+                activeEmployees,
+                onLeaveEmployees
+            };
+        }
+        catch (error) {
+            console.log('HR employee stats fetch failed:', error);
+            return {
+                headcount: 0,
+                activeEmployees: 0,
+                onLeaveEmployees: 0
+            };
+        }
+    });
+}
+function getAssetStats() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Get total number of assets
+            const totalAssets = yield Asset_1.default.countDocuments();
+            // Calculate total book value as of current date
+            const assets = yield Asset_1.default.find({ status: 'active' });
+            const currentDate = new Date();
+            let totalBookValue = 0;
+            for (const asset of assets) {
+                // Calculate book value for current date
+                const purchaseDate = new Date(asset.purchaseDate);
+                const usefulLifeMonths = asset.usefulLifeMonths;
+                const purchaseValue = asset.purchaseValue;
+                const salvageValue = asset.salvageValue;
+                // Calculate months since purchase
+                const monthsSincePurchase = (currentDate.getFullYear() - purchaseDate.getFullYear()) * 12 +
+                    (currentDate.getMonth() - purchaseDate.getMonth());
+                // Calculate depreciation
+                const totalDepreciation = Math.min(monthsSincePurchase, usefulLifeMonths) *
+                    (purchaseValue - salvageValue) / usefulLifeMonths;
+                const bookValue = Math.max(purchaseValue - totalDepreciation, salvageValue);
+                totalBookValue += bookValue;
+            }
+            // Get renewals required from AssetPass model (expiring within 30 days)
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+            const renewalsRequired = yield AssetPass_1.default.countDocuments({
+                expiryDate: {
+                    $gte: currentDate,
+                    $lte: thirtyDaysFromNow
+                }
+            });
+            return {
+                totalAssets,
+                totalBookValue,
+                renewalsRequired
+            };
+        }
+        catch (error) {
+            console.log('Asset stats fetch failed:', error);
+            return {
+                totalAssets: 0,
+                totalBookValue: 0,
+                renewalsRequired: 0
+            };
+        }
+    });
+}
+function getOperationsStats() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Get total callouts (projects with rentType: 'call_out')
+            const totalCallouts = yield Project_1.default.countDocuments({
+                rentType: 'call_out'
+            });
+            // Get total orders (all projects)
+            const totalOrders = yield Project_1.default.countDocuments();
+            // Get cancelled orders (projects with status: 'cancelled')
+            const cancelledOrders = yield Project_1.default.countDocuments({
+                status: 'cancelled'
+            });
+            console.log('Operations stats:', { totalCallouts, totalOrders, cancelledOrders });
+            return {
+                totalCallouts,
+                totalOrders,
+                cancelledOrders
+            };
+        }
+        catch (error) {
+            console.log('Operations stats fetch failed:', error);
+            return {
+                totalCallouts: 0,
+                totalOrders: 0,
+                cancelledOrders: 0
+            };
+        }
+    });
+}
 function getOperationsExpense(startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
@@ -180,6 +299,45 @@ function getMaintenanceExpense(startDate, endDate) {
         }
         catch (error) {
             console.log('Maintenance expense fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getTotalMaintenanceHours() {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            // Calculate total maintenance hours from all maintenance records (not just completed)
+            // Include scheduled, in_progress, and completed statuses
+            const maintenanceHoursData = yield Maintenance_1.default.aggregate([
+                {
+                    $match: {
+                        status: { $in: ['scheduled', 'in_progress', 'completed'] },
+                        totalMaintenanceTime: { $gt: 0 } // Only include records with actual time
+                    }
+                },
+                { $group: { _id: null, totalHours: { $sum: '$totalMaintenanceTime' } } }
+            ]);
+            const totalHours = ((_a = maintenanceHoursData[0]) === null || _a === void 0 ? void 0 : _a.totalHours) || 0;
+            // Debug: Get breakdown by status
+            const statusBreakdown = yield Maintenance_1.default.aggregate([
+                {
+                    $match: {
+                        status: { $in: ['scheduled', 'in_progress', 'completed'] },
+                        totalMaintenanceTime: { $gt: 0 }
+                    }
+                },
+                { $group: { _id: '$status', totalHours: { $sum: '$totalMaintenanceTime' }, count: { $sum: 1 } } }
+            ]);
+            console.log('Maintenance hours calculation:', {
+                totalHours,
+                statusBreakdown,
+                totalRecords: statusBreakdown.reduce((sum, item) => sum + item.count, 0)
+            });
+            return totalHours;
+        }
+        catch (error) {
+            console.log('Total maintenance hours fetch failed:', error);
             return 0;
         }
     });
@@ -219,6 +377,189 @@ function getAdminExpense(startDate, endDate) {
         }
     });
 }
+function getActiveDocumentsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count active government documents
+            const activeDocuments = yield GovernmentDocument_1.default.countDocuments({
+                status: { $in: ['active', 'valid', 'current'] }
+            });
+            return activeDocuments;
+        }
+        catch (error) {
+            console.log('Active documents count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getOpenLegalCasesCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count open legal cases
+            const openLegalCases = yield LegalCase_1.default.countDocuments({
+                status: { $in: ['open', 'pending', 'in_progress'] }
+            });
+            return openLegalCases;
+        }
+        catch (error) {
+            console.log('Open legal cases count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getExpiryDocumentsNext30Days() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const currentDate = new Date();
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+            // Count government documents expiring in next 30 days
+            const expiringDocuments = yield GovernmentDocument_1.default.countDocuments({
+                expiryDate: {
+                    $gte: currentDate,
+                    $lte: thirtyDaysFromNow
+                },
+                status: { $in: ['active', 'valid', 'current'] }
+            });
+            return expiringDocuments;
+        }
+        catch (error) {
+            console.log('Expiry documents count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getTotalIncidentsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count total incidents from Accident model
+            const totalIncidents = yield Accident_1.default.countDocuments();
+            return totalIncidents || 0;
+        }
+        catch (error) {
+            console.log('Total incidents count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getOverdueInspectionsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count overdue inspections using same logic as HSE page
+            const currentDate = new Date();
+            const inspections = yield SafetyInspection_1.default.find({});
+            // Filter inspections that are overdue (same logic as HSE page)
+            const overdueInspections = inspections.filter(i => i.status === 'overdue' ||
+                (i.nextInspectionDate && new Date(i.nextInspectionDate) < currentDate)).length;
+            console.log('Overdue inspections calculation:', {
+                totalInspections: inspections.length,
+                overdueCount: overdueInspections,
+                currentDate: currentDate.toISOString()
+            });
+            return overdueInspections || 0;
+        }
+        catch (error) {
+            console.log('Overdue inspections count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getNearMissLogCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count near miss logs from NearMiss model
+            const nearMissCount = yield NearMiss_1.default.countDocuments();
+            return nearMissCount || 0;
+        }
+        catch (error) {
+            console.log('Near miss log count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getTotalPurchaseRequestsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count total purchase requests
+            const totalPurchaseRequests = yield PurchaseRequest_1.default.countDocuments();
+            return totalPurchaseRequests || 0;
+        }
+        catch (error) {
+            console.log('Total purchase requests count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getTotalPurchaseOrdersCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count total purchase orders
+            const totalPurchaseOrders = yield PurchaseOrder_1.default.countDocuments();
+            return totalPurchaseOrders || 0;
+        }
+        catch (error) {
+            console.log('Total purchase orders count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getTotalVendorsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count total vendors
+            const totalVendors = yield Vendor_1.default.countDocuments();
+            return totalVendors || 0;
+        }
+        catch (error) {
+            console.log('Total vendors count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getTotalQuotationsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count total quotations
+            const totalQuotations = yield Quotation_1.default.countDocuments();
+            return totalQuotations || 0;
+        }
+        catch (error) {
+            console.log('Total quotations count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getPendingQuotationsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count pending quotations - using more common status values
+            const pendingQuotations = yield Quotation_1.default.countDocuments({
+                $or: [
+                    { status: { $in: ['Draft', 'draft', 'Pending', 'pending', 'Sent', 'sent'] } },
+                    { approvalStatus: { $in: ['pending', 'Pending', 'draft', 'Draft'] } }
+                ]
+            });
+            return pendingQuotations || 0;
+        }
+        catch (error) {
+            console.log('Pending quotations count fetch failed:', error);
+            return 0;
+        }
+    });
+}
+function getTotalClientsCount() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Count total clients
+            const totalClients = yield Client_1.default.countDocuments();
+            return totalClients || 0;
+        }
+        catch (error) {
+            console.log('Total clients count fetch failed:', error);
+            return 0;
+        }
+    });
+}
 function getSubCompaniesRevenue(startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -240,123 +581,14 @@ function getSubCompaniesRevenue(startDate, endDate) {
         }
     });
 }
-// Main aggregation function using PnL vertical table data
+// Main aggregation function using individual data services
 function getVerticalPnLDataForDashboard(startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6;
+        var _a;
         try {
-            console.log('🎯 Dashboard: Fetching data from PnL vertical table...', { startDate, endDate });
-            // Call the PnL vertical table function directly
-            const { getVerticalPnLData } = yield Promise.resolve().then(() => __importStar(require('./pnlController')));
-            // Create a proper request object
-            const mockReq = {
-                query: {
-                    start: startDate.toISOString(),
-                    end: endDate.toISOString(),
-                    period: 'monthly'
-                }
-            };
-            // Create a response object that captures the data
-            let pnlVerticalData = null;
-            const mockRes = {
-                json: (data) => {
-                    pnlVerticalData = data;
-                    console.log('✅ Dashboard: PnL vertical data received:', data);
-                },
-                status: (code) => mockRes,
-                send: (data) => {
-                    pnlVerticalData = data;
-                    console.log('✅ Dashboard: PnL vertical data sent:', data);
-                }
-            };
-            console.log('🎯 Dashboard: Calling PnL vertical table function...');
-            yield getVerticalPnLData(mockReq, mockRes);
-            if (!pnlVerticalData) {
-                console.error('❌ Dashboard: PnL vertical data is null, falling back to individual services');
-                throw new Error('Failed to fetch PnL vertical data');
-            }
-            console.log('✅ Dashboard: PnL vertical data fetched successfully:', {
-                revenue: (_a = pnlVerticalData.summary) === null || _a === void 0 ? void 0 : _a.revenue,
-                expenses: (_b = pnlVerticalData.summary) === null || _b === void 0 ? void 0 : _b.operatingExpenses,
-                ebitda: (_c = pnlVerticalData.summary) === null || _c === void 0 ? void 0 : _c.ebitda,
-                subCompaniesRevenue: pnlVerticalData.subCompaniesRevenue
-            });
-            // Extract data from PnL vertical table structure
-            const totalRevenue = ((_d = pnlVerticalData.summary) === null || _d === void 0 ? void 0 : _d.revenue) || 0;
-            const totalExpenses = ((_e = pnlVerticalData.summary) === null || _e === void 0 ? void 0 : _e.operatingExpenses) || 0;
-            const ebitda = ((_f = pnlVerticalData.summary) === null || _f === void 0 ? void 0 : _f.ebitda) || 0;
-            const subCompaniesRevenue = pnlVerticalData.subCompaniesRevenue || 0;
-            // Extract module-specific data from PnL vertical table
-            const pnlData = {
-                revenue: { total: totalRevenue },
-                expenses: { total: totalExpenses },
-                ebitda: { total: ebitda },
-                subCompaniesRevenue: subCompaniesRevenue,
-                hr: {
-                    payroll: ((_g = pnlVerticalData.hr) === null || _g === void 0 ? void 0 : _g.payroll) || 0,
-                    headcount: ((_h = pnlVerticalData.hr) === null || _h === void 0 ? void 0 : _h.headcount) || 0,
-                    attrition: ((_j = pnlVerticalData.hr) === null || _j === void 0 ? void 0 : _j.attrition) || 0
-                },
-                assets: {
-                    bookValue: ((_k = pnlVerticalData.assets) === null || _k === void 0 ? void 0 : _k.bookValue) || 0,
-                    utilization: ((_l = pnlVerticalData.assets) === null || _l === void 0 ? void 0 : _l.utilization) || 0,
-                    depreciation: ((_m = pnlVerticalData.assets) === null || _m === void 0 ? void 0 : _m.depreciation) || 0,
-                    renewals: ((_o = pnlVerticalData.assets) === null || _o === void 0 ? void 0 : _o.renewals) || 0
-                },
-                operations: {
-                    deliveries: ((_p = pnlVerticalData.operations) === null || _p === void 0 ? void 0 : _p.deliveries) || 0,
-                    onTimePercentage: ((_q = pnlVerticalData.operations) === null || _q === void 0 ? void 0 : _q.onTimePercentage) || 0,
-                    deliveryCost: ((_r = pnlVerticalData.operations) === null || _r === void 0 ? void 0 : _r.deliveryCost) || 0,
-                    fleetUtilization: ((_s = pnlVerticalData.operations) === null || _s === void 0 ? void 0 : _s.fleetUtilization) || 0
-                },
-                maintenance: {
-                    cost: ((_t = pnlVerticalData.maintenance) === null || _t === void 0 ? void 0 : _t.cost) || 0,
-                    downtime: ((_u = pnlVerticalData.maintenance) === null || _u === void 0 ? void 0 : _u.downtime) || 0
-                },
-                procurement: {
-                    totalSpend: ((_v = pnlVerticalData.procurement) === null || _v === void 0 ? void 0 : _v.totalSpend) || 0,
-                    openPOs: ((_w = pnlVerticalData.procurement) === null || _w === void 0 ? void 0 : _w.openPOs) || 0,
-                    cycleTime: ((_x = pnlVerticalData.procurement) === null || _x === void 0 ? void 0 : _x.cycleTime) || 0
-                },
-                sales: {
-                    totalSales: ((_y = pnlVerticalData.sales) === null || _y === void 0 ? void 0 : _y.totalSales) || 0,
-                    pipeline: ((_z = pnlVerticalData.sales) === null || _z === void 0 ? void 0 : _z.pipeline) || 0,
-                    salesMargin: ((_0 = pnlVerticalData.sales) === null || _0 === void 0 ? void 0 : _0.salesMargin) || 0
-                },
-                admin: {
-                    costs: ((_1 = pnlVerticalData.admin) === null || _1 === void 0 ? void 0 : _1.costs) || 0,
-                    overheadPercentage: ((_2 = pnlVerticalData.admin) === null || _2 === void 0 ? void 0 : _2.overheadPercentage) || 0,
-                    pendingApprovals: ((_3 = pnlVerticalData.admin) === null || _3 === void 0 ? void 0 : _3.pendingApprovals) || 0
-                },
-                hse: {
-                    incidents: ((_4 = pnlVerticalData.hse) === null || _4 === void 0 ? void 0 : _4.incidents) || 0,
-                    trainingCompliance: ((_5 = pnlVerticalData.hse) === null || _5 === void 0 ? void 0 : _5.trainingCompliance) || 0,
-                    openActions: ((_6 = pnlVerticalData.hse) === null || _6 === void 0 ? void 0 : _6.openActions) || 0
-                }
-            };
-            console.log('✅ Dashboard: PnL vertical data processing completed:', {
-                totalRevenue,
-                totalExpenses,
-                ebitda,
-                subCompaniesRevenue,
-                moduleData: {
-                    hr: pnlData.hr,
-                    assets: pnlData.assets,
-                    operations: pnlData.operations,
-                    maintenance: pnlData.maintenance,
-                    procurement: pnlData.procurement,
-                    sales: pnlData.sales,
-                    admin: pnlData.admin,
-                    hse: pnlData.hse
-                }
-            });
-            return pnlData;
-        }
-        catch (error) {
-            console.error('❌ Error in PnL vertical data aggregation:', error);
-            console.log('🔄 Dashboard: Falling back to individual services method...');
-            // Fallback to individual services method
-            const [salesRevenue, totalExpenses, rentalRevenue, payrollExpense, operationsExpense, maintenanceExpense, procurementExpense, adminExpense, subCompaniesRevenue] = yield Promise.all([
+            console.log('🎯 Dashboard: Fetching data from individual services...', { startDate, endDate });
+            // Fetch data from each service in parallel
+            const [salesRevenue, totalExpenses, rentalRevenue, payrollExpense, operationsExpense, maintenanceExpense, procurementExpense, adminExpense, subCompaniesRevenue, hrStats, assetStats, operationsStats, activeDocuments, openLegalCases, expiryDocuments, totalIncidents, overdueInspections, nearMissLog, totalPurchaseRequests, totalPurchaseOrders, totalVendors, totalQuotations, pendingQuotations, totalClients, totalMaintenanceHours] = yield Promise.all([
                 getRevenueData(startDate, endDate),
                 getExpenseData(startDate, endDate),
                 getAssetRentalRevenue(startDate, endDate),
@@ -365,33 +597,160 @@ function getVerticalPnLDataForDashboard(startDate, endDate) {
                 getMaintenanceExpense(startDate, endDate),
                 getProcurementExpense(startDate, endDate),
                 getAdminExpense(startDate, endDate),
-                getSubCompaniesRevenue(startDate, endDate)
+                getSubCompaniesRevenue(startDate, endDate),
+                getHREmployeeStats(),
+                getAssetStats(),
+                getOperationsStats(),
+                getActiveDocumentsCount(),
+                getOpenLegalCasesCount(),
+                getExpiryDocumentsNext30Days(),
+                getTotalIncidentsCount(),
+                getOverdueInspectionsCount(),
+                getNearMissLogCount(),
+                getTotalPurchaseRequestsCount(),
+                getTotalPurchaseOrdersCount(),
+                getTotalVendorsCount(),
+                getTotalQuotationsCount(),
+                getPendingQuotationsCount(),
+                getTotalClientsCount(),
+                getTotalMaintenanceHours()
             ]);
+            console.log('Dashboard operations stats received:', operationsStats);
             // Calculate final totals
             const totalRevenue = salesRevenue + rentalRevenue + subCompaniesRevenue;
             const totalOperationalExpenses = payrollExpense + operationsExpense + maintenanceExpense +
                 procurementExpense + adminExpense;
             const finalExpenses = totalExpenses + totalOperationalExpenses;
-            return {
+            // Calculate depreciation for the period
+            const depreciationData = yield Asset_1.default.aggregate([
+                {
+                    $match: {
+                        purchaseDate: { $lte: endDate }
+                    }
+                },
+                {
+                    $project: {
+                        monthlyDepreciation: { $divide: ['$purchaseValue', { $multiply: ['$usefulLifeMonths', 1] }] },
+                        monthsInPeriod: {
+                            $cond: {
+                                if: { $gte: ['$purchaseDate', startDate] },
+                                then: { $divide: [{ $subtract: [endDate, '$purchaseDate'] }, 1000 * 60 * 60 * 24 * 30] },
+                                else: { $divide: [{ $subtract: [endDate, startDate] }, 1000 * 60 * 60 * 24 * 30] }
+                            }
+                        }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        depreciation: { $sum: { $multiply: ['$monthlyDepreciation', '$monthsInPeriod'] } }
+                    }
+                }
+            ]);
+            const depreciation = ((_a = depreciationData[0]) === null || _a === void 0 ? void 0 : _a.depreciation) || 0;
+            const ebitda = totalRevenue - finalExpenses;
+            const netProfit = ebitda - depreciation;
+            const pnlData = {
                 revenue: { total: totalRevenue },
                 expenses: { total: finalExpenses },
-                ebitda: { total: totalRevenue - finalExpenses },
+                ebitda: { total: ebitda },
+                netProfit: { total: netProfit },
+                depreciation: { total: depreciation },
                 subCompaniesRevenue: subCompaniesRevenue,
-                hr: { payroll: payrollExpense, headcount: 0, attrition: 0 },
-                assets: { bookValue: rentalRevenue / 0.02, utilization: 0, depreciation: 0, renewals: 0 },
-                operations: { deliveries: 0, onTimePercentage: 0, deliveryCost: operationsExpense, fleetUtilization: 0 },
-                maintenance: { cost: maintenanceExpense, downtime: 0 },
-                procurement: { totalSpend: procurementExpense, openPOs: 0, cycleTime: 0 },
-                sales: { totalSales: salesRevenue, pipeline: 0, salesMargin: 0 },
-                admin: { costs: adminExpense, overheadPercentage: 0, pendingApprovals: 0 },
-                hse: { incidents: 0, trainingCompliance: 0, openActions: 0 }
+                hr: {
+                    payroll: payrollExpense,
+                    headcount: hrStats.headcount,
+                    activeEmployees: hrStats.activeEmployees,
+                    onLeaveEmployees: hrStats.onLeaveEmployees
+                },
+                assets: {
+                    bookValue: assetStats.totalBookValue,
+                    totalAssets: assetStats.totalAssets,
+                    renewalsRequired: assetStats.renewalsRequired
+                },
+                operations: {
+                    deliveries: operationsStats.totalCallouts,
+                    onTimePercentage: operationsStats.totalOrders,
+                    deliveryCost: operationsExpense,
+                    fleetUtilization: operationsStats.cancelledOrders
+                },
+                maintenance: { cost: maintenanceExpense, totalMaintenanceHours: totalMaintenanceHours },
+                procurement: {
+                    totalPurchaseRequests: totalPurchaseRequests,
+                    totalPurchaseOrders: totalPurchaseOrders,
+                    totalVendors: totalVendors
+                },
+                sales: {
+                    totalQuotations: totalQuotations,
+                    pendingQuotations: pendingQuotations,
+                    totalClients: totalClients
+                },
+                admin: {
+                    activeDocuments: activeDocuments,
+                    openLegalCases: openLegalCases,
+                    expiryDocuments: expiryDocuments
+                },
+                hse: {
+                    totalIncidents: totalIncidents,
+                    overdueInspections: overdueInspections,
+                    nearMissLog: nearMissLog
+                }
+            };
+            console.log('✅ Dashboard: Individual services data aggregation completed:', {
+                totalRevenue,
+                finalExpenses,
+                breakdown: {
+                    salesRevenue,
+                    rentalRevenue,
+                    subCompaniesRevenue,
+                    payrollExpense,
+                    operationsExpense,
+                    maintenanceExpense,
+                    procurementExpense,
+                    adminExpense,
+                    totalExpenses
+                }
+            });
+            return pnlData;
+        }
+        catch (error) {
+            console.error('❌ Error in individual services aggregation:', error);
+            return {
+                revenue: { total: 0 },
+                expenses: { total: 0 },
+                ebitda: { total: 0 },
+                netProfit: { total: 0 },
+                depreciation: { total: 0 },
+                subCompaniesRevenue: 0,
+                hr: {
+                    payroll: 0,
+                    headcount: 0,
+                    activeEmployees: 0,
+                    onLeaveEmployees: 0
+                },
+                assets: {
+                    bookValue: 0,
+                    totalAssets: 0,
+                    renewalsRequired: 0
+                },
+                operations: {
+                    deliveries: 0,
+                    onTimePercentage: 0,
+                    deliveryCost: 0,
+                    fleetUtilization: 0
+                },
+                maintenance: { cost: 0, totalMaintenanceHours: 0 },
+                procurement: { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 },
+                sales: { totalQuotations: 0, pendingQuotations: 0, totalClients: 0 },
+                admin: { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 },
+                hse: { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 }
             };
         }
     });
 }
 // Enhanced Dashboard Summary with all module KPIs
 const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     try {
         const { startDate, endDate } = getDateRange(req);
         // Financial KPIs - Get data from PnL Vertical Table
@@ -399,17 +758,33 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
         const revenue = ((_a = pnlData.revenue) === null || _a === void 0 ? void 0 : _a.total) || 0;
         const expenses = ((_b = pnlData.expenses) === null || _b === void 0 ? void 0 : _b.total) || 0;
         const ebitda = ((_c = pnlData.ebitda) === null || _c === void 0 ? void 0 : _c.total) || 0;
+        const netProfit = ((_d = pnlData.netProfit) === null || _d === void 0 ? void 0 : _d.total) || 0;
+        const depreciation = ((_e = pnlData.depreciation) === null || _e === void 0 ? void 0 : _e.total) || 0;
         const subCompaniesRevenue = pnlData.subCompaniesRevenue || 0;
         console.log('Dashboard - Financial values from vertical P&L table:', { revenue, expenses, ebitda, subCompaniesRevenue });
         // Extract module data from PnL vertical table
-        const hrData = pnlData.hr || { payroll: 0, headcount: 0, attrition: 0 };
-        const assetsData = pnlData.assets || { bookValue: 0, utilization: 0, depreciation: 0, renewals: 0 };
-        const operationsData = pnlData.operations || { deliveries: 0, onTimePercentage: 0, deliveryCost: 0, fleetUtilization: 0 };
-        const maintenanceData = pnlData.maintenance || { cost: 0, downtime: 0 };
-        const procurementData = pnlData.procurement || { totalSpend: 0, openPOs: 0, cycleTime: 0 };
-        const salesData = pnlData.sales || { totalSales: 0, pipeline: 0, salesMargin: 0 };
-        const adminData = pnlData.admin || { costs: 0, overheadPercentage: 0, pendingApprovals: 0 };
-        const hseData = pnlData.hse || { incidents: 0, trainingCompliance: 0, openActions: 0 };
+        const hrData = pnlData.hr || {
+            payroll: 0,
+            headcount: 0,
+            activeEmployees: 0,
+            onLeaveEmployees: 0
+        };
+        const assetData = pnlData.assets || {
+            bookValue: 0,
+            totalAssets: 0,
+            renewalsRequired: 0
+        };
+        const operationsData = pnlData.operations || {
+            deliveries: 0,
+            onTimePercentage: 0,
+            deliveryCost: 0,
+            fleetUtilization: 0
+        };
+        const maintenanceData = pnlData.maintenance || { cost: 0, totalMaintenanceHours: 0 };
+        const procurementData = pnlData.procurement || { totalPurchaseRequests: 0, totalPurchaseOrders: 0, totalVendors: 0 };
+        const salesData = pnlData.sales || { totalQuotations: 0, pendingQuotations: 0, totalClients: 0 };
+        const adminData = pnlData.admin || { activeDocuments: 0, openLegalCases: 0, expiryDocuments: 0 };
+        const hseData = pnlData.hse || { totalIncidents: 0, overdueInspections: 0, nearMissLog: 0 };
         // Action Center Alerts
         const [overdueInvoices, unapprovedPOs, pendingReconciliations, expiringContracts, pendingRequests] = yield Promise.all([
             // Overdue Invoices: Check for invoices with paymentStatus='overdue' or dueDate < now and status='pending'
@@ -488,20 +863,21 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
                 revenue: revenue,
                 expenses: expenses,
                 ebitda: ebitda,
+                netProfit: netProfit,
+                depreciation: depreciation,
                 subCompaniesRevenue: subCompaniesRevenue,
                 margin: revenue ? ((revenue - expenses) / revenue * 100) : 0
             },
             hr: {
                 headcount: hrData.headcount || 0,
                 payroll: hrData.payroll || 0,
-                attrition: hrData.attrition || 0,
-                attritionRate: hrData.headcount ? (hrData.attrition / hrData.headcount * 100) : 0
+                activeEmployees: hrData.activeEmployees || 0,
+                onLeaveEmployees: hrData.onLeaveEmployees || 0
             },
             assets: {
-                bookValue: assetsData.bookValue || 0,
-                utilization: assetsData.utilization || 0,
-                depreciation: assetsData.depreciation || 0,
-                renewals: assetsData.renewals || 0
+                bookValue: assetData.bookValue || 0,
+                totalAssets: assetData.totalAssets || 0,
+                renewalsRequired: assetData.renewalsRequired || 0
             },
             operations: {
                 deliveries: operationsData.deliveries || 0,
@@ -512,29 +888,27 @@ const getDashboardSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
             maintenance: {
                 cost: maintenanceData.cost || 0,
                 preventiveVsCorrective: [],
-                downtime: maintenanceData.downtime || 0
+                totalMaintenanceHours: maintenanceData.totalMaintenanceHours || 0
             },
             procurement: {
-                totalSpend: procurementData.totalSpend || 0,
-                topVendors: [],
-                openPOs: procurementData.openPOs || 0,
-                cycleTime: procurementData.cycleTime || 0
+                totalPurchaseRequests: procurementData.totalPurchaseRequests || 0,
+                totalPurchaseOrders: procurementData.totalPurchaseOrders || 0,
+                totalVendors: procurementData.totalVendors || 0
             },
             sales: {
-                totalSales: salesData.totalSales || 0,
-                pipeline: salesData.pipeline || 0,
-                topCustomers: [],
-                salesMargin: salesData.salesMargin || 0
+                totalQuotations: salesData.totalQuotations || 0,
+                pendingQuotations: salesData.pendingQuotations || 0,
+                totalClients: salesData.totalClients || 0
             },
             admin: {
-                costs: adminData.costs || 0,
-                overheadPercentage: adminData.overheadPercentage || 0,
-                pendingApprovals: adminData.pendingApprovals || 0
+                activeDocuments: adminData.activeDocuments || 0,
+                openLegalCases: adminData.openLegalCases || 0,
+                expiryDocuments: adminData.expiryDocuments || 0
             },
             hse: {
-                incidents: hseData.incidents || 0,
-                trainingCompliance: hseData.trainingCompliance || 0,
-                openActions: hseData.openActions || 0
+                totalIncidents: hseData.totalIncidents || 0,
+                overdueInspections: hseData.overdueInspections || 0,
+                nearMissLog: hseData.nearMissLog || 0
             },
             alerts: {
                 overdueInvoices: overdueInvoices || 0,

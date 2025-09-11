@@ -27,10 +27,13 @@ router.get('/history', payrollController_1.getPayrollHistory);
 router.get('/history/:employeeId', payrollController_1.getEmployeePayrollHistory);
 // Monthly Payroll Update Route
 router.post('/update-monthly', payrollController_1.updateMonthlyPayroll);
+// Populate payroll employees from regular employees
+router.post('/populate-employees', payrollController_1.populatePayrollEmployees);
 // Legacy Payroll Routes (for backward compatibility)
 router.post('/', payrollController_1.createPayroll);
 router.get('/', payrollController_1.getPayrolls);
 router.get('/:id', payrollController_1.getPayroll);
 router.put('/:id', payrollController_1.updatePayroll);
 router.post('/:id/process', payrollController_1.processPayroll);
+router.delete('/all', payrollController_1.deleteAllPayrolls);
 exports.default = router;

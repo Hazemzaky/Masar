@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -12,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEmployeeProjectAssignment = exports.getEmployeesByProject = exports.unassignEmployeeFromProject = exports.assignEmployeeToProject = exports.getAvailableEmployees = exports.processPayroll = exports.updatePayroll = exports.getPayroll = exports.getPayrolls = exports.createPayroll = exports.updateMonthlyPayroll = exports.getEmployeePayrollHistory = exports.getPayrollHistory = exports.deletePayrollEmployee = exports.updatePayrollPayment = exports.updatePayrollEmployee = exports.getPayrollEmployee = exports.getPayrollEmployees = exports.createPayrollEmployee = void 0;
+exports.getEmployeeProjectAssignment = exports.getEmployeesByProject = exports.unassignEmployeeFromProject = exports.assignEmployeeToProject = exports.getAvailableEmployees = exports.populatePayrollEmployees = exports.deleteAllPayrolls = exports.processPayroll = exports.updatePayroll = exports.getPayroll = exports.getPayrolls = exports.createPayroll = exports.updateMonthlyPayroll = exports.getEmployeePayrollHistory = exports.getPayrollHistory = exports.deletePayrollEmployee = exports.updatePayrollPayment = exports.updatePayrollEmployee = exports.getPayrollEmployee = exports.getPayrollEmployees = exports.createPayrollEmployee = void 0;
 const Payroll_1 = require("../models/Payroll");
 const Payroll_2 = __importDefault(require("../models/Payroll"));
 const serialUtils_1 = require("../utils/serialUtils");
@@ -36,9 +69,11 @@ exports.createPayrollEmployee = createPayrollEmployee;
 const getPayrollEmployees = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const employees = yield Payroll_1.PayrollEmployee.find().sort({ fullName: 1 });
+        console.log(`Found ${employees.length} payroll employees`);
         res.json(employees);
     }
     catch (error) {
+        console.error('Error fetching payroll employees:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -323,6 +358,74 @@ const processPayroll = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.processPayroll = processPayroll;
+const deleteAllPayrolls = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Delete all legacy payroll records
+        const legacyResult = yield Payroll_2.default.deleteMany({});
+        // Delete all payroll employees
+        const employeeResult = yield Payroll_1.PayrollEmployee.deleteMany({});
+        // Delete all payroll history
+        const historyResult = yield Payroll_1.PayrollHistory.deleteMany({});
+        res.json({
+            message: 'All payroll data deleted successfully',
+            deletedCounts: {
+                legacyPayrolls: legacyResult.deletedCount,
+                employees: employeeResult.deletedCount,
+                history: historyResult.deletedCount
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.deleteAllPayrolls = deleteAllPayrolls;
+// Function to populate payroll employees from regular employees
+const populatePayrollEmployees = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const Employee = (yield Promise.resolve().then(() => __importStar(require('../models/Employee')))).default;
+        const regularEmployees = yield Employee.find({ status: 'active' });
+        console.log(`Found ${regularEmployees.length} active employees to populate`);
+        const payrollEmployees = regularEmployees.map((emp) => ({
+            company: 'Masar',
+            employeeCode: emp.employeeId || emp._id.toString().slice(-6),
+            fullName: emp.name,
+            position: emp.position || 'Employee',
+            department: emp.department || 'General',
+            totalSalary: emp.salary || 0,
+            days: 30, // Default working days
+            basicSalary: emp.salary || 0,
+            fixedAllowance: 0,
+            temporaryAllowance: 0,
+            overtime: 0,
+            leave: 0,
+            leaveDays: 0,
+            grossSalary: emp.salary || 0,
+            absent: 0,
+            absentDays: 0,
+            sickLeave: 0,
+            sickLeaveDays: 0,
+            loan: 0,
+            fixedDeduction: 0,
+            temporaryDeduction: 0,
+            grossNetSalary: emp.salary || 0,
+            sponsor: 'Company',
+            remark: 'Auto-created from employee data'
+        }));
+        // Clear existing payroll employees first
+        yield Payroll_1.PayrollEmployee.deleteMany({});
+        // Create new payroll employees
+        const createdEmployees = yield Payroll_1.PayrollEmployee.insertMany(payrollEmployees);
+        res.json({
+            message: `Successfully created ${createdEmployees.length} payroll employees`,
+            employees: createdEmployees
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+exports.populatePayrollEmployees = populatePayrollEmployees;
 // New function to get available employees (not assigned to any project)
 const getAvailableEmployees = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

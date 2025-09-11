@@ -32,6 +32,15 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -84,6 +93,14 @@ const budgetLoan_1 = __importDefault(require("./routes/budgetLoan"));
 const budgetCapex_1 = __importDefault(require("./routes/budgetCapex"));
 const budgetVariance_1 = __importDefault(require("./routes/budgetVariance"));
 const budgetContract_1 = __importDefault(require("./routes/budgetContract"));
+const budgetManpower_1 = __importDefault(require("./routes/budgetManpower"));
+const budgetGA_1 = __importDefault(require("./routes/budgetGA"));
+const budgetITOpex_1 = __importDefault(require("./routes/budgetITOpex"));
+const budgetStaff_1 = __importDefault(require("./routes/budgetStaff"));
+const budgetLogistics_1 = __importDefault(require("./routes/budgetLogistics"));
+const budgetWater_1 = __importDefault(require("./routes/budgetWater"));
+const budgetRental_1 = __importDefault(require("./routes/budgetRental"));
+const budgetOthers_1 = __importDefault(require("./routes/budgetOthers"));
 const procurementInvoiceRoutes_1 = __importDefault(require("./routes/procurementInvoiceRoutes"));
 const vendorRoutes_1 = __importDefault(require("./routes/vendorRoutes"));
 const purchaseRequestRoutes_1 = __importDefault(require("./routes/purchaseRequestRoutes"));
@@ -91,6 +108,7 @@ const goodsReceiptRoutes_1 = __importDefault(require("./routes/goodsReceiptRoute
 const purchaseOrderRoutes_1 = __importDefault(require("./routes/purchaseOrderRoutes"));
 const businessTripRoutes_1 = __importDefault(require("./routes/businessTripRoutes"));
 const pnlRoutes_1 = __importDefault(require("./routes/pnlRoutes"));
+const manualEntriesRoutes_1 = __importDefault(require("./routes/manualEntriesRoutes"));
 const reconciliationRoutes_1 = __importDefault(require("./routes/reconciliationRoutes"));
 const contractRoutes_1 = __importDefault(require("./routes/contractRoutes"));
 const glRoutes_1 = __importDefault(require("./routes/glRoutes"));
@@ -121,6 +139,7 @@ require("./models/HSEDocumentFolder");
 require("./models/HSEDocument");
 // Import P&L related models
 require("./models/PnLStatement");
+require("./models/ManualPnLEntry");
 require("./models/Expense");
 require("./models/Invoice");
 require("./models/AccountMapping");
@@ -130,6 +149,18 @@ require("./models/Attendance");
 require("./models/Document");
 require("./models/DocumentVersion");
 require("./models/DocumentAudit");
+// Initialize manual entries on server start
+const initializeManualEntries = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        console.log('=== INITIALIZING MANUAL ENTRIES ON SERVER START ===');
+        const { initializeDefaultEntries } = require('./controllers/manualEntriesController');
+        yield initializeDefaultEntries();
+        console.log('Manual entries initialized successfully');
+    }
+    catch (error) {
+        console.error('Error initializing manual entries on server start:', error);
+    }
+});
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -180,6 +211,7 @@ app.get('/health', (req, res) => {
             '/api/leave',
             '/api/reimbursements',
             '/api/pnl',
+            '/api/manual-entries',
             '/api/gl',
             '/api/chart-of-accounts',
             '/api/attendance'
@@ -230,6 +262,14 @@ app.use('/api/budget/loans', budgetLoan_1.default);
 app.use('/api/budget/capex', budgetCapex_1.default);
 app.use('/api/budget/variance', budgetVariance_1.default);
 app.use('/api/budget/contracts', budgetContract_1.default);
+app.use('/api/budget/manpower', budgetManpower_1.default);
+app.use('/api/budget/ga', budgetGA_1.default);
+app.use('/api/budget/it-opex', budgetITOpex_1.default);
+app.use('/api/budget/staff', budgetStaff_1.default);
+app.use('/api/budget/logistics', budgetLogistics_1.default);
+app.use('/api/budget/water', budgetWater_1.default);
+app.use('/api/budget/rental', budgetRental_1.default);
+app.use('/api/budget/others', budgetOthers_1.default);
 app.use('/api/procurement-invoices', procurementInvoiceRoutes_1.default);
 app.use('/api/vendors', vendorRoutes_1.default);
 app.use('/api/purchase-requests', purchaseRequestRoutes_1.default);
@@ -237,6 +277,7 @@ app.use('/api/goods-receipts', goodsReceiptRoutes_1.default);
 app.use('/api/purchase-orders', purchaseOrderRoutes_1.default);
 app.use('/api/business-trips', businessTripRoutes_1.default);
 app.use('/api/pnl', pnlRoutes_1.default);
+app.use('/api/manual-entries', manualEntriesRoutes_1.default);
 app.use('/api/reconciliation', reconciliationRoutes_1.default);
 app.use('/api/contracts', contractRoutes_1.default);
 app.use('/api/gl', glRoutes_1.default);
@@ -247,6 +288,20 @@ app.use('/api/hse/training', trainingRoutes_1.default);
 app.use('/api/attendance', attendance_1.default);
 app.use('/api/documents', documentRoutes_1.default);
 app.use('/api/pending-requests', pendingRequestsRoutes_1.default);
-app.listen(PORT, () => {
+app.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log(`Server is running on port ${PORT}`);
-});
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`MongoDB URI: ${process.env.MONGODB_URI ? 'Set' : 'Not set'}`);
+    console.log(`JWT Secret: ${process.env.JWT_SECRET ? 'Set' : 'Not set'}`);
+    console.log(`CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
+    console.log(`API Base URL: http://localhost:${PORT}/api`);
+    console.log(`Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`P&L Test: http://localhost:${PORT}/api/pnl/test`);
+    console.log(`Manual Entries: http://localhost:${PORT}/api/pnl/manual-entries`);
+    console.log(`Manual Entries Health: http://localhost:${PORT}/api/pnl/health/manual-entries`);
+    console.log('=====================================');
+    // Initialize manual entries after server starts
+    setTimeout(() => {
+        initializeManualEntries();
+    }, 2000); // Wait 2 seconds for MongoDB connection to be ready
+}));
