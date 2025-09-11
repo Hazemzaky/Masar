@@ -6,8 +6,12 @@ import mongoose from 'mongoose';
 // Record a payment
 export const recordPayment = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('Payment recording request received:', req.body);
+    console.log('User info:', (req as any).user);
+    
     const userId = (req as any).user?.userId;
     if (!userId) {
+      console.log('No user ID found in request');
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
@@ -57,6 +61,8 @@ export const recordPayment = async (req: Request, res: Response): Promise<void> 
       paymentMethod,
       paymentReference,
       paymentDate: new Date(paymentDate),
+      receivedDate: new Date(paymentDate), // Set receivedDate to same as paymentDate
+      status: 'confirmed', // Set status to confirmed for new payments
       bankDetails,
       checkDetails,
       creditCardDetails,
@@ -79,6 +85,10 @@ export const recordPayment = async (req: Request, res: Response): Promise<void> 
     res.status(201).json(payment);
   } catch (error) {
     console.error('Error in recordPayment:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
