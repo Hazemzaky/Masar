@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import BudgetRevenue from '../models/BudgetRevenue';
+import BudgetRevenueDatabase from '../models/BudgetRevenueDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
-    const docs = await BudgetRevenue.find(query).sort({ createdAt: -1 });
+    const docs = await BudgetRevenueDatabase.find(query).sort({ createdAt: -1 });
     res.json(docs);
   } catch (error) {
     console.error('Error fetching budget revenue:', error);
@@ -28,7 +28,7 @@ export const save = async (req: Request, res: Response) => {
       year: year || new Date().getFullYear()
     };
 
-    const doc = await BudgetRevenue.findOneAndUpdate(
+    const doc = await BudgetRevenueDatabase.findOneAndUpdate(
       { no, year: budgetData.year },
       budgetData,
       { upsert: true, new: true }
@@ -56,7 +56,7 @@ export const update = async (req: Request, res: Response) => {
       year: year || new Date().getFullYear()
     };
 
-    const doc = await BudgetRevenue.findByIdAndUpdate(id, budgetData, { new: true });
+    const doc = await BudgetRevenueDatabase.findByIdAndUpdate(id, budgetData, { new: true });
     if (!doc) {
       return res.status(404).json({ message: 'Budget revenue record not found' });
     }
@@ -70,7 +70,7 @@ export const update = async (req: Request, res: Response) => {
 export const remove = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const doc = await BudgetRevenue.findByIdAndDelete(id);
+    const doc = await BudgetRevenueDatabase.findByIdAndDelete(id);
     if (!doc) {
       return res.status(404).json({ message: 'Budget revenue record not found' });
     }
@@ -87,10 +87,10 @@ export const bulkSave = async (req: Request, res: Response) => {
     const targetYear = year || new Date().getFullYear();
     
     // Delete existing budgets for the year
-    await BudgetRevenue.deleteMany({ year: targetYear });
+    await BudgetRevenueDatabase.deleteMany({ year: targetYear });
     
     // Insert new budgets
-    const docs = await BudgetRevenue.insertMany(
+    const docs = await BudgetRevenueDatabase.insertMany(
       budgets.map((budget: any) => ({ ...budget, year: targetYear }))
     );
     res.json(docs);

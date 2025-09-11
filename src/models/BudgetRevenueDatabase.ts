@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IBudgetRevenue extends Document {
+export interface IBudgetRevenueDatabase extends Document {
   no: string;
   revenues: string;
   forecastedYearEnded: string;
@@ -11,7 +11,7 @@ export interface IBudgetRevenue extends Document {
   year?: number;
 }
 
-const BudgetRevenueSchema = new Schema<IBudgetRevenue>({
+const BudgetRevenueDatabaseSchema = new Schema<IBudgetRevenueDatabase>({
   no: { type: String, required: true },
   revenues: { type: String, required: true },
   forecastedYearEnded: { type: String, default: '' },
@@ -24,4 +24,4 @@ const BudgetRevenueSchema = new Schema<IBudgetRevenue>({
   timestamps: true
 });
 
-export default mongoose.model<IBudgetRevenue>('BudgetRevenue', BudgetRevenueSchema); 
+export default mongoose.model<IBudgetRevenueDatabase>('BudgetRevenueDatabase', BudgetRevenueDatabaseSchema); 
