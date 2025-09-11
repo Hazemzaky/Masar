@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 import { IInvoice } from '../models/Invoice';
@@ -18,7 +18,7 @@ export interface InvoicePDFOptions {
 
 export class PDFService {
   private static instance: PDFService;
-  private browser: puppeteer.Browser | null = null;
+  private browser: Browser | null = null;
 
   private constructor() {}
 
@@ -29,7 +29,7 @@ export class PDFService {
     return PDFService.instance;
   }
 
-  private async getBrowser(): Promise<puppeteer.Browser> {
+  private async getBrowser(): Promise<Browser> {
     if (!this.browser) {
       this.browser = await puppeteer.launch({
         headless: true,
@@ -61,7 +61,7 @@ export class PDFService {
         }
       });
 
-      return pdfBuffer;
+      return Buffer.from(pdfBuffer);
     } finally {
       await page.close();
     }

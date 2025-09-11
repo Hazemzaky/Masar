@@ -14,4 +14,6 @@ router.get('/', auth_1.authenticate, invoiceController_1.getInvoices);
 router.post('/', auth_1.authenticate, invoiceController_1.createInvoice);
 router.put('/:id/status', auth_1.authenticate, invoiceController_1.updateInvoiceStatus);
 router.get('/aging-report', auth_1.authenticate, invoiceController_1.getAgingReport);
+router.get('/:id/pdf', auth_1.authenticate, invoiceController_1.generateInvoicePDF);
+router.post('/:id/email', auth_1.authenticate, invoiceController_1.emailInvoice);
 exports.default = router;

@@ -12,9 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAgingReport = exports.updateInvoiceStatus = exports.createInvoice = exports.getInvoices = exports.uploadInvoice = void 0;
+exports.getAgingReport = exports.emailInvoice = exports.generateInvoicePDF = exports.updateInvoiceStatus = exports.createInvoice = exports.getInvoices = exports.uploadInvoice = void 0;
 const Invoice_1 = __importDefault(require("../models/Invoice"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const pdfService_1 = __importDefault(require("../services/pdfService"));
 const uploadInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -214,6 +215,76 @@ const updateInvoiceStatus = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.updateInvoiceStatus = updateInvoiceStatus;
+// Generate PDF for invoice
+const generateInvoicePDF = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { template = 'standard' } = req.query;
+        const invoice = yield Invoice_1.default.findById(id);
+        if (!invoice) {
+            res.status(404).json({ message: 'Invoice not found' });
+            return;
+        }
+        const pdfService = pdfService_1.default.getInstance();
+        const pdfBuffer = yield pdfService.generateInvoicePDF(invoice, {
+            template: template,
+            includeLogo: true,
+            companyInfo: {
+                name: 'Your Company Name',
+                address: '123 Business Street, Kuwait City, Kuwait',
+                phone: '+965 1234-5678',
+                email: 'billing@company.com',
+                website: 'www.company.com',
+                taxId: 'TAX-123456789'
+            }
+        });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        res.send(pdfBuffer);
+    }
+    catch (error) {
+        console.error('Error in generateInvoicePDF:', error);
+        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+});
+exports.generateInvoicePDF = generateInvoicePDF;
+// Email invoice
+const emailInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { recipientEmail, template = 'standard' } = req.body;
+        if (!recipientEmail) {
+            res.status(400).json({ message: 'Recipient email is required' });
+            return;
+        }
+        const invoice = yield Invoice_1.default.findById(id);
+        if (!invoice) {
+            res.status(404).json({ message: 'Invoice not found' });
+            return;
+        }
+        const pdfService = pdfService_1.default.getInstance();
+        const pdfBuffer = yield pdfService.generateInvoicePDF(invoice, {
+            template: template,
+            includeLogo: true,
+            companyInfo: {
+                name: 'Your Company Name',
+                address: '123 Business Street, Kuwait City, Kuwait',
+                phone: '+965 1234-5678',
+                email: 'billing@company.com',
+                website: 'www.company.com',
+                taxId: 'TAX-123456789'
+            }
+        });
+        yield pdfService.emailInvoice(id, recipientEmail, pdfBuffer);
+        res.json({ message: 'Invoice sent successfully', recipientEmail });
+    }
+    catch (error) {
+        console.error('Error in emailInvoice:', error);
+        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+});
+exports.emailInvoice = emailInvoice;
 // Aging report: group invoices by overdue periods
 const getAgingReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

@@ -310,7 +310,7 @@ export const getCustomerAnalytics = async (req: Request, res: Response): Promise
     }
 
     // Get customer's invoices
-    const invoiceFilter = { customer: id };
+    const invoiceFilter: any = { customer: id };
     if (Object.keys(dateFilter).length > 0) {
       invoiceFilter.invoiceDate = dateFilter;
     }
@@ -347,7 +347,7 @@ export const getCustomerAnalytics = async (req: Request, res: Response): Promise
     let paymentCount = 0;
 
     for (const payment of payments) {
-      const invoice = invoices.find(inv => inv._id.equals(payment.invoice));
+      const invoice = invoices.find((inv: any) => inv._id.equals(payment.invoice));
       if (invoice) {
         const paymentTime = (payment.paymentDate.getTime() - invoice.invoiceDate.getTime()) / (1000 * 60 * 60 * 24);
         totalPaymentTime += paymentTime;
