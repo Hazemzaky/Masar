@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetITOpex from '../models/BudgetITOpex';
+import BudgetITOpexDatabase from '../models/BudgetITOpexDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
     
-    const itOpexBudgets = await BudgetITOpex.find(query).sort({ sr: 1 });
+    const itOpexBudgets = await BudgetITOpexDatabase.find(query).sort({ sr: 1 });
     res.json(itOpexBudgets);
   } catch (error) {
     console.error('Error fetching IT OPEX budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing IT OPEX budgets for the year
-    await BudgetITOpex.deleteMany({ year });
+    await BudgetITOpexDatabase.deleteMany({ year });
 
     // Insert new IT OPEX budgets
     const itOpexBudgetsWithYear = itOpexBudgets.map((itOpex: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetITOpex.insertMany(itOpexBudgetsWithYear);
+    const savedBudgets = await BudgetITOpexDatabase.insertMany(itOpexBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving IT OPEX budgets:', error);
@@ -48,7 +48,7 @@ export const bulkSave = async (req: Request, res: Response) => {
     }
 
     // Delete existing IT OPEX budgets for the year
-    await BudgetITOpex.deleteMany({ year });
+    await BudgetITOpexDatabase.deleteMany({ year });
 
     // Insert new IT OPEX budgets
     const itOpexBudgetsWithYear = itOpexBudgets.map((itOpex: any) => ({
@@ -56,7 +56,7 @@ export const bulkSave = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetITOpex.insertMany(itOpexBudgetsWithYear);
+    const savedBudgets = await BudgetITOpexDatabase.insertMany(itOpexBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error bulk saving IT OPEX budgets:', error);

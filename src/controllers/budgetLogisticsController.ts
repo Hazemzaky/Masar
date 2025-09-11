@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetLogistics from '../models/BudgetLogistics';
+import BudgetLogisticsDatabase from '../models/BudgetLogisticsDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
 
-    const logisticsBudgets = await BudgetLogistics.find(query).sort({ no: 1 });
+    const logisticsBudgets = await BudgetLogisticsDatabase.find(query).sort({ no: 1 });
     res.json(logisticsBudgets);
   } catch (error) {
     console.error('Error fetching logistics budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing logistics budgets for the year
-    await BudgetLogistics.deleteMany({ year });
+    await BudgetLogisticsDatabase.deleteMany({ year });
 
     // Insert new logistics budgets
     const logisticsBudgetsWithYear = logisticsBudgets.map((logistics: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetLogistics.insertMany(logisticsBudgetsWithYear);
+    const savedBudgets = await BudgetLogisticsDatabase.insertMany(logisticsBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving logistics budgets:', error);
@@ -42,7 +42,7 @@ export const save = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedLogistics = await BudgetLogistics.findByIdAndUpdate(id, req.body, { new: true });
+    const updatedLogistics = await BudgetLogisticsDatabase.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedLogistics) {
       return res.status(404).json({ message: 'Logistics budget not found' });
     }
@@ -56,7 +56,7 @@ export const update = async (req: Request, res: Response) => {
 export const remove = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedLogistics = await BudgetLogistics.findByIdAndDelete(id);
+    const deletedLogistics = await BudgetLogisticsDatabase.findByIdAndDelete(id);
     if (!deletedLogistics) {
       return res.status(404).json({ message: 'Logistics budget not found' });
     }

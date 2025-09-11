@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetOthers from '../models/BudgetOthers';
+import BudgetOthersDatabase from '../models/BudgetOthersDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
 
-    const othersBudgets = await BudgetOthers.find(query).sort({ no: 1 });
+    const othersBudgets = await BudgetOthersDatabase.find(query).sort({ no: 1 });
     res.json(othersBudgets);
   } catch (error) {
     console.error('Error fetching others budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing others budgets for the year
-    await BudgetOthers.deleteMany({ year });
+    await BudgetOthersDatabase.deleteMany({ year });
 
     // Insert new others budgets
     const othersBudgetsWithYear = othersBudgets.map((others: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetOthers.insertMany(othersBudgetsWithYear);
+    const savedBudgets = await BudgetOthersDatabase.insertMany(othersBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving others budgets:', error);
@@ -42,7 +42,7 @@ export const save = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedOthers = await BudgetOthers.findByIdAndUpdate(id, req.body, { new: true });
+    const updatedOthers = await BudgetOthersDatabase.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedOthers) {
       return res.status(404).json({ message: 'Others budget not found' });
     }
@@ -56,7 +56,7 @@ export const update = async (req: Request, res: Response) => {
 export const remove = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedOthers = await BudgetOthers.findByIdAndDelete(id);
+    const deletedOthers = await BudgetOthersDatabase.findByIdAndDelete(id);
     if (!deletedOthers) {
       return res.status(404).json({ message: 'Others budget not found' });
     }

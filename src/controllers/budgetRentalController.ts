@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetRental from '../models/BudgetRental';
+import BudgetRentalDatabase from '../models/BudgetRentalDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
 
-    const rentalBudgets = await BudgetRental.find(query).sort({ no: 1 });
+    const rentalBudgets = await BudgetRentalDatabase.find(query).sort({ no: 1 });
     res.json(rentalBudgets);
   } catch (error) {
     console.error('Error fetching rental budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing rental budgets for the year
-    await BudgetRental.deleteMany({ year });
+    await BudgetRentalDatabase.deleteMany({ year });
 
     // Insert new rental budgets
     const rentalBudgetsWithYear = rentalBudgets.map((rental: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetRental.insertMany(rentalBudgetsWithYear);
+    const savedBudgets = await BudgetRentalDatabase.insertMany(rentalBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving rental budgets:', error);
@@ -42,7 +42,7 @@ export const save = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedRental = await BudgetRental.findByIdAndUpdate(id, req.body, { new: true });
+    const updatedRental = await BudgetRentalDatabase.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedRental) {
       return res.status(404).json({ message: 'Rental budget not found' });
     }
@@ -56,7 +56,7 @@ export const update = async (req: Request, res: Response) => {
 export const remove = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedRental = await BudgetRental.findByIdAndDelete(id);
+    const deletedRental = await BudgetRentalDatabase.findByIdAndDelete(id);
     if (!deletedRental) {
       return res.status(404).json({ message: 'Rental budget not found' });
     }

@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetCapex from '../models/BudgetCapex';
+import BudgetCapexDatabase from '../models/BudgetCapexDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
     
-    const capexBudgets = await BudgetCapex.find(query).sort({ no: 1 });
+    const capexBudgets = await BudgetCapexDatabase.find(query).sort({ no: 1 });
     res.json(capexBudgets);
   } catch (error) {
     console.error('Error fetching CAPEX budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing CAPEX budgets for the year
-    await BudgetCapex.deleteMany({ year });
+    await BudgetCapexDatabase.deleteMany({ year });
 
     // Insert new CAPEX budgets
     const capexBudgetsWithYear = capexBudgets.map((capex: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetCapex.insertMany(capexBudgetsWithYear);
+    const savedBudgets = await BudgetCapexDatabase.insertMany(capexBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving CAPEX budgets:', error);
@@ -48,7 +48,7 @@ export const bulkSave = async (req: Request, res: Response) => {
     }
 
     // Delete existing CAPEX budgets for the year
-    await BudgetCapex.deleteMany({ year });
+    await BudgetCapexDatabase.deleteMany({ year });
 
     // Insert new CAPEX budgets
     const capexBudgetsWithYear = capexBudgets.map((capex: any) => ({
@@ -56,7 +56,7 @@ export const bulkSave = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetCapex.insertMany(capexBudgetsWithYear);
+    const savedBudgets = await BudgetCapexDatabase.insertMany(capexBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error bulk saving CAPEX budgets:', error);

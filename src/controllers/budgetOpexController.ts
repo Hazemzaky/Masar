@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetOpex from '../models/BudgetOpex';
+import BudgetOpexDatabase from '../models/BudgetOpexDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
     
-    const opexBudgets = await BudgetOpex.find(query).sort({ sr: 1 });
+    const opexBudgets = await BudgetOpexDatabase.find(query).sort({ sr: 1 });
     res.json(opexBudgets);
   } catch (error) {
     console.error('Error fetching OPEX budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing OPEX budgets for the year
-    await BudgetOpex.deleteMany({ year });
+    await BudgetOpexDatabase.deleteMany({ year });
 
     // Insert new OPEX budgets
     const opexBudgetsWithYear = opexBudgets.map((opex: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetOpex.insertMany(opexBudgetsWithYear);
+    const savedBudgets = await BudgetOpexDatabase.insertMany(opexBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving OPEX budgets:', error);
@@ -48,7 +48,7 @@ export const bulkSave = async (req: Request, res: Response) => {
     }
 
     // Delete existing OPEX budgets for the year
-    await BudgetOpex.deleteMany({ year });
+    await BudgetOpexDatabase.deleteMany({ year });
 
     // Insert new OPEX budgets
     const opexBudgetsWithYear = opexBudgets.map((opex: any) => ({
@@ -56,7 +56,7 @@ export const bulkSave = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetOpex.insertMany(opexBudgetsWithYear);
+    const savedBudgets = await BudgetOpexDatabase.insertMany(opexBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error bulk saving OPEX budgets:', error);

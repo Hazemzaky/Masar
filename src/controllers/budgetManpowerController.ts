@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetManpower from '../models/BudgetManpower';
+import BudgetManpowerDatabase from '../models/BudgetManpowerDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
     
-    const manpower = await BudgetManpower.find(query).sort({ coId: 1 });
+    const manpower = await BudgetManpowerDatabase.find(query).sort({ coId: 1 });
     res.json(manpower);
   } catch (error) {
     console.error('Error fetching manpower data:', error);
@@ -24,11 +24,11 @@ export const save = async (req: Request, res: Response) => {
 
     // Delete existing data for the year
     if (manpowerData.length > 0) {
-      await BudgetManpower.deleteMany({ year: manpowerData[0].year });
+      await BudgetManpowerDatabase.deleteMany({ year: manpowerData[0].year });
     }
 
     // Insert new data
-    const savedManpower = await BudgetManpower.insertMany(manpowerData);
+    const savedManpower = await BudgetManpowerDatabase.insertMany(manpowerData);
     res.json({ message: 'Manpower data saved successfully', data: savedManpower });
   } catch (error) {
     console.error('Error saving manpower data:', error);
@@ -45,11 +45,11 @@ export const bulkSave = async (req: Request, res: Response) => {
     }
 
     // Delete existing data for the year
-    await BudgetManpower.deleteMany({ year });
+    await BudgetManpowerDatabase.deleteMany({ year });
 
     // Insert new data
     const manpowerWithYear = manpower.map((item: any) => ({ ...item, year }));
-    const savedManpower = await BudgetManpower.insertMany(manpowerWithYear);
+    const savedManpower = await BudgetManpowerDatabase.insertMany(manpowerWithYear);
     
     res.json({ message: 'Manpower data saved successfully', data: savedManpower });
   } catch (error) {

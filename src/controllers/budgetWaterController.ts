@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetWater from '../models/BudgetWater';
+import BudgetWaterDatabase from '../models/BudgetWaterDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
 
-    const waterBudgets = await BudgetWater.find(query).sort({ no: 1 });
+    const waterBudgets = await BudgetWaterDatabase.find(query).sort({ no: 1 });
     res.json(waterBudgets);
   } catch (error) {
     console.error('Error fetching water budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing water budgets for the year
-    await BudgetWater.deleteMany({ year });
+    await BudgetWaterDatabase.deleteMany({ year });
 
     // Insert new water budgets
     const waterBudgetsWithYear = waterBudgets.map((water: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetWater.insertMany(waterBudgetsWithYear);
+    const savedBudgets = await BudgetWaterDatabase.insertMany(waterBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving water budgets:', error);
@@ -42,7 +42,7 @@ export const save = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedWater = await BudgetWater.findByIdAndUpdate(id, req.body, { new: true });
+    const updatedWater = await BudgetWaterDatabase.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedWater) {
       return res.status(404).json({ message: 'Water budget not found' });
     }
@@ -56,7 +56,7 @@ export const update = async (req: Request, res: Response) => {
 export const remove = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedWater = await BudgetWater.findByIdAndDelete(id);
+    const deletedWater = await BudgetWaterDatabase.findByIdAndDelete(id);
     if (!deletedWater) {
       return res.status(404).json({ message: 'Water budget not found' });
     }

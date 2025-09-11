@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetGA from '../models/BudgetGA';
+import BudgetGADatabase from '../models/BudgetGADatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
     
-    const gaBudgets = await BudgetGA.find(query).sort({ no: 1 });
+    const gaBudgets = await BudgetGADatabase.find(query).sort({ no: 1 });
     res.json(gaBudgets);
   } catch (error) {
     console.error('Error fetching GA budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing GA budgets for the year
-    await BudgetGA.deleteMany({ year });
+    await BudgetGADatabase.deleteMany({ year });
 
     // Insert new GA budgets
     const gaBudgetsWithYear = gaBudgets.map((ga: any) => ({
@@ -32,7 +32,7 @@ export const save = async (req: Request, res: Response) => {
       budgetTotal: (ga.budget1stQuarter || 0) + (ga.budget2ndQuarter || 0) + (ga.budget3rdQuarter || 0)
     }));
 
-    const savedBudgets = await BudgetGA.insertMany(gaBudgetsWithYear);
+    const savedBudgets = await BudgetGADatabase.insertMany(gaBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving GA budgets:', error);
@@ -49,7 +49,7 @@ export const bulkSave = async (req: Request, res: Response) => {
     }
 
     // Delete existing GA budgets for the year
-    await BudgetGA.deleteMany({ year });
+    await BudgetGADatabase.deleteMany({ year });
 
     // Insert new GA budgets
     const gaBudgetsWithYear = gaBudgets.map((ga: any) => ({
@@ -58,7 +58,7 @@ export const bulkSave = async (req: Request, res: Response) => {
       budgetTotal: (ga.budget1stQuarter || 0) + (ga.budget2ndQuarter || 0) + (ga.budget3rdQuarter || 0)
     }));
 
-    const savedBudgets = await BudgetGA.insertMany(gaBudgetsWithYear);
+    const savedBudgets = await BudgetGADatabase.insertMany(gaBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error bulk saving GA budgets:', error);

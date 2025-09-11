@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import BudgetStaff from '../models/BudgetStaff';
+import BudgetStaffDatabase from '../models/BudgetStaffDatabase';
 
 export const get = async (req: Request, res: Response) => {
   try {
     const { year } = req.query;
     const query = year ? { year: parseInt(year as string) } : {};
     
-    const staffBudgets = await BudgetStaff.find(query).sort({ no: 1 });
+    const staffBudgets = await BudgetStaffDatabase.find(query).sort({ no: 1 });
     res.json(staffBudgets);
   } catch (error) {
     console.error('Error fetching Staff budgets:', error);
@@ -23,7 +23,7 @@ export const save = async (req: Request, res: Response) => {
     }
 
     // Delete existing Staff budgets for the year
-    await BudgetStaff.deleteMany({ year });
+    await BudgetStaffDatabase.deleteMany({ year });
 
     // Insert new Staff budgets
     const staffBudgetsWithYear = staffBudgets.map((staff: any) => ({
@@ -31,7 +31,7 @@ export const save = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetStaff.insertMany(staffBudgetsWithYear);
+    const savedBudgets = await BudgetStaffDatabase.insertMany(staffBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error saving Staff budgets:', error);
@@ -48,7 +48,7 @@ export const bulkSave = async (req: Request, res: Response) => {
     }
 
     // Delete existing Staff budgets for the year
-    await BudgetStaff.deleteMany({ year });
+    await BudgetStaffDatabase.deleteMany({ year });
 
     // Insert new Staff budgets
     const staffBudgetsWithYear = staffBudgets.map((staff: any) => ({
@@ -56,7 +56,7 @@ export const bulkSave = async (req: Request, res: Response) => {
       year
     }));
 
-    const savedBudgets = await BudgetStaff.insertMany(staffBudgetsWithYear);
+    const savedBudgets = await BudgetStaffDatabase.insertMany(staffBudgetsWithYear);
     res.json(savedBudgets);
   } catch (error) {
     console.error('Error bulk saving Staff budgets:', error);
