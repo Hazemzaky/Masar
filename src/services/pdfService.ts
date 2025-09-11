@@ -43,27 +43,38 @@ export class PDFService {
     invoice: IInvoice, 
     options: InvoicePDFOptions = {}
   ): Promise<Buffer> {
-    const browser = await this.getBrowser();
-    const page = await browser.newPage();
-
     try {
-      const html = this.generateInvoiceHTML(invoice, options);
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      console.log('PDFService: Starting PDF generation for invoice:', invoice.invoiceNumber);
       
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm'
-        }
-      });
+      const browser = await this.getBrowser();
+      const page = await browser.newPage();
 
-      return Buffer.from(pdfBuffer);
-    } finally {
-      await page.close();
+      try {
+        const html = this.generateInvoiceHTML(invoice, options);
+        console.log('PDFService: HTML generated, length:', html.length);
+        
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        console.log('PDFService: Page content set, generating PDF...');
+        
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: {
+            top: '20mm',
+            right: '15mm',
+            bottom: '20mm',
+            left: '15mm'
+          }
+        });
+
+        console.log('PDFService: PDF generated successfully, size:', pdfBuffer.length);
+        return Buffer.from(pdfBuffer);
+      } finally {
+        await page.close();
+      }
+    } catch (error) {
+      console.error('PDFService: Error generating PDF:', error);
+      throw error;
     }
   }
 
@@ -77,6 +88,31 @@ export class PDFService {
       website: 'www.company.com',
       taxId: 'TAX-123456789'
     };
+
+    // Validate and set default values for required fields
+    const safeInvoice = {
+      invoiceNumber: invoice.invoiceNumber || 'N/A',
+      customerName: invoice.customerName || 'Unknown Customer',
+      customerReference: invoice.customerReference || 'N/A',
+      amount: invoice.amount || 0,
+      netAmount: invoice.netAmount || (invoice.amount || 0),
+      taxAmount: invoice.taxAmount || 0,
+      taxRate: invoice.taxRate || 0,
+      currency: invoice.currency || 'KWD',
+      paymentStatus: invoice.paymentStatus || 'pending',
+      invoiceDate: invoice.invoiceDate || new Date(),
+      dueDate: invoice.dueDate || new Date(),
+      lineItems: invoice.lineItems || [],
+      contractNumber: invoice.contractNumber || null,
+      ifrsNotes: invoice.ifrsNotes || null
+    };
+
+    console.log('PDFService: Safe invoice data:', {
+      invoiceNumber: safeInvoice.invoiceNumber,
+      customerName: safeInvoice.customerName,
+      amount: safeInvoice.amount,
+      lineItemsCount: safeInvoice.lineItems.length
+    });
 
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat('en-KW', {
@@ -104,6 +140,9 @@ export class PDFService {
       };
       return colors[status as keyof typeof colors] || '#6c757d';
     };
+
+    // Use safeInvoice for all template references
+    const invoice = safeInvoice;
 
     return `
 <!DOCTYPE html>

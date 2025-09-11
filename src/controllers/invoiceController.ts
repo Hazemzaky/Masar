@@ -224,11 +224,22 @@ export const generateInvoicePDF = async (req: Request, res: Response): Promise<v
     const { id } = req.params;
     const { template = 'standard' } = req.query;
     
+    console.log(`Generating PDF for invoice ${id} with template ${template}`);
+    
     const invoice = await Invoice.findById(id);
     if (!invoice) {
+      console.log(`Invoice ${id} not found`);
       res.status(404).json({ message: 'Invoice not found' });
       return;
     }
+
+    console.log('Invoice found:', {
+      id: invoice._id,
+      invoiceNumber: invoice.invoiceNumber,
+      amount: invoice.amount,
+      customerName: invoice.customerName,
+      lineItems: invoice.lineItems?.length || 0
+    });
 
     const pdfService = PDFService.getInstance();
     const pdfBuffer = await pdfService.generateInvoicePDF(invoice, {
@@ -244,13 +255,23 @@ export const generateInvoicePDF = async (req: Request, res: Response): Promise<v
       }
     });
 
+    console.log(`PDF generated successfully, size: ${pdfBuffer.length} bytes`);
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('Error in generateInvoicePDF:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: error instanceof Error ? error.stack : undefined
+    });
   }
 };
 
