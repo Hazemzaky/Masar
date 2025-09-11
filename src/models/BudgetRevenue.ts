@@ -1,18 +1,27 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IBudgetRevenue extends Document {
-  year: number;
-  businessLine: string;
-  units: number[];
-  price: number[];
+  no: string;
+  revenues: string;
+  forecastedYearEnded: string;
+  budget1stQuarter: string;
+  budget2ndQuarter: string;
+  budget3rdQuarter: string;
+  budgetTotal: string;
+  year?: number;
 }
 
 const BudgetRevenueSchema = new Schema<IBudgetRevenue>({
-  year: { type: Number, required: true },
-  businessLine: { type: String, required: true },
-  units: [{ type: Number }],
-  price: [{ type: Number }],
+  no: { type: String, required: true },
+  revenues: { type: String, required: true },
+  forecastedYearEnded: { type: String, default: '' },
+  budget1stQuarter: { type: String, default: '' },
+  budget2ndQuarter: { type: String, default: '' },
+  budget3rdQuarter: { type: String, default: '' },
+  budgetTotal: { type: String, default: '' },
+  year: { type: Number, default: new Date().getFullYear() },
+}, {
+  timestamps: true
 });
-BudgetRevenueSchema.index({ year: 1, businessLine: 1 }, { unique: true });
 
 export default mongoose.model<IBudgetRevenue>('BudgetRevenue', BudgetRevenueSchema); 
