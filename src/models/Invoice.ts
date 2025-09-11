@@ -100,6 +100,18 @@ export interface IInvoice extends Document {
   ifrsNotes?: string;
   ifrsDisclosureRequired: boolean;
   
+  // Additional fields for compatibility
+  lineItems?: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  totalAmount?: number;
+  fileUrl?: string;
+  uploadedBy?: mongoose.Types.ObjectId;
+  serial?: string;
+  
   // Audit trail
   createdBy: mongoose.Types.ObjectId;
   updatedBy: mongoose.Types.ObjectId;
@@ -205,6 +217,18 @@ const InvoiceSchema = new Schema<IInvoice>({
   // IFRS compliance
   ifrsNotes: { type: String, trim: true },
   ifrsDisclosureRequired: { type: Boolean, default: false },
+  
+  // Additional fields for compatibility
+  lineItems: [{
+    description: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 0 },
+    unitPrice: { type: Number, required: true, min: 0 },
+    total: { type: Number, required: true, min: 0 }
+  }],
+  totalAmount: { type: Number, min: 0 },
+  fileUrl: { type: String },
+  uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  serial: { type: String, trim: true },
   
   // Audit trail
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },

@@ -64,7 +64,7 @@ export const getInvoices = async (req: Request, res: Response): Promise<void> =>
     res.json(transformedInvoices);
   } catch (error) {
     console.error('Error in getInvoices:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -147,7 +147,7 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
     res.status(201).json(invoice);
   } catch (error) {
     console.error('Error in createInvoice:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -213,7 +213,7 @@ export const updateInvoiceStatus = async (req: Request, res: Response): Promise<
     res.json(transformedInvoice);
   } catch (error) {
     console.error('Error in updateInvoiceStatus:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
