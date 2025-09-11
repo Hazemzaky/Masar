@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Invoice, { IInvoice } from '../models/Invoice';
 import mongoose from 'mongoose';
+import PDFService from '../services/pdfService';
 
 export const uploadInvoice = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -213,6 +214,82 @@ export const updateInvoiceStatus = async (req: Request, res: Response): Promise<
     res.json(transformedInvoice);
   } catch (error) {
     console.error('Error in updateInvoiceStatus:', error);
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+};
+
+// Generate PDF for invoice
+export const generateInvoicePDF = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { template = 'standard' } = req.query;
+    
+    const invoice = await Invoice.findById(id);
+    if (!invoice) {
+      res.status(404).json({ message: 'Invoice not found' });
+      return;
+    }
+
+    const pdfService = PDFService.getInstance();
+    const pdfBuffer = await pdfService.generateInvoicePDF(invoice, {
+      template: template as 'standard' | 'detailed' | 'minimal',
+      includeLogo: true,
+      companyInfo: {
+        name: 'Your Company Name',
+        address: '123 Business Street, Kuwait City, Kuwait',
+        phone: '+965 1234-5678',
+        email: 'billing@company.com',
+        website: 'www.company.com',
+        taxId: 'TAX-123456789'
+      }
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error in generateInvoicePDF:', error);
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+};
+
+// Email invoice
+export const emailInvoice = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { recipientEmail, template = 'standard' } = req.body;
+    
+    if (!recipientEmail) {
+      res.status(400).json({ message: 'Recipient email is required' });
+      return;
+    }
+
+    const invoice = await Invoice.findById(id);
+    if (!invoice) {
+      res.status(404).json({ message: 'Invoice not found' });
+      return;
+    }
+
+    const pdfService = PDFService.getInstance();
+    const pdfBuffer = await pdfService.generateInvoicePDF(invoice, {
+      template: template as 'standard' | 'detailed' | 'minimal',
+      includeLogo: true,
+      companyInfo: {
+        name: 'Your Company Name',
+        address: '123 Business Street, Kuwait City, Kuwait',
+        phone: '+965 1234-5678',
+        email: 'billing@company.com',
+        website: 'www.company.com',
+        taxId: 'TAX-123456789'
+      }
+    });
+
+    await pdfService.emailInvoice(id, recipientEmail, pdfBuffer);
+    
+    res.json({ message: 'Invoice sent successfully', recipientEmail });
+  } catch (error) {
+    console.error('Error in emailInvoice:', error);
     res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
