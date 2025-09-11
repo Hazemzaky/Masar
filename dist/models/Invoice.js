@@ -148,7 +148,6 @@ const InvoiceSchema = new mongoose_1.Schema({
             unitPrice: { type: Number, required: true, min: 0 },
             total: { type: Number, required: true, min: 0 }
         }],
-    totalAmount: { type: Number, min: 0 },
     fileUrl: { type: String },
     uploadedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     serial: { type: String, trim: true },
