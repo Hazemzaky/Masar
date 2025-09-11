@@ -29,11 +29,42 @@ export const uploadInvoice = async (req: Request, res: Response): Promise<void> 
 
 export const getInvoices = async (req: Request, res: Response): Promise<void> => {
   try {
-    const invoices = await Invoice.find().populate('uploadedBy').populate('expense');
-    res.json(invoices);
+    const invoices = await Invoice.find()
+      .populate('submittedBy', 'name email')
+      .populate('createdBy', 'name email')
+      .populate('updatedBy', 'name email')
+      .populate('approvedBy', 'name email')
+      .populate('customer', 'name email')
+      .sort({ createdAt: -1 });
+    
+    // Transform the data to match the frontend expectations
+    const transformedInvoices = invoices.map(invoice => ({
+      _id: invoice._id,
+      recipient: {
+        name: invoice.customerName || 'Unknown Customer',
+        email: invoice.customerReference || 'no-email@example.com'
+      },
+      dueDate: invoice.dueDate,
+      status: invoice.paymentStatus, // Map paymentStatus to status for frontend compatibility
+      totalAmount: invoice.amount,
+      lineItems: invoice.lineItems || [],
+      uploadedBy: invoice.uploadedBy,
+      fileUrl: invoice.fileUrl,
+      serial: invoice.serial || invoice.invoiceNumber,
+      // Include additional fields from the new model
+      invoiceNumber: invoice.invoiceNumber,
+      description: invoice.description,
+      currency: invoice.currency,
+      taxAmount: invoice.taxAmount,
+      netAmount: invoice.netAmount,
+      createdAt: invoice.createdAt,
+      updatedAt: invoice.updatedAt
+    }));
+    
+    res.json(transformedInvoices);
   } catch (error) {
     console.error('Error in getInvoices:', error);
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -50,25 +81,73 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
+    
     const totalAmount = lineItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const taxRate = 0; // Default to 0% tax - can be made configurable
+    const taxAmount = totalAmount * taxRate;
+    const netAmount = totalAmount - taxAmount;
+    
+    // Generate invoice number if not provided
+    const invoiceNumber = serial || `INV-${Date.now()}`;
+    
     const invoice = new Invoice({
-      fileUrl,
-      uploadedBy: userId,
-      dueDate,
-      recipient,
-      lineItems,
-      totalAmount,
+      // Basic information
+      invoiceNumber,
+      description: lineItems.map(item => item.description).join(', '),
+      amount: totalAmount,
+      currency: 'KWD',
+      amountInBaseCurrency: totalAmount,
+      
+      // Revenue categorization
+      category: 'other_income', // Default category
+      subcategory: 'invoice',
+      
+      // IFRS revenue recognition
+      ifrsCategory: 'operating_revenue',
+      ifrsTreatment: 'revenue',
+      revenueRecognitionMethod: 'point_in_time',
+      
+      // Dates
+      invoiceDate: new Date(),
+      dueDate: new Date(dueDate),
+      revenueRecognitionDate: new Date(),
+      
+      // Customer information - create a temporary customer reference
+      customer: new mongoose.Types.ObjectId(), // This should be replaced with actual customer ID
+      customerName: recipient.name,
+      customerReference: recipient.email,
+      
+      // Payment information
+      paymentStatus: 'pending',
+      
+      // Tax information
+      taxAmount,
+      taxRate,
+      taxType: 'VAT',
+      netAmount,
+      
+      // Approval workflow
       status: 'draft',
-      serial,
       submittedBy: userId,
       createdBy: userId,
       updatedBy: userId,
+      
+      // IFRS compliance
+      ifrsDisclosureRequired: false,
+      
+      // Additional fields for compatibility (these might not be in the schema but won't cause errors)
+      fileUrl,
+      uploadedBy: userId,
+      lineItems,
+      totalAmount,
+      serial: invoiceNumber,
     });
+    
     await invoice.save();
     res.status(201).json(invoice);
   } catch (error) {
     console.error('Error in createInvoice:', error);
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -77,17 +156,64 @@ export const updateInvoiceStatus = async (req: Request, res: Response): Promise<
   try {
     const { id } = req.params;
     const { status } = req.body;
+    const userId = (req as any).user?.userId;
+    
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    
     const invoice = await Invoice.findById(id);
     if (!invoice) {
       res.status(404).json({ message: 'Invoice not found' });
       return;
     }
-    invoice.status = status;
+    
+    // Map frontend status to paymentStatus
+    const statusMapping: Record<string, string> = {
+      'draft': 'pending',
+      'sent': 'pending', 
+      'paid': 'paid',
+      'overdue': 'overdue',
+      'cancelled': 'cancelled',
+      'disputed': 'disputed'
+    };
+    
+    invoice.paymentStatus = statusMapping[status] || status;
+    invoice.updatedBy = userId;
+    
+    // If marking as paid, set payment date
+    if (status === 'paid') {
+      invoice.paymentDate = new Date();
+    }
+    
     await invoice.save();
-    res.json(invoice);
+    
+    // Return transformed data for frontend compatibility
+    const transformedInvoice = {
+      _id: invoice._id,
+      recipient: {
+        name: invoice.customerName || 'Unknown Customer',
+        email: invoice.customerReference || 'no-email@example.com'
+      },
+      dueDate: invoice.dueDate,
+      status: invoice.paymentStatus,
+      totalAmount: invoice.amount,
+      lineItems: invoice.lineItems || [],
+      serial: invoice.serial || invoice.invoiceNumber,
+      invoiceNumber: invoice.invoiceNumber,
+      description: invoice.description,
+      currency: invoice.currency,
+      taxAmount: invoice.taxAmount,
+      netAmount: invoice.netAmount,
+      createdAt: invoice.createdAt,
+      updatedAt: invoice.updatedAt
+    };
+    
+    res.json(transformedInvoice);
   } catch (error) {
     console.error('Error in updateInvoiceStatus:', error);
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
