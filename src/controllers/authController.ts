@@ -71,6 +71,7 @@ export const getMe = async (req: any, res: Response): Promise<void> => {
       return;
     }
     const profile: any = {
+      _id: user._id,
       email: user.email,
       role: user.role,
       position: user.position || undefined,

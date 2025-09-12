@@ -78,6 +78,7 @@ const getMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return;
         }
         const profile = {
+            _id: user._id,
             email: user.email,
             role: user.role,
             position: user.position || undefined,
