@@ -3,6 +3,7 @@ import Maintenance from '../models/Maintenance';
 import InventoryItem from '../models/InventoryItem';
 import InventoryTransaction from '../models/InventoryTransaction';
 import { AuthRequest } from '../middleware/auth';
+import * as jobCardService from '../services/jobCardService';
 
 export const createMaintenance = async (req: AuthRequest, res: Response) => {
   try {
@@ -20,52 +21,36 @@ export const createMaintenance = async (req: AuthRequest, res: Response) => {
     const maintenance = new Maintenance(maintenanceData);
     await maintenance.save();
 
-    // Handle inventory deduction if maintenance is created as completed
-    if (maintenance.status === 'completed' && maintenance.parts && maintenance.parts.length > 0) {
-      console.log('Processing inventory deduction for newly created completed maintenance:', maintenance._id);
-      
-      for (const part of maintenance.parts) {
-        try {
-          const inventoryItem = await InventoryItem.findById(part.item);
-          if (!inventoryItem) {
-            console.error(`Inventory item not found for part: ${part.item}`);
-            continue;
-          }
+    // If maintenance has parts, create a job card to handle reservations
+    if (maintenance.parts && maintenance.parts.length > 0) {
+      try {
+        const jobCardData = {
+          maintenanceId: maintenance._id.toString(),
+          parts: maintenance.parts.map(part => ({
+            itemId: part.item.toString(),
+            quantity: part.quantity
+          })),
+          createdBy: req.user?.userId,
+          notes: `Auto-created for maintenance: ${maintenance.description}`
+        };
 
-          // Check if sufficient stock is available
-          if (inventoryItem.quantity < part.quantity) {
-            console.error(`Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity}, Required: ${part.quantity}`);
-            return res.status(400).json({ 
-              message: `Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity} ${inventoryItem.uom}, Required: ${part.quantity} ${inventoryItem.uom}` 
-            });
-          }
+        const jobCard = await jobCardService.createJobCard(jobCardData);
+        console.log('Job card created for maintenance:', maintenance._id, 'Job card:', jobCard._id);
 
-          // Deduct quantity from inventory
-          inventoryItem.quantity -= part.quantity;
-          await inventoryItem.save();
-
-          // Create inventory transaction record
-          await InventoryTransaction.create({
-            item: part.item,
-            type: 'outbound',
-            quantity: part.quantity,
-            date: new Date(),
-            relatedMaintenance: maintenance._id,
-            user: req.user?.userId,
-            notes: `Withdrawn for maintenance: ${maintenance.description}`
-          });
-
-          console.log(`Successfully deducted ${part.quantity} ${inventoryItem.uom} of ${inventoryItem.description}`);
-        } catch (error: unknown) {
-          console.error('Error processing inventory deduction for part:', part, error);
-          return res.status(500).json({ 
-            message: 'Error processing inventory deduction', 
-            error: error instanceof Error ? error.message : 'Unknown error'
-          });
+        // If maintenance is already completed, complete the job card immediately
+        if (maintenance.status === 'completed') {
+          await jobCardService.completeJobCard(jobCard._id.toString(), req.user?.userId);
+          console.log('Job card completed immediately for maintenance:', maintenance._id);
         }
+      } catch (error: any) {
+        console.error('Error creating job card for maintenance:', error);
+        // If job card creation fails, we should probably rollback the maintenance creation
+        // For now, we'll just log the error and continue
+        return res.status(400).json({ 
+          message: 'Error creating job card for maintenance', 
+          error: error.message 
+        });
       }
-      
-      console.log('Inventory deduction completed successfully for newly created maintenance:', maintenance._id);
     }
 
     res.status(201).json(maintenance);
@@ -254,59 +239,71 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
     
     console.log('Maintenance updated successfully:', maintenance._id);
 
-    // Handle inventory deduction when maintenance is completed
+    // Handle job card completion when maintenance is completed
     if (status === 'completed' && maintenance.parts && maintenance.parts.length > 0) {
-      console.log('Processing inventory deduction for completed maintenance:', maintenance._id);
-      console.log('Maintenance parts:', maintenance.parts);
-      
-      for (const part of maintenance.parts) {
-        try {
-          console.log('Processing part:', part);
-          const inventoryItem = await InventoryItem.findById(part.item);
-          if (!inventoryItem) {
-            console.error(`Inventory item not found for part: ${part.item}`);
-            continue;
+      try {
+        // Find the job card for this maintenance
+        const jobCards = await jobCardService.getJobCards({ maintenanceId: maintenance._id.toString() });
+        const jobCard = jobCards.find(jc => jc.status !== 'COMPLETED' && jc.status !== 'CANCELLED');
+        
+        if (jobCard) {
+          console.log('Completing job card for maintenance:', maintenance._id, 'Job card:', jobCard._id);
+          await jobCardService.completeJobCard(jobCard._id.toString(), req.user?.userId);
+          console.log('Job card completed successfully for maintenance:', maintenance._id);
+        } else {
+          console.log('No active job card found for maintenance:', maintenance._id);
+          // Fallback to direct inventory deduction if no job card exists
+          console.log('Processing direct inventory deduction for completed maintenance:', maintenance._id);
+          
+          for (const part of maintenance.parts) {
+            try {
+              const inventoryItem = await InventoryItem.findById(part.item);
+              if (!inventoryItem) {
+                console.error(`Inventory item not found for part: ${part.item}`);
+                continue;
+              }
+
+              // Check if sufficient stock is available
+              const availableQty = inventoryItem.quantity - inventoryItem.reservedQty;
+              if (availableQty < part.quantity) {
+                console.error(`Insufficient stock for ${inventoryItem.description}. Available: ${availableQty}, Required: ${part.quantity}`);
+                return res.status(400).json({ 
+                  message: `Insufficient stock for ${inventoryItem.description}. Available: ${availableQty} ${inventoryItem.uom}, Required: ${part.quantity} ${inventoryItem.uom}` 
+                });
+              }
+
+              // Deduct quantity from inventory
+              inventoryItem.quantity -= part.quantity;
+              await inventoryItem.save();
+
+              // Create inventory transaction record
+              await InventoryTransaction.create({
+                item: part.item,
+                type: 'outbound',
+                quantity: part.quantity,
+                date: new Date(),
+                relatedMaintenance: maintenance._id,
+                user: req.user?.userId,
+                notes: `Withdrawn for maintenance: ${maintenance.description}`
+              });
+
+              console.log(`Successfully deducted ${part.quantity} ${inventoryItem.uom} of ${inventoryItem.description}`);
+            } catch (error: unknown) {
+              console.error('Error processing inventory deduction for part:', part, error);
+              return res.status(500).json({ 
+                message: 'Error processing inventory deduction', 
+                error: error instanceof Error ? error.message : 'Unknown error'
+              });
+            }
           }
-
-          console.log(`Found inventory item: ${inventoryItem.description}, current quantity: ${inventoryItem.quantity}`);
-
-          // Check if sufficient stock is available
-          if (inventoryItem.quantity < part.quantity) {
-            console.error(`Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity}, Required: ${part.quantity}`);
-            return res.status(400).json({ 
-              message: `Insufficient stock for ${inventoryItem.description}. Available: ${inventoryItem.quantity} ${inventoryItem.uom}, Required: ${part.quantity} ${inventoryItem.uom}` 
-            });
-          }
-
-          // Deduct quantity from inventory
-          const oldQuantity = inventoryItem.quantity;
-          inventoryItem.quantity -= part.quantity;
-          await inventoryItem.save();
-
-          console.log(`Successfully deducted ${part.quantity} ${inventoryItem.uom} of ${inventoryItem.description}. Old quantity: ${oldQuantity}, New quantity: ${inventoryItem.quantity}`);
-
-          // Create inventory transaction record
-          await InventoryTransaction.create({
-            item: part.item,
-            type: 'outbound',
-            quantity: part.quantity,
-            date: new Date(),
-            relatedMaintenance: maintenance._id,
-            user: req.user?.userId,
-            notes: `Withdrawn for maintenance: ${maintenance.description}`
-          });
-
-          console.log(`Successfully deducted ${part.quantity} ${inventoryItem.uom} of ${inventoryItem.description}`);
-        } catch (error: unknown) {
-          console.error('Error processing inventory deduction for part:', part, error);
-          return res.status(500).json({ 
-            message: 'Error processing inventory deduction', 
-            error: error instanceof Error ? error.message : 'Unknown error'
-          });
         }
+      } catch (error: any) {
+        console.error('Error completing job card for maintenance:', error);
+        return res.status(400).json({ 
+          message: 'Error completing job card for maintenance', 
+          error: error.message 
+        });
       }
-      
-      console.log('Inventory deduction completed successfully for maintenance:', maintenance._id);
     }
     
     res.json(maintenance);

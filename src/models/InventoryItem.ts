@@ -4,7 +4,8 @@ export interface IInventoryItem extends Document {
   description: string;
   type: 'spare' | 'tool' | 'consumable' | 'tyres';
   rop?: number;
-  quantity: number;
+  quantity: number; // This will be totalQty
+  reservedQty: number; // New field for reserved quantity
   uom: string;
   location?: string;
   rack?: string;
@@ -28,7 +29,8 @@ const InventoryItemSchema = new Schema<IInventoryItem>({
   description: { type: String, required: true },
   type: { type: String, enum: ['spare', 'tool', 'consumable', 'tyres'], required: true },
   rop: { type: Number },
-  quantity: { type: Number, required: true, default: 0 },
+  quantity: { type: Number, required: true, default: 0 }, // This is totalQty
+  reservedQty: { type: Number, default: 0 }, // New field for reserved quantity
   uom: { type: String, required: true },
   location: { type: String },
   rack: { type: String },

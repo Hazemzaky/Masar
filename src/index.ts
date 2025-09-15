@@ -76,6 +76,7 @@ import trainingRoutes from './routes/trainingRoutes';
 import attendanceRoutes from './routes/attendance';
 import documentRoutes from './routes/documentRoutes';
 import pendingRequestsRoutes from './routes/pendingRequestsRoutes';
+import jobCardRoutes from './routes/jobCardRoutes';
 import './models/Contract';
 import './models/ProcurementInvoice';
 import './models/Vendor';
@@ -257,6 +258,7 @@ app.use('/api/hse/training', trainingRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/pending-requests', pendingRequestsRoutes);
+app.use('/api/job-cards', jobCardRoutes);
 
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
