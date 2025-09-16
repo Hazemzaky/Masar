@@ -39,6 +39,7 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.post('/', auth_1.authenticate, depreciationController.createDepreciation);
 router.get('/', auth_1.authenticate, depreciationController.getDepreciations);
+router.get('/schedule', auth_1.authenticate, depreciationController.getDepreciationSchedule);
 router.get('/:id', auth_1.authenticate, depreciationController.getDepreciation);
 router.put('/:id', auth_1.authenticate, depreciationController.updateDepreciation);
 router.delete('/:id', auth_1.authenticate, depreciationController.deleteDepreciation);

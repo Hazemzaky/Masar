@@ -6,6 +6,7 @@ const router = Router();
 
 router.post('/', authenticate, depreciationController.createDepreciation);
 router.get('/', authenticate, depreciationController.getDepreciations);
+router.get('/schedule', authenticate, depreciationController.getDepreciationSchedule);
 router.get('/:id', authenticate, depreciationController.getDepreciation);
 router.put('/:id', authenticate, depreciationController.updateDepreciation);
 router.delete('/:id', authenticate, depreciationController.deleteDepreciation);
