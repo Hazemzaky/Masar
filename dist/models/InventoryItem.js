@@ -38,7 +38,8 @@ const InventoryItemSchema = new mongoose_1.Schema({
     description: { type: String, required: true },
     type: { type: String, enum: ['spare', 'tool', 'consumable', 'tyres'], required: true },
     rop: { type: Number },
-    quantity: { type: Number, required: true, default: 0 },
+    quantity: { type: Number, required: true, default: 0 }, // This is totalQty
+    reservedQty: { type: Number, default: 0 }, // New field for reserved quantity
     uom: { type: String, required: true },
     location: { type: String },
     rack: { type: String },

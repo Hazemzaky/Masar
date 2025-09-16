@@ -122,6 +122,7 @@ const trainingRoutes_1 = __importDefault(require("./routes/trainingRoutes"));
 const attendance_1 = __importDefault(require("./routes/attendance"));
 const documentRoutes_1 = __importDefault(require("./routes/documentRoutes"));
 const pendingRequestsRoutes_1 = __importDefault(require("./routes/pendingRequestsRoutes"));
+const jobCardRoutes_1 = __importDefault(require("./routes/jobCardRoutes"));
 require("./models/Contract");
 require("./models/ProcurementInvoice");
 require("./models/Vendor");
@@ -294,6 +295,7 @@ app.use('/api/hse/training', trainingRoutes_1.default);
 app.use('/api/attendance', attendance_1.default);
 app.use('/api/documents', documentRoutes_1.default);
 app.use('/api/pending-requests', pendingRequestsRoutes_1.default);
+app.use('/api/job-cards', jobCardRoutes_1.default);
 app.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);

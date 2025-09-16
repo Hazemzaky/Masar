@@ -25,7 +25,7 @@ export const createMaintenance = async (req: AuthRequest, res: Response) => {
     if (maintenance.parts && maintenance.parts.length > 0) {
       try {
         const jobCardData = {
-          maintenanceId: maintenance._id.toString(),
+          maintenanceId: (maintenance._id as any).toString(),
           parts: maintenance.parts.map(part => ({
             itemId: part.item.toString(),
             quantity: part.quantity
@@ -35,12 +35,12 @@ export const createMaintenance = async (req: AuthRequest, res: Response) => {
         };
 
         const jobCard = await jobCardService.createJobCard(jobCardData);
-        console.log('Job card created for maintenance:', maintenance._id, 'Job card:', jobCard._id);
+        console.log('Job card created for maintenance:', (maintenance._id as any), 'Job card:', (jobCard._id as any));
 
         // If maintenance is already completed, complete the job card immediately
         if (maintenance.status === 'completed') {
-          await jobCardService.completeJobCard(jobCard._id.toString(), req.user?.userId);
-          console.log('Job card completed immediately for maintenance:', maintenance._id);
+          await jobCardService.completeJobCard((jobCard._id as any).toString(), req.user?.userId);
+          console.log('Job card completed immediately for maintenance:', (maintenance._id as any));
         }
       } catch (error: any) {
         console.error('Error creating job card for maintenance:', error);
@@ -126,7 +126,7 @@ export const updateMaintenance = async (req: AuthRequest, res: Response) => {
         currentMaintenance.status !== 'completed' && 
         maintenance.parts && 
         maintenance.parts.length > 0) {
-      console.log('Processing inventory deduction for updated maintenance:', maintenance._id);
+      console.log('Processing inventory deduction for updated maintenance:', (maintenance._id as any));
       
       for (const part of maintenance.parts) {
         try {
@@ -154,7 +154,7 @@ export const updateMaintenance = async (req: AuthRequest, res: Response) => {
             type: 'outbound',
             quantity: part.quantity,
             date: new Date(),
-            relatedMaintenance: maintenance._id,
+            relatedMaintenance: maintenance._id as any,
             user: req.user?.userId,
             notes: `Withdrawn for maintenance: ${maintenance.description}`
           });
@@ -169,7 +169,7 @@ export const updateMaintenance = async (req: AuthRequest, res: Response) => {
         }
       }
       
-      console.log('Inventory deduction completed successfully for updated maintenance:', maintenance._id);
+      console.log('Inventory deduction completed successfully for updated maintenance:', (maintenance._id as any));
     }
 
     res.json(maintenance);
@@ -237,23 +237,23 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
       return;
     }
     
-    console.log('Maintenance updated successfully:', maintenance._id);
+    console.log('Maintenance updated successfully:', (maintenance._id as any));
 
     // Handle job card completion when maintenance is completed
     if (status === 'completed' && maintenance.parts && maintenance.parts.length > 0) {
       try {
         // Find the job card for this maintenance
-        const jobCards = await jobCardService.getJobCards({ maintenanceId: maintenance._id.toString() });
+        const jobCards = await jobCardService.getJobCards({ maintenanceId: (maintenance._id as any).toString() });
         const jobCard = jobCards.find(jc => jc.status !== 'COMPLETED' && jc.status !== 'CANCELLED');
         
         if (jobCard) {
-          console.log('Completing job card for maintenance:', maintenance._id, 'Job card:', jobCard._id);
-          await jobCardService.completeJobCard(jobCard._id.toString(), req.user?.userId);
-          console.log('Job card completed successfully for maintenance:', maintenance._id);
+          console.log('Completing job card for maintenance:', (maintenance._id as any), 'Job card:', (jobCard._id as any));
+          await jobCardService.completeJobCard((jobCard._id as any).toString(), req.user?.userId);
+          console.log('Job card completed successfully for maintenance:', (maintenance._id as any));
         } else {
-          console.log('No active job card found for maintenance:', maintenance._id);
+          console.log('No active job card found for maintenance:', (maintenance._id as any));
           // Fallback to direct inventory deduction if no job card exists
-          console.log('Processing direct inventory deduction for completed maintenance:', maintenance._id);
+          console.log('Processing direct inventory deduction for completed maintenance:', (maintenance._id as any));
           
           for (const part of maintenance.parts) {
             try {
@@ -282,7 +282,7 @@ export const completeMaintenance = async (req: AuthRequest, res: Response) => {
                 type: 'outbound',
                 quantity: part.quantity,
                 date: new Date(),
-                relatedMaintenance: maintenance._id,
+                relatedMaintenance: maintenance._id as any,
                 user: req.user?.userId,
                 notes: `Withdrawn for maintenance: ${maintenance.description}`
               });
